@@ -264,6 +264,8 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
         notes: currentQuote.notes || '',
         salespersonUsername: currentUser.username,
         salespersonFullName: currentUser.fullName || currentUser.username,
+        paymentDate: currentQuote.paymentDate || null,
+        deliveryDeadline: currentQuote.deliveryDeadline || null,
         createdAt: new Date().toISOString(),
       };
 
