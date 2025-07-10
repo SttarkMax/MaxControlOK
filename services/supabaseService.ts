@@ -24,7 +24,11 @@ export const companyService = {
         .select('*')
         .single();
       
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // No rows returned - this is expected when no company is configured yet
+          return null;
+        }
         handleSupabaseError(error);
       }
       
@@ -42,6 +46,10 @@ export const companyService = {
         website: data.website,
       };
     } catch (error) {
+      // Check if this is the specific "no rows" error
+      if (error && typeof error === 'object' && 'code' in error && error.code === 'PGRST116') {
+        return null;
+      }
       handleSupabaseError(error);
       return null;
     }
