@@ -47,7 +47,10 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
           } catch (error) {
             // If user data not found, use basic info
             try {
-            onLogin('admin');
+              onLogin('admin');
+            } catch (error) {
+              throw error;
+            }
           }
         }
       } else {
