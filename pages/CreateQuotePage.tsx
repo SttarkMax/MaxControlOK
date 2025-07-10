@@ -407,8 +407,53 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
       doc.text(`Desconto: ${formatCurrency(currentQuote.discountAmountCalculated!)}`, pageWidth - margin, yPos, { align: 'right' });
     }
     yPos += 6;
+    doc.text(`Subtotal com Desconto: ${formatCurrency(currentQuote.subtotalAfterDiscount!)}`, pageWidth - margin, yPos, { align: 'right' });
+    yPos += 8;
+    
+    // Totals section with both prices
     doc.setFont('helvetica', 'bold');
-    doc.text(`Total: ${formatCurrency(currentQuote.totalCash!)}`, pageWidth - margin, yPos, { align: 'right' });
+    doc.text(`TOTAL À VISTA: ${formatCurrency(currentQuote.totalCash!)}`, pageWidth - margin, yPos, { align: 'right' });
+    yPos += 6;
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Total no Cartão: ${formatCurrency(currentQuote.totalCard!)}`, pageWidth - margin, yPos, { align: 'right' });
+    
+    // Payment method and installment info
+    if (currentQuote.selectedPaymentMethod) {
+      yPos += 8;
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Forma de Pagamento: ${currentQuote.selectedPaymentMethod}`, margin, yPos);
+      
+      // Add installment details if it's a credit card payment
+      if (currentQuote.selectedPaymentMethod.toLowerCase().includes('cartão de crédito') && 
+          currentQuote.selectedPaymentMethod.includes('x')) {
+        const match = currentQuote.selectedPaymentMethod.match(/(\d+)x/);
+        if (match && match[1]) {
+          const installments = parseInt(match[1], 10);
+          if (installments > 1) {
+            const installmentValue = currentQuote.totalCard! / installments;
+            yPos += 5;
+            doc.setFont('helvetica', 'normal');
+            doc.text(`(${installments}x de ${formatCurrency(installmentValue)} no cartão)`, margin, yPos);
+          }
+        }
+      }
+    }
+    
+    // Additional quote details
+    if (currentQuote.deliveryDeadline) {
+      yPos += 8;
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Prazo de Entrega: ${new Date(currentQuote.deliveryDeadline + 'T00:00:00').toLocaleDateString('pt-BR')}`, margin, yPos);
+    }
+    
+    if (currentQuote.notes) {
+      yPos += 8;
+      doc.setFont('helvetica', 'italic');
+      doc.text('Observações:', margin, yPos);
+      yPos += 5;
+      const notesLines = doc.splitTextToSize(currentQuote.notes, pageWidth - (2 * margin));
+      doc.text(notesLines, margin, yPos);
+    }
 
     doc.save(`Orcamento-${currentQuote.quoteNumber}.pdf`);
   };
