@@ -1073,5 +1073,23 @@ export const userService = {
       handleSupabaseError(error);
       return null;
     }
+  },
+
+  // Get user by email
+  async getUserByEmail(email: string) {
+    if (!supabase) return null;
+    
+    const { data, error } = await supabase
+      .from('app_users')
+      .select('*')
+      .eq('username', email.split('@')[0])
+      .single();
+    
+    if (error) {
+      console.log('User not found in app_users table:', error.message);
+      return null;
+    }
+    
+    return data;
   }
 };
