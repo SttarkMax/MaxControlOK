@@ -286,12 +286,57 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
     }
   };
 
-  const generatePDF = () => {
+  const generatePDF = async () => {
     if (!currentQuote.items?.length || !companyInfo) {
       alert('Adicione itens ao orçamento antes de gerar o PDF.');
       return;
     }
 
+    // Se for um novo orçamento (não está editando), salvar primeiro como 'sent'
+    if (!isEditing) {
+      if (!currentQuote.clientName?.trim()) {
+        alert('Por favor, informe o nome do cliente antes de gerar o PDF.');
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        const quoteToSave: Omit<Quote, 'id'> = {
+          quoteNumber: currentQuote.quoteNumber!,
+          customerId: currentQuote.customerId,
+          clientName: currentQuote.clientName,
+          clientContact: currentQuote.clientContact || '',
+          items: currentQuote.items,
+          subtotal: currentQuote.subtotal!,
+          discountType: currentQuote.discountType as any,
+          discountValue: currentQuote.discountValue!,
+          discountAmountCalculated: currentQuote.discountAmountCalculated!,
+          subtotalAfterDiscount: currentQuote.subtotalAfterDiscount!,
+          totalCash: currentQuote.totalCash!,
+          totalCard: currentQuote.totalCard!,
+          downPaymentApplied: currentQuote.downPaymentApplied || 0,
+          selectedPaymentMethod: currentQuote.selectedPaymentMethod,
+          paymentDate: currentQuote.paymentDate || null,
+          deliveryDeadline: currentQuote.deliveryDeadline || null,
+          status: 'sent', // Marcar como enviado quando gerar PDF
+          companyInfoSnapshot: companyInfo,
+          notes: currentQuote.notes || '',
+          salespersonUsername: currentUser.username,
+          salespersonFullName: currentUser.fullName || currentUser.username,
+          createdAt: new Date().toISOString(),
+        };
+
+        const savedQuote = await createQuote(quoteToSave);
+        setCurrentQuote(prev => ({ ...prev, ...savedQuote, status: 'sent' }));
+      } catch (error) {
+        console.error('Erro ao salvar orçamento:', error);
+        alert('Erro ao salvar orçamento. Tente novamente.');
+        setIsLoading(false);
+        return;
+      } finally {
+        setIsLoading(false);
+      }
+    }
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
     const margin = 10;
@@ -363,6 +408,32 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
     doc.save(`Orcamento-${currentQuote.quoteNumber}.pdf`);
   };
 
+  const handleCloseQuote = async () => {
+    if (!currentQuote.id && !quoteId) {
+      alert('Salve o orçamento primeiro antes de fechá-lo.');
+      return;
+    }
+
+    if (window.confirm('Tem certeza que deseja fechar este orçamento? Esta ação marcará o orçamento como aceito.')) {
+      setIsLoading(true);
+      try {
+        const quoteToUpdate = {
+          ...currentQuote,
+          id: quoteId || currentQuote.id!,
+          status: 'accepted' as const
+        };
+        
+        await updateQuote(quoteToUpdate as Quote);
+        setCurrentQuote(prev => ({ ...prev, status: 'accepted' }));
+        alert('Orçamento fechado com sucesso!');
+      } catch (error) {
+        console.error('Erro ao fechar orçamento:', error);
+        alert('Erro ao fechar orçamento. Tente novamente.');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
   if (productsLoading || customersLoading || companyLoading) {
     return (
       <div className="p-6 text-white flex items-center justify-center">
@@ -398,14 +469,34 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
           <h2 className="text-2xl font-semibold text-white">
             {isEditing ? 'Editar Orçamento' : 'Criar Novo Orçamento'}
           </h2>
+          {currentQuote.status && (
+            <span className={`ml-4 px-3 py-1 text-xs rounded-full font-medium ${
+              currentQuote.status === 'accepted' ? 'bg-green-600 text-white' :
+              currentQuote.status === 'sent' ? 'bg-blue-600 text-white' :
+              'bg-yellow-600 text-black'
+            }`}>
+              {currentQuote.status === 'accepted' ? 'Aceito' :
+               currentQuote.status === 'sent' ? 'Enviado' : 'Rascunho'}
+            </span>
+          )}
         </div>
         <div className="flex gap-3">
           <Button onClick={() => navigate('/')} variant="secondary">
             Cancelar
           </Button>
           <Button onClick={generatePDF} variant="outline" disabled={!currentQuote.items?.length}>
-            Gerar PDF
+            {!isEditing ? 'Enviar Orçamento (PDF)' : 'Gerar PDF'}
           </Button>
+          {(isEditing || currentQuote.status === 'sent') && currentQuote.status !== 'accepted' && (
+            <Button 
+              onClick={handleCloseQuote} 
+              variant="success" 
+              isLoading={isLoading}
+              iconLeft={<CheckCircleIcon className="w-5 h-5" />}
+            >
+              Fechar Orçamento
+            </Button>
+          )}
           <Button 
             onClick={handleSaveQuote} 
             variant="primary" 
