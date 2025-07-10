@@ -36,17 +36,16 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
           if (authError.message === 'Invalid login credentials') {
               setShowInstructions(true);
               throw new Error('Usuário não encontrado no Supabase. Veja as instruções abaixo para criar o usuário.');
-            }
-            throw new Error(error.message);
+          }
           throw new Error(authError.message);
+        }
 
-          if (data.user) {
-            // Try to get user data from app_users table
-            try {
-              const userData = await supabaseService.getUserByEmail(email);
+        if (data.user) {
+          // Try to get user data from app_users table
+          try {
             const userData = await userService.getUserByEmail(email);
             onLogin(userData?.username || 'admin');
-              throw error;
+          } catch (error) {
             // If user data not found, use basic info
             onLogin('admin');
           }
