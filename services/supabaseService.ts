@@ -29,7 +29,9 @@ const checkSupabaseConnection = () => {
 export const companyService = {
   async getCompany(): Promise<CompanyInfo | null> {
     if (!checkSupabaseConnection()) {
-      return null;
+      console.warn('Supabase not configured, using localStorage fallback');
+      const stored = localStorage.getItem('companyInfo');
+      return stored ? JSON.parse(stored) : null;
     }
     
     try {
@@ -63,7 +65,9 @@ export const companyService = {
 
   async saveCompany(company: CompanyInfo): Promise<void> {
     if (!checkSupabaseConnection()) {
-      throw new Error('Supabase não configurado. Configure as credenciais no arquivo .env.local');
+      console.warn('Supabase not configured, using localStorage fallback');
+      localStorage.setItem('companyInfo', JSON.stringify(company));
+      return;
     }
     
     try {
