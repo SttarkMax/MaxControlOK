@@ -297,7 +297,7 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
       return;
     }
 
-    // Se for um novo orçamento (não está editando), salvar primeiro como 'sent'
+    // Se for um novo orçamento (não está editando), salvar primeiro
     if (!isEditing) {
       if (!currentQuote.clientName?.trim()) {
         alert('Por favor, informe o nome do cliente antes de gerar o PDF.');
@@ -323,7 +323,7 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
           selectedPaymentMethod: currentQuote.selectedPaymentMethod,
           paymentDate: currentQuote.paymentDate || null,
           deliveryDeadline: currentQuote.deliveryDeadline || null,
-          status: 'sent', // Marcar como enviado quando gerar PDF
+          status: currentQuote.status as any || 'sent', // Usar status selecionado ou 'sent' como padrão
           companyInfoSnapshot: companyInfo,
           notes: currentQuote.notes || '',
           salespersonUsername: currentUser.username,
@@ -332,7 +332,7 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
         };
 
         const savedQuote = await createQuote(quoteToSave);
-        setCurrentQuote(prev => ({ ...prev, ...savedQuote, status: 'sent' }));
+        setCurrentQuote(prev => ({ ...prev, ...savedQuote }));
       } catch (error) {
         console.error('Erro ao salvar orçamento:', error);
         alert('Erro ao salvar orçamento. Tente novamente.');
@@ -709,6 +709,56 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
           <div className="bg-[#1d1d1d] p-6 rounded-lg shadow-lg">
             <h3 className="text-lg font-semibold text-white mb-4">Detalhes Adicionais</h3>
             <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-200 mb-2">Status do Orçamento</label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentQuote(prev => ({ ...prev, status: 'draft' }))}
+                    className={`p-3 rounded-lg border-2 transition-all duration-200 flex items-center justify-center ${
+                      currentQuote.status === 'draft' 
+                        ? 'border-yellow-500 bg-yellow-500/20 text-yellow-300' 
+                        : 'border-gray-600 bg-gray-700/50 text-gray-400 hover:border-yellow-500/50'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                      <span className="text-sm font-medium">Rascunho</span>
+                    </div>
+                  </button>
+                  
+                  <button
+                    type="button"
+                    onClick={() => setCurrentQuote(prev => ({ ...prev, status: 'sent' }))}
+                    className={`p-3 rounded-lg border-2 transition-all duration-200 flex items-center justify-center ${
+                      currentQuote.status === 'sent' 
+                        ? 'border-blue-500 bg-blue-500/20 text-blue-300' 
+                        : 'border-gray-600 bg-gray-700/50 text-gray-400 hover:border-blue-500/50'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                      <span className="text-sm font-medium">Enviado</span>
+                    </div>
+                  </button>
+                  
+                  <button
+                    type="button"
+                    onClick={() => setCurrentQuote(prev => ({ ...prev, status: 'accepted' }))}
+                    className={`p-3 rounded-lg border-2 transition-all duration-200 flex items-center justify-center ${
+                      currentQuote.status === 'accepted' 
+                        ? 'border-green-500 bg-green-500/20 text-green-300' 
+                        : 'border-gray-600 bg-gray-700/50 text-gray-400 hover:border-green-500/50'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                      <span className="text-sm font-medium">Aceito</span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+              
               <Input
                 label="Forma de Pagamento"
                 value={currentQuote.selectedPaymentMethod || ''}
