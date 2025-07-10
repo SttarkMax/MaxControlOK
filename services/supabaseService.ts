@@ -15,9 +15,22 @@ import {
   UserAccessLevel
 } from '../types';
 
+// Helper function to check if Supabase is configured
+const checkSupabaseConnection = () => {
+  if (!supabase) {
+    console.warn('Supabase not configured. Operations will be skipped.');
+    return false;
+  }
+  return true;
+};
+
 // Company Services
 export const companyService = {
   async getCompany(): Promise<CompanyInfo | null> {
+    if (!checkSupabaseConnection()) {
+      return null;
+    }
+    
     try {
       const { data, error } = await supabase
         .from('companies')
@@ -48,6 +61,10 @@ export const companyService = {
   },
 
   async saveCompany(company: CompanyInfo): Promise<void> {
+    if (!checkSupabaseConnection()) {
+      throw new Error('Supabase não configurado. Configure as credenciais no arquivo .env.local');
+    }
+    
     try {
       const { error } = await supabase
         .from('companies')
