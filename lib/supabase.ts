@@ -12,6 +12,11 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 
 // Helper function to handle Supabase errors
 export const handleSupabaseError = (error: any) => {
+  // Handle PGRST116 (no rows found) as a non-critical error
+  if (error?.code === 'PGRST116') {
+    return; // Don't throw an error for 'no rows found' scenarios
+  }
+  
   console.error('Supabase error:', error);
   if (error?.message) {
     throw new Error(error.message);
