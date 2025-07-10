@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { supabase } from './lib/supabase';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import LoginPage from './pages/LoginPage';
@@ -19,16 +20,58 @@ import AccountsPayablePage from './pages/AccountsPayablePage';
 import ViewQuoteDetailsModal from './components/ViewQuoteDetailsModal'; 
 import { UserAccessLevel, CompanyInfo, Quote, User, LoggedInUser } from './types'; 
 import { DEFAULT_USER_ACCESS_LEVEL, USERS_STORAGE_KEY } from './constants';
+import { useCompany } from './hooks/useSupabaseData';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [currentUser, setCurrentUser] = useState<LoggedInUser | null>(null);
-  const [companyDetails, setCompanyDetails] = useState<CompanyInfo | null>(null);
+  const { company: companyDetails } = useCompany();
   
   const [selectedQuoteForGlobalView, setSelectedQuoteForGlobalView] = useState<Quote | null>(null);
   const [isViewDetailsModalOpenForGlobal, setIsViewDetailsModalOpenForGlobal] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  // Check for existing Supabase session on app load
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        // User is authenticated with Supabase
+        const userData: LoggedInUser = {
+          id: session.user.id,
+          username: session.user.email || 'User',
+          fullName: session.user.user_metadata?.full_name || session.user.email || 'User',
+          role: session.user.user_metadata?.role || DEFAULT_USER_ACCESS_LEVEL,
+        };
+        setCurrentUser(userData);
+        setIsAuthenticated(true);
+        localStorage.setItem('currentUser', JSON.stringify(userData));
+      }
+    };
+    
+    checkSession();
+    
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        const userData: LoggedInUser = {
+          id: session.user.id,
+          username: session.user.email || 'User',
+          fullName: session.user.user_metadata?.full_name || session.user.email || 'User',
+          role: session.user.user_metadata?.role || DEFAULT_USER_ACCESS_LEVEL,
+        };
+        setCurrentUser(userData);
+        setIsAuthenticated(true);
+        localStorage.setItem('currentUser', JSON.stringify(userData));
+      } else if (event === 'SIGNED_OUT') {
+        setCurrentUser(null);
+        setIsAuthenticated(false);
+        localStorage.removeItem('currentUser');
+      }
+    });
+    
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     const savedUser = localStorage.getItem('currentUser');
@@ -38,22 +81,10 @@ const App: React.FC = () => {
       setIsAuthenticated(true);
     }
 
-    const savedCompanyInfo = localStorage.getItem('companyInfo');
-    if (savedCompanyInfo) {
-      setCompanyDetails(JSON.parse(savedCompanyInfo));
-    }
-    
   }, []);
 
   useEffect(() => {
     const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === 'companyInfo') {
-        if (event.newValue) {
-          setCompanyDetails(JSON.parse(event.newValue));
-        } else {
-          setCompanyDetails(null);
-        }
-      }
       if (event.key === 'currentUser') { // Keep currentUser state in sync
         if (event.newValue) {
           setCurrentUser(JSON.parse(event.newValue));
@@ -99,14 +130,11 @@ const App: React.FC = () => {
     setCurrentUser(userToSet);
     setIsAuthenticated(true);
     localStorage.setItem('currentUser', JSON.stringify(userToSet));
-    
-    const savedCompanyInfo = localStorage.getItem('companyInfo');
-    if (savedCompanyInfo) {
-      setCompanyDetails(JSON.parse(savedCompanyInfo));
-    }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Sign out from Supabase if authenticated
+    await supabase.auth.signOut();
     setCurrentUser(null);
     setIsAuthenticated(false);
     localStorage.removeItem('currentUser');
