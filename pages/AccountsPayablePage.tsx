@@ -1,6 +1,8 @@
 
 
 import React, { useState, useMemo } from 'react';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { AccountsPayableEntry } from '../types';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
