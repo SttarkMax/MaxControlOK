@@ -69,10 +69,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ userName, userRole, openG
     if (!allQuotes.length) return;
 
     const acceptedForChart = allQuotes.filter(q => q.status === 'accepted' || q.status === 'converted_to_order');
-    const currentDrafts = allQuotes
-      .filter(q => q.status === 'draft')
+    const currentSentQuotes = allQuotes
+      .filter(q => q.status === 'sent')
       .sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    setDraftQuotes(currentDrafts);
+    setDraftQuotes(currentSentQuotes);
 
     const now = new Date();
     const currentMonth = now.getMonth();
@@ -301,7 +301,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ userName, userRole, openG
       <div className="bg-[#1d1d1d] p-6 rounded-xl shadow-lg mb-8">
         <div className="flex items-center mb-4">
             <PencilIcon className="h-6 w-6 text-yellow-500 mr-2" />
-            <h2 className="text-xl font-semibold text-white">Orçamentos em Aberto</h2>
+            <h2 className="text-xl font-semibold text-white">Orçamentos em Aberto (Enviados)</h2>
         </div>
         {draftQuotes.length > 0 ? (
             <div className="overflow-x-auto">
@@ -338,7 +338,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ userName, userRole, openG
                 </table>
             </div>
         ) : (
-            <p className="text-gray-400">Nenhum orçamento em aberto encontrado.</p>
+            <p className="text-gray-400">Nenhum orçamento enviado aguardando resposta.</p>
         )}
       </div>
       
