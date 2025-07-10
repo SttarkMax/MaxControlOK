@@ -71,24 +71,63 @@ export const companyService = {
     }
     
     try {
-      const { error } = await supabase
-        .from('companies')
-        .upsert({
-          name: company.name,
-          logo_url_dark_bg: company.logoUrlDarkBg,
-          logo_url_light_bg: company.logoUrlLightBg,
-          address: company.address,
-          phone: company.phone,
-          email: company.email,
-          cnpj: company.cnpj,
-          instagram: company.instagram,
-          website: company.website,
-          updated_at: new Date().toISOString(),
-        });
+      console.log('Attempting to save company:', company);
       
-      if (error) handleSupabaseError(error);
+      // First, check if a company record exists
+      const { data: existingCompany, error: selectError } = await supabase
+        .from('companies')
+        .select('id')
+        .limit(1)
+        .maybeSingle();
+      
+      if (selectError && selectError.code !== 'PGRST116') {
+        console.error('Error checking existing company:', selectError);
+        handleSupabaseError(selectError);
+        // Fallback to localStorage
+        localStorage.setItem('companyInfo', JSON.stringify(company));
+        return;
+      }
+      
+      const companyData = {
+        name: company.name,
+        logo_url_dark_bg: company.logoUrlDarkBg || null,
+        logo_url_light_bg: company.logoUrlLightBg || null,
+        address: company.address || '',
+        phone: company.phone || '',
+        email: company.email || '',
+        cnpj: company.cnpj || '',
+        instagram: company.instagram || '',
+        website: company.website || '',
+        updated_at: new Date().toISOString(),
+      };
+      
+      let result;
+      if (existingCompany) {
+        // Update existing record
+        result = await supabase
+          .from('companies')
+          .update(companyData)
+          .eq('id', existingCompany.id);
+      } else {
+        // Insert new record
+        result = await supabase
+          .from('companies')
+          .insert(companyData);
+      }
+      
+      if (result.error) {
+        console.error('Supabase save error:', result.error);
+        handleSupabaseError(result.error);
+        // Fallback to localStorage
+        localStorage.setItem('companyInfo', JSON.stringify(company));
+        return;
+      }
+      
+      console.log('Company saved successfully to Supabase');
     } catch (error) {
-      handleSupabaseError(error);
+      console.error('Unexpected error saving company:', error);
+      // Fallback to localStorage
+      localStorage.setItem('companyInfo', JSON.stringify(company));
     }
   }
 };

@@ -47,8 +47,10 @@ const CompanySettingsPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Submitting company form:', companyInfo);
     try {
       await saveCompany(companyInfo);
+      console.log('Company saved successfully');
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 3000); // Hide message after 3 seconds
     } catch (error) {
