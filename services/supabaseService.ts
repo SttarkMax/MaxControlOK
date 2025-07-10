@@ -1,3 +1,4 @@
+import bcrypt from 'bcryptjs';
 import { supabase, handleSupabaseError } from '../lib/supabase';
 import { 
   CompanyInfo, 
@@ -977,8 +978,8 @@ export const userService = {
 
   async createUser(user: Omit<User, 'id'> & { password: string }): Promise<User> {
     try {
-      // In a real app, you would hash the password here
-      const passwordHash = btoa(user.password); // Simple base64 encoding for demo
+      // Hash the password properly
+      const passwordHash = await bcrypt.hash(user.password, 10);
       
       const { data, error } = await supabase
         .from('app_users')
@@ -1016,7 +1017,7 @@ export const userService = {
       };
       
       if (user.password) {
-        updateData.password_hash = btoa(user.password);
+        updateData.password_hash = await bcrypt.hash(user.password, 10);
       }
       
       const { error } = await supabase
@@ -1033,13 +1034,44 @@ export const userService = {
   async deleteUser(id: string): Promise<void> {
     try {
       const { error } = await supabase
-        .from('users')
+        .from('app_users')
         .delete()
         .eq('id', id);
       
       if (error) handleSupabaseError(error);
     } catch (error) {
       handleSupabaseError(error);
+    }
+  },
+
+  async authenticateUser(username: string, password: string): Promise<User | null> {
+    try {
+      const { data, error } = await supabase
+        .from('app_users')
+        .select('*')
+        .eq('username', username)
+        .single();
+      
+      if (error || !data) {
+        return null;
+      }
+      
+      // Verify password
+      const isValidPassword = await bcrypt.compare(password, data.password_hash);
+      if (!isValidPassword) {
+        return null;
+      }
+      
+      return {
+        id: data.id,
+        username: data.username,
+        fullName: data.full_name,
+        password: '',
+        role: data.role as UserAccessLevel,
+      };
+    } catch (error) {
+      handleSupabaseError(error);
+      return null;
     }
   }
 };

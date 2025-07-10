@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
 import { APP_NAME } from '../constants';
@@ -10,14 +11,45 @@ interface LoginPageProps {
 }
 
 const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
-  const [username, setUsername] = useState('Admin User'); // Default for demo
-  const [password, setPassword] = useState('password'); // Dummy password
+  const [email, setEmail] = useState('admin@example.com');
+  const [password, setPassword] = useState('password123');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    onLogin(username);
-    navigate('/');
+    setIsLoading(true);
+    setError('');
+
+    try {
+      if (supabase) {
+        // Try Supabase authentication first
+        const { data, error: authError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (authError) {
+          throw authError;
+        }
+
+        if (data.user) {
+          // Supabase authentication successful - the auth state change will be handled in App.tsx
+          navigate('/');
+          return;
+        }
+      }
+      
+      // Fallback to simulated authentication if Supabase is not configured
+      onLogin(email.split('@')[0] || 'User');
+      navigate('/');
+    } catch (error: any) {
+      console.error('Login error:', error);
+      setError(error.message || 'Erro ao fazer login');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -33,31 +65,45 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleLogin}>
+          {error && (
+            <div className="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded">
+              {error}
+            </div>
+          )}
           <Input
-            label="Nome de Usuário (Simulado)"
-            id="username"
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            label="Email"
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             required
-            placeholder="Ex: João Silva"
+            placeholder="admin@example.com"
           />
           <Input
-            label="Senha (Simulada)"
+            label="Senha"
             id="password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            placeholder="********"
+            placeholder="password123"
           />
-          <Button type="submit" variant="primary" size="lg" className="w-full">
-            Entrar
+          <Button 
+            type="submit" 
+            variant="primary" 
+            size="lg" 
+            className="w-full"
+            isLoading={isLoading}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Entrando...' : 'Entrar'}
           </Button>
         </form>
-         <p className="mt-4 text-center text-xs text-gray-400">
-            Esta é uma simulação. Nenhuma senha real é necessária.
-          </p>
+        <div className="mt-4 text-center text-xs text-gray-400">
+          <p>Credenciais padrão:</p>
+          <p>Email: admin@example.com</p>
+          <p>Senha: password123</p>
+        </div>
       </div>
     </div>
   );

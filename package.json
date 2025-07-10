@@ -11,6 +11,8 @@
   "dependencies": {
     "@google/genai": "^1.7.0",
     "@supabase/supabase-js": "^2.50.5",
+    "@types/bcryptjs": "^2.4.6",
+    "bcryptjs": "^3.0.2",
     "chart.js": "^4.4.2",
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.8.2",
