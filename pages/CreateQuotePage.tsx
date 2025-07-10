@@ -287,8 +287,13 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
   };
 
   const generatePDF = async () => {
-    if (!currentQuote.items?.length || !companyInfo) {
+    if (!currentQuote.items?.length) {
       alert('Adicione itens ao orçamento antes de gerar o PDF.');
+      return;
+    }
+    
+    if (!companyInfo) {
+      alert('Informações da empresa não encontradas. Configure a empresa primeiro.');
       return;
     }
 
