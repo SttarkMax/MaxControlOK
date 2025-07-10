@@ -504,11 +504,11 @@ const ProductsPage: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Ações</th>
               </tr>
             </thead>
-            <tbody className="bg-black divide-y divide-[#282828]">
+            <tbody className="bg-[#1F1F1F] divide-y divide-[#282828]">
               {filteredProducts.map(product => {
                 const { cashPrice, cardPrice } = getEffectivePrices(product);
                 return (
-                  <tr key={product.id} className={`hover:bg-[#1d1d1d] ${selectedProductIds.has(product.id) ? 'bg-[#282828]' : ''}`}>
+                  <tr key={product.id} className={`hover:bg-[#2A2A2A] ${selectedProductIds.has(product.id) ? 'bg-[#282828]' : ''}`}>
                     <td className="px-4 py-4 whitespace-nowrap">
                       <Input 
                         type="checkbox"
