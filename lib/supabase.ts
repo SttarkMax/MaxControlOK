@@ -4,18 +4,13 @@ import { Database } from './database.types';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes('your-project-url-here') || supabaseAnonKey.includes('your-anon-key-here')) {
-  console.error('⚠️  Supabase not configured properly. Please update your .env.local file with your actual Supabase credentials.');
-  console.error('📋 Instructions:');
-  console.error('1. Go to https://supabase.com/dashboard');
-  console.error('2. Select your project');
-  console.error('3. Go to Settings -> API');
-  console.error('4. Copy your Project URL and anon public key');
-  console.error('5. Update VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.local');
-}
+const isSupabaseConfigured = supabaseUrl && 
+  supabaseAnonKey && 
+  !supabaseUrl.includes('your-project-url-here') && 
+  !supabaseAnonKey.includes('your-anon-key-here');
 
-export const supabase = supabaseUrl && supabaseAnonKey && !supabaseUrl.includes('your-project-url-here') 
-  ? createClient<Database>(supabaseUrl, supabaseAnonKey)
+export const supabase = isSupabaseConfigured 
+  ? createClient<Database>(supabaseUrl, supabaseAnonKey) 
   : null;
 
 // Helper function to handle Supabase errors

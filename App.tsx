@@ -34,6 +34,11 @@ const App: React.FC = () => {
   // Check for existing Supabase session on app load
   useEffect(() => {
     const checkSession = async () => {
+      // Skip Supabase auth check if not configured
+      if (!supabase) {
+        return;
+      }
+      
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         // User is authenticated with Supabase
@@ -52,25 +57,34 @@ const App: React.FC = () => {
     checkSession();
     
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-        const userData: LoggedInUser = {
-          id: session.user.id,
-          username: session.user.email || 'User',
-          fullName: session.user.user_metadata?.full_name || session.user.email || 'User',
-          role: session.user.user_metadata?.role || DEFAULT_USER_ACCESS_LEVEL,
-        };
-        setCurrentUser(userData);
-        setIsAuthenticated(true);
-        localStorage.setItem('currentUser', JSON.stringify(userData));
-      } else if (event === 'SIGNED_OUT') {
-        setCurrentUser(null);
-        setIsAuthenticated(false);
-        localStorage.removeItem('currentUser');
-      }
-    });
+    let subscription: any = null;
     
-    return () => subscription.unsubscribe();
+    if (supabase) {
+      const { data } = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) {
+          const userData: LoggedInUser = {
+            id: session.user.id,
+            username: session.user.email || 'User',
+            fullName: session.user.user_metadata?.full_name || session.user.email || 'User',
+            role: session.user.user_metadata?.role || DEFAULT_USER_ACCESS_LEVEL,
+          };
+          setCurrentUser(userData);
+          setIsAuthenticated(true);
+          localStorage.setItem('currentUser', JSON.stringify(userData));
+        } else if (event === 'SIGNED_OUT') {
+          setCurrentUser(null);
+          setIsAuthenticated(false);
+          localStorage.removeItem('currentUser');
+        }
+      });
+      subscription = data.subscription;
+    }
+    
+    return () => {
+      if (subscription) {
+        subscription.unsubscribe();
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -134,7 +148,9 @@ const App: React.FC = () => {
 
   const handleLogout = async () => {
     // Sign out from Supabase if authenticated
-    await supabase.auth.signOut();
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
     setCurrentUser(null);
     setIsAuthenticated(false);
     localStorage.removeItem('currentUser');
