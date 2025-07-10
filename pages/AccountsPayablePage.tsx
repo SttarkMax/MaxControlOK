@@ -21,6 +21,7 @@ import {
   ChartData,
   ChartOptions,
 } from 'chart.js';
+import DocumentTextIcon from '../components/icons/DocumentTextIcon';
 import { useAccountsPayable } from '../hooks/useSupabaseData';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
@@ -52,6 +53,124 @@ const AccountsPayablePage: React.FC = () => {
   const [selectedFilterYear, setSelectedFilterYear] = useState<number>(new Date().getFullYear());
   const [selectedFilterMonth, setSelectedFilterMonth] = useState<number>(new Date().getMonth() + 1); // 1-12
 
+  const generateFilteredReport = () => {
+    if (filteredEntries.length === 0) {
+      alert('Nenhuma conta encontrada para gerar o relatório.');
+      return;
+    }
+
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    const margin = 10;
+    let yPos = 15;
+
+    // Header
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Relatório de Contas a Pagar', pageWidth / 2, yPos, { align: 'center' });
+    yPos += 10;
+
+    // Filter information
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    
+    let filterDescription = 'Filtros aplicados: ';
+    
+    // Status filter
+    const statusLabels = { all: 'Todas', pending: 'Pendentes', paid: 'Pagas' };
+    filterDescription += `Status: ${statusLabels[filterStatus]}`;
+    
+    // Time filter
+    if (timeFilter !== 'all') {
+      const timeLabels = {
+        week: 'Esta Semana',
+        month: 'Este Mês',
+        specific_month: `${monthOptions.find(m => m.value === selectedFilterMonth)?.label} de ${selectedFilterYear}`
+      };
+      filterDescription += ` | Período: ${timeLabels[timeFilter]}`;
+    }
+    
+    if (searchTerm) {
+      filterDescription += ` | Busca: "${searchTerm}"`;
+    }
+    
+    doc.text(filterDescription, margin, yPos);
+    yPos += 8;
+    
+    doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, margin, yPos);
+    yPos += 15;
+
+    // Summary
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Resumo:', margin, yPos);
+    yPos += 8;
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Total de contas: ${filteredEntries.length}`, margin, yPos);
+    yPos += 5;
+    doc.text(`Total geral: ${formatCurrency(totalVisible)}`, margin, yPos);
+    yPos += 5;
+    doc.text(`Total pago: ${formatCurrency(totalPaid)}`, margin, yPos);
+    yPos += 5;
+    doc.text(`Total pendente: ${formatCurrency(totalPending)}`, margin, yPos);
+    yPos += 15;
+
+    // Table
+    const tableBody = filteredEntries.map(entry => [
+      entry.name,
+      new Date(entry.dueDate + "T00:00:00").toLocaleDateString('pt-BR'),
+      formatCurrency(entry.amount),
+      entry.isPaid ? 'Paga' : 'Pendente',
+      entry.notes || '-'
+    ]);
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [['Nome da Conta', 'Vencimento', 'Valor', 'Status', 'Observações']],
+      body: tableBody,
+      theme: 'striped',
+      headStyles: { fillColor: [40, 40, 40] },
+      margin: { left: margin, right: margin },
+      styles: { fontSize: 8 },
+      columnStyles: {
+        0: { cellWidth: 'auto' },
+        1: { cellWidth: 25, halign: 'center' },
+        2: { cellWidth: 25, halign: 'right' },
+        3: { cellWidth: 20, halign: 'center' },
+        4: { cellWidth: 'auto' }
+      },
+      didParseCell: function(data) {
+        // Color paid entries in green and pending in red
+        if (data.column.index === 3) {
+          if (data.cell.text[0] === 'Paga') {
+            data.cell.styles.textColor = [34, 197, 94]; // green
+          } else {
+            data.cell.styles.textColor = [239, 68, 68]; // red
+          }
+        }
+      }
+    });
+
+    // Footer
+    // @ts-ignore
+    const finalY = doc.lastAutoTable.finalY + 10;
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'italic');
+    doc.text('Relatório gerado pelo sistema MaxControl', pageWidth / 2, finalY, { align: 'center' });
+
+    // Generate filename based on filters
+    let filename = 'Contas_a_Pagar';
+    if (timeFilter === 'specific_month') {
+      filename += `_${selectedFilterMonth.toString().padStart(2, '0')}_${selectedFilterYear}`;
+    } else if (timeFilter !== 'all') {
+      filename += `_${timeFilter}`;
+    }
+    filename += `_${new Date().toISOString().slice(0, 10)}.pdf`;
+
+    doc.save(filename);
+  };
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     
@@ -408,9 +527,19 @@ const AccountsPayablePage: React.FC = () => {
           <BanknotesIcon className="h-8 w-8 text-yellow-500 mr-3" />
           <h2 className="text-2xl font-semibold text-white">Contas a Pagar</h2>
         </div>
-        <Button onClick={openModalForNew} variant="primary" iconLeft={<PlusIcon className="w-5 h-5"/>}>
-          Adicionar Nova Conta
-        </Button>
+        <div className="flex gap-3">
+          <Button 
+            onClick={generateFilteredReport} 
+            variant="outline" 
+            iconLeft={<DocumentTextIcon className="w-5 h-5"/>}
+            disabled={filteredEntries.length === 0}
+          >
+            Gerar Relatório PDF
+          </Button>
+          <Button onClick={openModalForNew} variant="primary" iconLeft={<PlusIcon className="w-5 h-5"/>}>
+            Adicionar Nova Conta
+          </Button>
+        </div>
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6">
