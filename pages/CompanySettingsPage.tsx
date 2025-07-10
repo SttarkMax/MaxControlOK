@@ -20,10 +20,12 @@ const CompanySettingsPage: React.FC = () => {
     instagram: '',
     website: '',
   });
+  const [isLoading, setIsLoading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
 
   React.useEffect(() => {
     if (company) {
+      console.log('Loading company data:', company);
       setCompanyInfo(company);
     }
   }, [company]);
@@ -47,6 +49,7 @@ const CompanySettingsPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     console.log('Submitting company form:', companyInfo);
     try {
       await saveCompany(companyInfo);
@@ -56,6 +59,8 @@ const CompanySettingsPage: React.FC = () => {
     } catch (error) {
       console.error('Erro ao salvar informações da empresa:', error);
       alert('Erro ao salvar informações da empresa. Tente novamente.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -81,6 +86,14 @@ const CompanySettingsPage: React.FC = () => {
         </div>
       )}
 
+      {/* Debug info - remove in production */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="mb-4 p-3 bg-blue-900 border border-blue-700 text-white rounded-md text-xs">
+          <strong>Debug:</strong> Company loaded: {company ? 'Yes' : 'No'} | 
+          Form name: "{companyInfo.name}" | 
+          Form phone: "{companyInfo.phone}"
+        </div>
+      )}
       <form onSubmit={handleSubmit} className="space-y-6">
         <Input
           label="Nome da Empresa"
@@ -90,6 +103,7 @@ const CompanySettingsPage: React.FC = () => {
           value={companyInfo.name}
           onChange={handleChange}
           required
+          placeholder="Digite o nome da sua empresa"
         />
         
         <div className="space-y-6">
@@ -133,6 +147,7 @@ const CompanySettingsPage: React.FC = () => {
           value={companyInfo.address}
           onChange={handleChange}
           rows={3}
+          placeholder="Rua, número, bairro, cidade, estado, CEP"
         />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Input
@@ -142,6 +157,7 @@ const CompanySettingsPage: React.FC = () => {
             type="tel"
             value={companyInfo.phone}
             onChange={handleChange}
+            placeholder="(11) 99999-9999"
           />
           <Input
             label="Email"
@@ -150,6 +166,7 @@ const CompanySettingsPage: React.FC = () => {
             type="email"
             value={companyInfo.email}
             onChange={handleChange}
+            placeholder="contato@suaempresa.com.br"
           />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -179,11 +196,12 @@ const CompanySettingsPage: React.FC = () => {
           type="text"
           value={companyInfo.cnpj || ''}
           onChange={handleChange}
+          placeholder="00.000.000/0001-00"
         />
         
         <div className="pt-4">
-          <Button type="submit" variant="primary" size="lg">
-            Salvar Informações
+          <Button type="submit" variant="primary" size="lg" isLoading={isLoading} disabled={isLoading}>
+            {isLoading ? 'Salvando...' : 'Salvar Informações'}
           </Button>
         </div>
       </form>

@@ -31,22 +31,38 @@ export const companyService = {
     if (!checkSupabaseConnection()) {
       console.warn('Supabase not configured, using localStorage fallback');
       const stored = localStorage.getItem('companyInfo');
-      return stored ? JSON.parse(stored) : null;
+      const result = stored ? JSON.parse(stored) : null;
+      console.log('Company loaded from localStorage:', result);
+      return result;
     }
     
     try {
+      console.log('Attempting to load company from Supabase...');
       const { data, error } = await supabase
         .from('companies')
         .select('*')
         .maybeSingle();
       
       if (error) {
+        console.log('Supabase error, falling back to localStorage:', error);
         handleSupabaseError(error);
+        // Fallback to localStorage
+        const stored = localStorage.getItem('companyInfo');
+        const result = stored ? JSON.parse(stored) : null;
+        console.log('Company loaded from localStorage (fallback):', result);
+        return result;
       }
       
-      if (!data) return null;
+      if (!data) {
+        console.log('No company data in Supabase, checking localStorage...');
+        // Check localStorage as fallback
+        const stored = localStorage.getItem('companyInfo');
+        const result = stored ? JSON.parse(stored) : null;
+        console.log('Company loaded from localStorage (no Supabase data):', result);
+        return result;
+      }
       
-      return {
+      const result = {
         name: data.name,
         logoUrlDarkBg: data.logo_url_dark_bg || '',
         logoUrlLightBg: data.logo_url_light_bg || '',
@@ -57,9 +73,16 @@ export const companyService = {
         instagram: data.instagram,
         website: data.website,
       };
+      console.log('Company loaded from Supabase:', result);
+      return result;
     } catch (error) {
+      console.log('Exception loading from Supabase, using localStorage fallback:', error);
       handleSupabaseError(error);
-      return null;
+      // Fallback to localStorage
+      const stored = localStorage.getItem('companyInfo');
+      const result = stored ? JSON.parse(stored) : null;
+      console.log('Company loaded from localStorage (exception fallback):', result);
+      return result;
     }
   },
 
