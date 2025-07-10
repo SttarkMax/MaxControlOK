@@ -710,6 +710,26 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
                 onChange={(e) => setCurrentQuote(prev => ({ ...prev, selectedPaymentMethod: e.target.value }))}
                 placeholder="Ex: PIX, Cartão 2x, Dinheiro"
               />
+              <Select
+                label="Forma de Pagamento"
+                options={[
+                  { value: '', label: 'Selecione a forma de pagamento' },
+                  { value: 'PIX', label: 'PIX' },
+                  { value: 'Cartão de Débito', label: 'Cartão de Débito' },
+                  { value: 'Cartão de Crédito 1x', label: 'Cartão de Crédito 1x' },
+                  { value: 'Cartão de Crédito 2x', label: 'Cartão de Crédito 2x' },
+                  { value: 'Cartão de Crédito 3x', label: 'Cartão de Crédito 3x' },
+                  { value: 'Cartão de Crédito 4x', label: 'Cartão de Crédito 4x' },
+                  { value: 'Cartão de Crédito 5x', label: 'Cartão de Crédito 5x' },
+                  { value: 'Cartão de Crédito 6x', label: 'Cartão de Crédito 6x' },
+                  { value: 'Cartão de Crédito 7x', label: 'Cartão de Crédito 7x' },
+                  { value: 'Cartão de Crédito 8x', label: 'Cartão de Crédito 8x' },
+                  { value: 'Cartão de Crédito 9x', label: 'Cartão de Crédito 9x' },
+                  { value: 'Cartão de Crédito 10x', label: 'Cartão de Crédito 10x' },
+                ]}
+                value={currentQuote.selectedPaymentMethod || ''}
+                onChange={(e) => setCurrentQuote(prev => ({ ...prev, selectedPaymentMethod: e.target.value }))}
+              />
               
               <Input
                 label="Data de Pagamento"
