@@ -111,17 +111,17 @@ const CategoriesPage: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="bg-[#1d1d1d] shadow-xl rounded-lg overflow-x-auto">
+        <div className="bg-[#1F1F1F] shadow-xl rounded-lg overflow-x-auto">
           <table className="min-w-full divide-y divide-[#282828]">
-            <thead className="bg-[#282828]">
+            <thead className="bg-[#1F1F1F]">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Nome da Categoria</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Ações</th>
               </tr>
             </thead>
-            <tbody className="bg-black divide-y divide-[#282828]">
+            <tbody className="bg-[#1F1F1F] divide-y divide-[#1F1F1F]">
               {categories.map(category => (
-                <tr key={category.id} className="hover:bg-[#1d1d1d]">
+                <tr key={category.id} className="hover:bg-[#2A2A2A]">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">{category.name}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center space-x-2">
