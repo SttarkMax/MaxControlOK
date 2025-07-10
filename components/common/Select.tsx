@@ -21,7 +21,7 @@ const Select: React.FC<SelectProps> = ({ label, id, error, options, className, p
         `}
         {...props}
       >
-        {placeholder && <option value="" disabled selected={!props.value} className="text-gray-400">{placeholder}</option>}
+        {placeholder && <option value="" disabled className="text-gray-400">{placeholder}</option>}
         {options.map(option => (
           <option key={option.value} value={option.value} className="bg-[#1d1d1d] text-white">{option.label}</option>
         ))}
