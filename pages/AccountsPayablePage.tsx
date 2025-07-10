@@ -25,6 +25,7 @@ import {
 } from 'chart.js';
 import DocumentTextIcon from '../components/icons/DocumentTextIcon';
 import { useAccountsPayable } from '../hooks/useSupabaseData';
+import { useCompany } from '../hooks/useSupabaseData';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -44,6 +45,7 @@ const initialFormState = {
 
 const AccountsPayablePage: React.FC = () => {
   const { entries, loading, createEntries, updateEntry, deleteEntry, deleteEntriesBySeries } = useAccountsPayable();
+  const { company: companyInfo } = useCompany();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentFormData, setCurrentFormData] = useState(initialFormState);
   const [editingEntry, setEditingEntry] = useState<AccountsPayableEntry | null>(null);
@@ -66,9 +68,75 @@ const AccountsPayablePage: React.FC = () => {
     const margin = 10;
     let yPos = 15;
 
-    // Header
+    // Company Header with Logo
+    if (companyInfo) {
+      let companyDetailsX = margin;
+      let potentialLogoHeight = 0;
+      const logoForPdf = companyInfo.logoUrlLightBg;
+
+      // Add logo if available
+      if (logoForPdf && logoForPdf.startsWith('data:image')) {
+        try {
+          const imageMimeType = logoForPdf.substring(logoForPdf.indexOf(':') + 1, logoForPdf.indexOf(';'));
+          const imageFormat = imageMimeType.split('/')[1]?.toUpperCase();
+          
+          if (imageFormat && (imageFormat === 'PNG' || imageFormat === 'JPEG' || imageFormat === 'JPG')) {
+            const maxLogoDisplayWidth = 35;
+            const maxLogoDisplayHeight = 20;
+            doc.addImage(logoForPdf, imageFormat, margin, yPos, maxLogoDisplayWidth, maxLogoDisplayHeight);
+            companyDetailsX = margin + maxLogoDisplayWidth + 5;
+            potentialLogoHeight = maxLogoDisplayHeight;
+          }
+        } catch (e) {
+          console.error("Erro ao adicionar logo ao PDF:", e);
+        }
+      }
+      
+      // Company details
+      let textYPos = yPos;
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(0, 0, 0);
+      doc.text(companyInfo.name, companyDetailsX, textYPos);
+      textYPos += 6;
+      
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      if (companyInfo.address) {
+        const addressLines = doc.splitTextToSize(companyInfo.address, pageWidth - companyDetailsX - margin);
+        doc.text(addressLines, companyDetailsX, textYPos);
+        textYPos += (addressLines.length * 4);
+      }
+      
+      let contactLine = '';
+      if (companyInfo.phone) contactLine += `Tel: ${companyInfo.phone}`;
+      if (companyInfo.email) contactLine += `${companyInfo.phone ? ' | ' : ''}Email: ${companyInfo.email}`;
+      if (contactLine) {
+        doc.text(contactLine, companyDetailsX, textYPos);
+        textYPos += 4;
+      }
+      
+      if (companyInfo.cnpj) {
+        doc.text(`CNPJ: ${companyInfo.cnpj}`, companyDetailsX, textYPos);
+        textYPos += 4;
+      }
+      
+      let webLine = '';
+      if (companyInfo.website) webLine += `Site: ${companyInfo.website}`;
+      if (companyInfo.instagram) webLine += `${companyInfo.website ? ' | ' : ''}Instagram: ${companyInfo.instagram}`;
+      if (webLine) {
+        doc.text(webLine, companyDetailsX, textYPos);
+        textYPos += 4;
+      }
+      
+      const headerBlockBottomY = Math.max(textYPos, yPos + potentialLogoHeight);
+      yPos = headerBlockBottomY + 10;
+    }
+
+    // Report Title
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
     doc.text('Relatório de Contas a Pagar', pageWidth / 2, yPos, { align: 'center' });
     yPos += 10;
 
