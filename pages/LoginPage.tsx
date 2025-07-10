@@ -42,6 +42,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
         if (data.user) {
           // Try to get user data from app_users table
+          try {
             const userData = await userService.getUserByEmail(email);
           } catch (error) {
             // If user data not found, use basic info
