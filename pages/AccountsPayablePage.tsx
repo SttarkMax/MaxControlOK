@@ -483,7 +483,7 @@ const AccountsPayablePage: React.FC = () => {
             </div>
         </div>
         {timeFilter === 'specific_month' && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-700">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-[#1F1F1F]">
                 <div className="md:col-start-2">
                     <Select
                         label="Mês Específico"
@@ -520,8 +520,8 @@ const AccountsPayablePage: React.FC = () => {
         </div>
       ) : (
         <div className="bg-[#1d1d1d] shadow-xl rounded-lg overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-700">
-            <thead className="bg-gray-700">
+          <table className="min-w-full divide-y divide-[#1F1F1F]">
+            <thead className="bg-[#1F1F1F]">
               <tr>
                 <th className="px-3 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider w-16">Paga?</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Nome da Conta</th>
@@ -530,9 +530,9 @@ const AccountsPayablePage: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Ações</th>
               </tr>
             </thead>
-            <tbody className="bg-[#1d1d1d] divide-y divide-gray-700">
+            <tbody className="bg-[#1d1d1d] divide-y divide-[#1F1F1F]">
               {filteredEntries.map(entry => (
-                <tr key={entry.id} className={`${entry.isPaid ? 'bg-green-900/30' : 'hover:bg-gray-700/50'}`}>
+                <tr key={entry.id} className={`${entry.isPaid ? 'bg-green-900/30' : 'hover:bg-[#1F1F1F]/50'}`}>
                   <td className="px-3 py-4 whitespace-nowrap text-center">
                     <Input
                       type="checkbox"

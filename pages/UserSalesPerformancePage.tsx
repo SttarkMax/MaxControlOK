@@ -129,11 +129,11 @@ const UserSalesPerformancePage: React.FC<UserSalesPerformancePageProps> = ({ cur
           label: function(context) {
             let label = context.dataset.label || '';
             if (label.includes('Vendas Diárias')) { // For daily sales, show the daily total
-                 label = `Total Dia ${context.label}: ${formatCurrency(context.parsed.y)}`;
+          grid: { color: 'rgba(31, 31, 31, 0.2)' }
             } else if (context.parsed.y !== null) { // Fallback for other potential datasets
                 label += formatCurrency(context.parsed.y);
             }
-            return label;
+          grid: { color: 'rgba(31, 31, 31, 0.3)' },
           }
         }
       }

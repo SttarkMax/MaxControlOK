@@ -244,12 +244,12 @@ const CustomersPage: React.FC<CustomersPageProps> = ({ openGlobalViewDetailsModa
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Ações</th>
               </tr>
             </thead>
-            <tbody className="bg-gray-700 divide-y divide-[#282828]">
+            <tbody className="bg-[#1F1F1F] divide-y divide-[#282828]">
               {customers.map(customer => {
                 const totalSinal = calculateTotalDownPayment(customer.downPayments);
                 const hasSinal = totalSinal > 0;
                 return (
-                  <tr key={customer.id} className="hover:bg-gray-600">
+                  <tr key={customer.id} className="hover:bg-[#2A2A2A]">
                     <td className="px-6 py-4 whitespace-nowrap">
                        <Button 
                           onClick={() => handleOpenCustomerAllQuotesHistory(customer)} 
@@ -338,7 +338,7 @@ const CustomersPage: React.FC<CustomersPageProps> = ({ openGlobalViewDetailsModa
                 )}
 
                 {/* Add New Down Payment Form */}
-                <div className="p-3 border border-gray-700 rounded-md space-y-3">
+                <div className="p-3 border border-[#1F1F1F] rounded-md space-y-3">
                   <h5 className="text-md font-medium text-gray-200">Adicionar Novo Sinal</h5>
                   <Input 
                       label="Valor do Sinal (R$)"
@@ -373,7 +373,7 @@ const CustomersPage: React.FC<CustomersPageProps> = ({ openGlobalViewDetailsModa
               </div>
               
               {isEditing && (
-                <div className="mt-6 pt-4 border-t border-gray-700">
+                <div className="mt-6 pt-4 border-t border-[#1F1F1F]">
                   <div className="flex justify-between items-center mb-2">
                     <h4 className="text-md font-semibold text-gray-100">Histórico de Orçamentos/Pedidos ({quotesForEditModal.length})</h4>
                   </div>

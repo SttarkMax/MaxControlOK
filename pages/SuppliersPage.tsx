@@ -123,7 +123,7 @@ const SuppliersPage: React.FC = () => {
                  </div>
             ) : (
                 <div className="bg-[#1d1d1d] shadow-xl rounded-lg overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-700">
+                    <table className="min-w-full divide-y divide-[#1F1F1F]">
                         <thead className="bg-[#131313]">
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Fornecedor</th>
@@ -133,9 +133,9 @@ const SuppliersPage: React.FC = () => {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Ações</th>
                             </tr>
                         </thead>
-                        <tbody className="bg-[#1d1d1d] divide-y divide-gray-700">
+                        <tbody className="bg-[#1d1d1d] divide-y divide-[#1F1F1F]">
                             {suppliersWithStats.map(s => (
-                                <tr key={s.id} className="hover:bg-gray-700/50">
+                                <tr key={s.id} className="hover:bg-[#1F1F1F]/50">
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">{s.name}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{s.phone || s.email || '-'}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300 text-right">{formatCurrency(s.totalDebtAmount)}</td>
@@ -361,7 +361,7 @@ const SupplierDetailsModal: React.FC<{
                     {/* Add Transaction Forms */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                        {/* Add Debt Form */}
-                        <div className="bg-black p-4 rounded-lg border border-gray-700">
+                        <div className="bg-black p-4 rounded-lg border border-[#1F1F1F]">
                             <h4 className="font-semibold text-lg text-white mb-3">Adicionar Dívida</h4>
                             <div className="space-y-3">
                                 <Textarea label="Descrição (Opcional)" value={debtForm.description} onChange={e => setDebtForm({...debtForm, description: e.target.value})} rows={1} />
@@ -371,7 +371,7 @@ const SupplierDetailsModal: React.FC<{
                             </div>
                         </div>
                          {/* Add Payment Form */}
-                        <div className="bg-black p-4 rounded-lg border border-gray-700">
+                        <div className="bg-black p-4 rounded-lg border border-[#1F1F1F]">
                             <h4 className="font-semibold text-lg text-white mb-3">Adicionar Pagamento</h4>
                              <div className="space-y-3">
                                 <Textarea label="Descrição (Opcional)" value={paymentForm.description} onChange={e => setPaymentForm({...paymentForm, description: e.target.value})} rows={1} />
@@ -386,8 +386,8 @@ const SupplierDetailsModal: React.FC<{
                     <div>
                         <h4 className="font-semibold text-lg text-white mb-2">Extrato de Transações</h4>
                         <div className="overflow-x-auto bg-[#1d1d1d]/50 rounded-lg max-h-96">
-                            <table className="min-w-full divide-y divide-gray-700">
-                                <thead className="bg-gray-700/50 sticky top-0"><tr>
+                            <table className="min-w-full divide-y divide-[#1F1F1F]">
+                                <thead className="bg-[#1F1F1F]/50 sticky top-0"><tr>
                                     <th className="px-3 py-2 text-left text-xs font-medium uppercase">Data</th>
                                     <th className="px-3 py-2 text-left text-xs font-medium uppercase">Descrição</th>
                                     <th className="px-3 py-2 text-right text-xs font-medium uppercase">Dívida (+)</th>
@@ -395,9 +395,9 @@ const SupplierDetailsModal: React.FC<{
                                     <th className="px-3 py-2 text-right text-xs font-medium uppercase">Saldo</th>
                                     <th className="px-3 py-2 text-center text-xs font-medium uppercase">Ação</th>
                                 </tr></thead>
-                                <tbody className="divide-y divide-gray-700">
+                                <tbody className="divide-y divide-[#1F1F1F]">
                                     {unifiedTransactions.length > 0 ? unifiedTransactions.map(tx => (
-                                        <tr key={`${tx.type}-${tx.id}`} className="hover:bg-gray-700/50">
+                                        <tr key={`${tx.type}-${tx.id}`} className="hover:bg-[#1F1F1F]/50">
                                             <td className="px-3 py-2 text-sm whitespace-nowrap">{new Date(tx.date + "T00:00:00").toLocaleDateString('pt-BR')}</td>
                                             <td className="px-3 py-2 text-sm">{tx.description || '-'}</td>
                                             <td className="px-3 py-2 text-sm text-right text-red-400">{tx.debit > 0 ? formatCurrency(tx.debit) : '-'}</td>
@@ -414,7 +414,7 @@ const SupplierDetailsModal: React.FC<{
                     </div>
                 </div>
 
-                <div className="mt-6 text-right border-t border-gray-700 pt-4 flex-shrink-0">
+                <div className="mt-6 text-right border-t border-[#1F1F1F] pt-4 flex-shrink-0">
                     <Button onClick={generatePdfReport} variant="outline" className="mr-2">Exportar Relatório (PDF)</Button>
                     <Button onClick={onClose} variant="primary">Fechar</Button>
                 </div>
