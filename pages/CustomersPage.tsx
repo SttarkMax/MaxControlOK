@@ -231,7 +231,7 @@ const CustomersPage: React.FC<CustomersPageProps> = ({ openGlobalViewDetailsModa
           </div>
         </div>
       ) : (
-        <div className="bg-[#1d1d1d] shadow-xl rounded-lg overflow-x-auto">
+        <div className="bg-gray-800 shadow-xl rounded-lg overflow-x-auto">
           <table className="min-w-full divide-y divide-[#282828]">
             <thead className="bg-[#282828]">
               <tr>
@@ -244,12 +244,12 @@ const CustomersPage: React.FC<CustomersPageProps> = ({ openGlobalViewDetailsModa
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Ações</th>
               </tr>
             </thead>
-            <tbody className="bg-black divide-y divide-[#282828]">
+            <tbody className="bg-gray-700 divide-y divide-[#282828]">
               {customers.map(customer => {
                 const totalSinal = calculateTotalDownPayment(customer.downPayments);
                 const hasSinal = totalSinal > 0;
                 return (
-                  <tr key={customer.id} className="hover:bg-[#1d1d1d]">
+                  <tr key={customer.id} className="hover:bg-gray-600">
                     <td className="px-6 py-4 whitespace-nowrap">
                        <Button 
                           onClick={() => handleOpenCustomerAllQuotesHistory(customer)} 
