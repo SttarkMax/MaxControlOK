@@ -1,11 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { CompanyInfo } from '../types';
 import Input from '../components/common/Input';
 import Textarea from '../components/common/Textarea';
 import Button from '../components/common/Button';
+import Spinner from '../components/common/Spinner';
 import BuildingOfficeIcon from '../components/icons/BuildingOfficeIcon';
+import { useCompany } from '../hooks/useSupabaseData';
 
 const CompanySettingsPage: React.FC = () => {
+  const { company, loading, saveCompany } = useCompany();
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({
     name: '',
     logoUrlDarkBg: '',
@@ -19,27 +22,11 @@ const CompanySettingsPage: React.FC = () => {
   });
   const [isSaved, setIsSaved] = useState(false);
 
-  useEffect(() => {
-    const storedInfo = localStorage.getItem('companyInfo');
-    if (storedInfo) {
-      const parsedInfo = JSON.parse(storedInfo);
-      // Ensure new fields are initialized if loading old data
-      setCompanyInfo({
-        ...{
-          name: '',
-          logoUrlDarkBg: '',
-          logoUrlLightBg: '',
-          address: '',
-          phone: '',
-          email: '',
-          cnpj: '',
-          instagram: '',
-          website: '',
-        },
-        ...parsedInfo
-      });
+  React.useEffect(() => {
+    if (company) {
+      setCompanyInfo(company);
     }
-  }, []);
+  }, [company]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setCompanyInfo({ ...companyInfo, [e.target.name]: e.target.value });
@@ -58,12 +45,26 @@ const CompanySettingsPage: React.FC = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem('companyInfo', JSON.stringify(companyInfo));
-    setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 3000); // Hide message after 3 seconds
+    try {
+      await saveCompany(companyInfo);
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 3000); // Hide message after 3 seconds
+    } catch (error) {
+      console.error('Erro ao salvar informações da empresa:', error);
+      alert('Erro ao salvar informações da empresa. Tente novamente.');
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="p-6 text-white flex items-center justify-center">
+        <Spinner size="lg" />
+        <span className="ml-3">Carregando informações da empresa...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 bg-[#1d1d1d] shadow-xl rounded-lg text-white">

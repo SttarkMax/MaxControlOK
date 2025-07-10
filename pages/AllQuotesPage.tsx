@@ -1,30 +1,23 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Quote } from '../types';
 import Button from '../components/common/Button';
+import Spinner from '../components/common/Spinner';
 import DocumentTextIcon from '../components/icons/DocumentTextIcon';
 import PlusIcon from '../components/icons/PlusIcon';
 import { translateQuoteStatus, formatCurrency } from '../utils';
+import { useQuotes } from '../hooks/useSupabaseData';
 
 interface AllQuotesPageProps {
   openGlobalViewDetailsModal: (quote: Quote) => void;
 }
 
-const QUOTES_STORAGE_KEY = 'quotes';
-
 const AllQuotesPage: React.FC<AllQuotesPageProps> = ({ openGlobalViewDetailsModal }) => {
-  const [allQuotes, setAllQuotes] = useState<Quote[]>([]);
+  const { quotes: allQuotes, loading } = useQuotes();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const storedQuotes = localStorage.getItem(QUOTES_STORAGE_KEY);
-    if (storedQuotes) {
-      const parsedQuotes: Quote[] = JSON.parse(storedQuotes);
-      const sortedQuotes = parsedQuotes.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      setAllQuotes(sortedQuotes);
-    }
-  }, []);
+  const sortedQuotes = [...allQuotes].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const getStatusColorClass = (status: Quote['status']): string => {
     switch (status) {
@@ -43,6 +36,14 @@ const AllQuotesPage: React.FC<AllQuotesPageProps> = ({ openGlobalViewDetailsModa
     }
   };
 
+  if (loading) {
+    return (
+      <div className="p-6 text-white flex items-center justify-center">
+        <Spinner size="lg" />
+        <span className="ml-3">Carregando orçamentos...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 text-gray-300">
@@ -56,7 +57,7 @@ const AllQuotesPage: React.FC<AllQuotesPageProps> = ({ openGlobalViewDetailsModa
         </Button>
       </div>
 
-      {allQuotes.length === 0 ? (
+      {sortedQuotes.length === 0 ? (
         <div className="text-center py-10 bg-[#282828] shadow-xl rounded-lg">
           <DocumentTextIcon className="mx-auto h-12 w-12 text-gray-500" />
           <h3 className="mt-2 text-sm font-medium text-white">Nenhum orçamento encontrado</h3>
@@ -82,7 +83,7 @@ const AllQuotesPage: React.FC<AllQuotesPageProps> = ({ openGlobalViewDetailsModa
               </tr>
             </thead>
             <tbody className="bg-[#282828] divide-y divide-[#282828]">
-              {allQuotes.map(quote => (
+              {sortedQuotes.map(quote => (
                 <tr key={quote.id} className="hover:bg-[#3a3a3a]/50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-yellow-400">{quote.quoteNumber}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-200">{quote.clientName}</td>

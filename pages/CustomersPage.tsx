@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { Customer, Quote, DownPaymentEntry } from '../types';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
 import Textarea from '../components/common/Textarea';
 import Select from '../components/common/Select';
+import Spinner from '../components/common/Spinner';
 import UserGroupIcon from '../components/icons/UserGroupIcon';
 import PlusIcon from '../components/icons/PlusIcon';
 import TrashIcon from '../components/icons/TrashIcon';
@@ -13,6 +14,7 @@ import CurrencyDollarIcon from '../components/icons/CurrencyDollarIcon';
 import ViewQuoteDetailsModal from '../components/ViewQuoteDetailsModal';
 import GlobalQuoteHistoryModal from '../components/GlobalQuoteHistoryModal';
 import { translateQuoteStatus, formatCurrency, formatDateForInput } from '../utils'; 
+import { useCustomers, useQuotes } from '../hooks/useSupabaseData';
 
 const initialCustomerState: Customer = {
   id: '',
@@ -33,15 +35,14 @@ const initialNewDownPaymentState = {
   description: '',
 };
 
-const CUSTOMERS_STORAGE_KEY = 'customers';
-const QUOTES_STORAGE_KEY = 'quotes';
-
 interface CustomersPageProps {
   openGlobalViewDetailsModal: (quote: Quote) => void;
 }
 
 const CustomersPage: React.FC<CustomersPageProps> = ({ openGlobalViewDetailsModal }) => {
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  const { customers, loading: customersLoading, createCustomer, updateCustomer, deleteCustomer } = useCustomers();
+  const { quotes, loading: quotesLoading } = useQuotes();
+  
   const [isEditModalOpen, setIsEditModalOpen] = useState(false); 
   const [currentCustomer, setCurrentCustomer] = useState<Customer>(initialCustomerState);
   const [isEditing, setIsEditing] = useState(false);
@@ -57,28 +58,6 @@ const CustomersPage: React.FC<CustomersPageProps> = ({ openGlobalViewDetailsModa
   const [customerNameForHistoryModal, setCustomerNameForHistoryModal] = useState<string>('');
 
   const [newDownPayment, setNewDownPayment] = useState(initialNewDownPaymentState);
-
-
-  const loadCustomers = useCallback(() => {
-    const storedCustomers = localStorage.getItem(CUSTOMERS_STORAGE_KEY);
-    if (storedCustomers) {
-      // Ensure all customers have downPayments array initialized
-      const parsedCustomers: Customer[] = JSON.parse(storedCustomers).map((c: Customer) => ({
-        ...initialCustomerState, // provides default for downPayments
-        ...c,
-        downPayments: c.downPayments || [], // ensure it's always an array
-      }));
-      setCustomers(parsedCustomers);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadCustomers();
-  }, [loadCustomers]);
-
-  const saveCustomersToStorage = (updatedCustomers: Customer[]) => {
-    localStorage.setItem(CUSTOMERS_STORAGE_KEY, JSON.stringify(updatedCustomers));
-  };
 
   const handleCustomerInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -137,8 +116,7 @@ const CustomersPage: React.FC<CustomersPageProps> = ({ openGlobalViewDetailsModa
         downPayments: customer.downPayments || [], 
     });
     setNewDownPayment(initialNewDownPaymentState);
-    const allQuotes: Quote[] = JSON.parse(localStorage.getItem(QUOTES_STORAGE_KEY) || '[]');
-    const relatedQuotes = allQuotes
+    const relatedQuotes = quotes
       .filter(q => q.customerId === customer.id)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()); 
     setQuotesForEditModal(relatedQuotes);
@@ -153,31 +131,31 @@ const CustomersPage: React.FC<CustomersPageProps> = ({ openGlobalViewDetailsModa
     setQuotesForEditModal([]);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    const customerToSave: Customer = {
-      ...currentCustomer,
-      downPayments: currentCustomer.downPayments || [], // Ensure it's an array
-    };
+    try {
+      const customerToSave: Customer = {
+        ...currentCustomer,
+        downPayments: currentCustomer.downPayments || [], // Ensure it's an array
+      };
 
-    let updatedCustomers;
-    if (isEditing) {
-      updatedCustomers = customers.map(c => c.id === customerToSave.id ? customerToSave : c);
-    } else {
-      const newCustomerWithId = { ...customerToSave, id: Date.now().toString() };
-      updatedCustomers = [...customers, newCustomerWithId];
+      if (isEditing) {
+        await updateCustomer(customerToSave);
+      } else {
+        await createCustomer(customerToSave);
+      }
+      closeEditModal();
+    } catch (error) {
+      console.error('Erro ao salvar cliente:', error);
+      alert('Erro ao salvar cliente. Tente novamente.');
     }
-    setCustomers(updatedCustomers);
-    saveCustomersToStorage(updatedCustomers);
     setIsLoading(false);
-    closeEditModal();
   };
 
-  const handleDelete = (customerId: string) => {
-    const allQuotes: Quote[] = JSON.parse(localStorage.getItem(QUOTES_STORAGE_KEY) || '[]');
-    const relatedQuotesCount = allQuotes.filter(q => q.customerId === customerId).length;
+  const handleDelete = async (customerId: string) => {
+    const relatedQuotesCount = quotes.filter(q => q.customerId === customerId).length;
 
     let confirmMessage = 'Tem certeza que deseja excluir este cliente?';
     if (relatedQuotesCount > 0) {
@@ -185,16 +163,13 @@ const CustomersPage: React.FC<CustomersPageProps> = ({ openGlobalViewDetailsModa
     }
 
     if (window.confirm(confirmMessage)) {
-      const updatedCustomers = customers.filter(c => c.id !== customerId);
-      setCustomers(updatedCustomers);
-      saveCustomersToStorage(updatedCustomers);
-       const updatedQuotes = allQuotes.map(q => {
-        if (q.customerId === customerId) {
-          return { ...q, customerId: undefined, clientName: q.clientName + " (Cliente Removido)" }; 
-        }
-        return q;
-      });
-      localStorage.setItem(QUOTES_STORAGE_KEY, JSON.stringify(updatedQuotes));
+      try {
+        await deleteCustomer(customerId);
+        // Note: Related quotes will be handled by the database cascade rules
+      } catch (error) {
+        console.error('Erro ao excluir cliente:', error);
+        alert('Erro ao excluir cliente. Tente novamente.');
+      }
     }
   };
 
@@ -204,8 +179,7 @@ const CustomersPage: React.FC<CustomersPageProps> = ({ openGlobalViewDetailsModa
   };
   
   const handleOpenCustomerAllQuotesHistory = (customer: Customer) => {
-    const allQuotes: Quote[] = JSON.parse(localStorage.getItem(QUOTES_STORAGE_KEY) || '[]');
-    const customerQuotes = allQuotes
+    const customerQuotes = quotes
       .filter(q => q.customerId === customer.id)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     
@@ -223,6 +197,15 @@ const CustomersPage: React.FC<CustomersPageProps> = ({ openGlobalViewDetailsModa
   const calculateTotalDownPayment = (downPayments: DownPaymentEntry[]): number => {
     return downPayments.reduce((total, dp) => total + dp.amount, 0);
   };
+
+  if (customersLoading || quotesLoading) {
+    return (
+      <div className="p-6 text-white flex items-center justify-center">
+        <Spinner size="lg" />
+        <span className="ml-3">Carregando clientes...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 text-white">

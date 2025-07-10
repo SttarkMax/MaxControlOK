@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { Supplier, Debt, SupplierCredit } from '../types';
-import { SUPPLIERS_STORAGE_KEY, DEBTS_STORAGE_KEY, SUPPLIER_CREDITS_STORAGE_KEY } from '../constants';
 import { formatCurrency, formatDateForInput } from '../utils';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
 import Textarea from '../components/common/Textarea';
+import Spinner from '../components/common/Spinner';
 import TruckIcon from '../components/icons/TruckIcon';
 import PlusIcon from '../components/icons/PlusIcon';
 import TrashIcon from '../components/icons/TrashIcon';
@@ -14,6 +14,7 @@ import { Chart as ChartJS, ArcElement, Tooltip, Legend, ChartData, ChartOptions 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import CurrencyDollarIcon from '../components/icons/CurrencyDollarIcon';
+import { useSuppliers } from '../hooks/useSupabaseData';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -24,9 +25,20 @@ const initialPaymentFormState = { amount: 0, date: formatDateForInput(new Date()
 
 // Main Page Component
 const SuppliersPage: React.FC = () => {
-    const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-    const [debts, setDebts] = useState<Debt[]>([]);
-    const [supplierCredits, setSupplierCredits] = useState<SupplierCredit[]>([]);
+    const { 
+        suppliers, 
+        debts, 
+        credits: supplierCredits, 
+        loading,
+        createSupplier,
+        updateSupplier,
+        deleteSupplier,
+        createDebt,
+        deleteDebt,
+        createCredit,
+        deleteCredit
+    } = useSuppliers();
+    
     const [searchTerm, setSearchTerm] = useState('');
 
     const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
@@ -35,43 +47,37 @@ const SuppliersPage: React.FC = () => {
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
 
-    const loadData = useCallback(() => {
-        setSuppliers(JSON.parse(localStorage.getItem(SUPPLIERS_STORAGE_KEY) || '[]'));
-        setDebts(JSON.parse(localStorage.getItem(DEBTS_STORAGE_KEY) || '[]'));
-        setSupplierCredits(JSON.parse(localStorage.getItem(SUPPLIER_CREDITS_STORAGE_KEY) || '[]'));
-    }, []);
-
-    useEffect(() => {
-        loadData();
-    }, [loadData]);
-
-    const saveData = (key: string, data: any) => {
-        localStorage.setItem(key, JSON.stringify(data));
-        loadData(); // Reload all data to ensure consistency
-    };
-
     const handleOpenSupplierModal = (supplier: Supplier | null) => {
         setEditingSupplier(supplier);
         setIsSupplierModalOpen(true);
     };
 
-    const handleSaveSupplier = (supplier: Supplier) => {
-        const updatedSuppliers = supplier.id
-            ? suppliers.map(s => (s.id === supplier.id ? supplier : s))
-            : [...suppliers, { ...supplier, id: `sup_${Date.now()}` }];
-        saveData(SUPPLIERS_STORAGE_KEY, updatedSuppliers);
-        setIsSupplierModalOpen(false);
+    const handleSaveSupplier = async (supplier: Supplier) => {
+        try {
+            if (supplier.id) {
+                await updateSupplier(supplier);
+            } else {
+                await createSupplier(supplier);
+            }
+            setIsSupplierModalOpen(false);
+        } catch (error) {
+            console.error('Erro ao salvar fornecedor:', error);
+            alert('Erro ao salvar fornecedor. Tente novamente.');
+        }
     };
 
-    const handleDeleteSupplier = (supplierId: string) => {
+    const handleDeleteSupplier = async (supplierId: string) => {
         const associatedDebts = debts.filter(d => d.supplierId === supplierId).length;
         const associatedPayments = supplierCredits.filter(p => p.supplierId === supplierId).length;
         if ((associatedDebts > 0 || associatedPayments > 0) && !window.confirm(`Este fornecedor tem ${associatedDebts} dívida(s) e ${associatedPayments} pagamento(s) associado(s). Excluir o fornecedor também excluirá todos esses registros. Deseja continuar?`)) {
             return;
         }
-        saveData(SUPPLIERS_STORAGE_KEY, suppliers.filter(s => s.id !== supplierId));
-        saveData(DEBTS_STORAGE_KEY, debts.filter(d => d.supplierId !== supplierId));
-        saveData(SUPPLIER_CREDITS_STORAGE_KEY, supplierCredits.filter(p => p.supplierId !== supplierId));
+        try {
+            await deleteSupplier(supplierId);
+        } catch (error) {
+            console.error('Erro ao excluir fornecedor:', error);
+            alert('Erro ao excluir fornecedor. Tente novamente.');
+        }
     };
 
     const handleOpenDetailsModal = (supplier: Supplier) => {
@@ -91,6 +97,15 @@ const SuppliersPage: React.FC = () => {
             })
             .filter(supplier => supplier.name.toLowerCase().includes(searchTerm.toLowerCase()));
     }, [suppliers, debts, supplierCredits, searchTerm]);
+
+    if (loading) {
+        return (
+            <div className="p-6 text-white flex items-center justify-center">
+                <Spinner size="lg" />
+                <span className="ml-3">Carregando fornecedores...</span>
+            </div>
+        );
+    }
 
     return (
         <div className="p-6 text-gray-300">
@@ -145,7 +160,10 @@ const SuppliersPage: React.FC = () => {
                     supplier={selectedSupplier} 
                     debts={debts.filter(d => d.supplierId === selectedSupplier.id)}
                     payments={supplierCredits.filter(p => p.supplierId === selectedSupplier.id)}
-                    onSave={saveData} 
+                    onCreateDebt={createDebt}
+                    onDeleteDebt={deleteDebt}
+                    onCreateCredit={createCredit}
+                    onDeleteCredit={deleteCredit}
                     onClose={() => setIsDetailsModalOpen(false)} 
                 />
             )}
@@ -190,7 +208,16 @@ type Transaction = {
 };
 
 // Supplier Details Modal
-const SupplierDetailsModal: React.FC<{ supplier: Supplier; debts: Debt[]; payments: SupplierCredit[]; onSave: (key: string, data: any) => void; onClose: () => void; }> = ({ supplier, debts, payments, onSave, onClose }) => {
+const SupplierDetailsModal: React.FC<{ 
+    supplier: Supplier; 
+    debts: Debt[]; 
+    payments: SupplierCredit[]; 
+    onCreateDebt: (debt: Omit<Debt, 'id'>) => Promise<Debt>;
+    onDeleteDebt: (id: string) => Promise<void>;
+    onCreateCredit: (credit: Omit<SupplierCredit, 'id'>) => Promise<SupplierCredit>;
+    onDeleteCredit: (id: string) => Promise<void>;
+    onClose: () => void; 
+}> = ({ supplier, debts, payments, onCreateDebt, onDeleteDebt, onCreateCredit, onDeleteCredit, onClose }) => {
     const chartRef = useRef<ChartJS<'pie'>>(null);
     const [debtForm, setDebtForm] = useState(initialDebtFormState);
     const [paymentForm, setPaymentForm] = useState(initialPaymentFormState);
@@ -225,30 +252,46 @@ const SupplierDetailsModal: React.FC<{ supplier: Supplier; debts: Debt[]; paymen
     
     const pieOptions: ChartOptions<'pie'> = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'bottom', labels: {color: '#d1d5db'} } } };
 
-    const handleAddDebt = () => {
+    const handleAddDebt = async () => {
         if (debtForm.totalAmount <= 0) { alert("O valor da dívida deve ser positivo."); return; }
-        const allDebts = JSON.parse(localStorage.getItem(DEBTS_STORAGE_KEY) || '[]');
-        const newDebt: Debt = { id: `d_${Date.now()}`, supplierId: supplier.id, ...debtForm };
-        onSave(DEBTS_STORAGE_KEY, [...allDebts, newDebt]);
-        setDebtForm(initialDebtFormState);
+        try {
+            await onCreateDebt({ supplierId: supplier.id, ...debtForm });
+            setDebtForm(initialDebtFormState);
+        } catch (error) {
+            console.error('Erro ao adicionar dívida:', error);
+            alert('Erro ao adicionar dívida. Tente novamente.');
+        }
     };
 
-    const handleAddPayment = () => {
+    const handleAddPayment = async () => {
         if (paymentForm.amount <= 0) { alert("O valor do pagamento deve ser positivo."); return; }
-        const allPayments = JSON.parse(localStorage.getItem(SUPPLIER_CREDITS_STORAGE_KEY) || '[]');
-        const newPayment: SupplierCredit = { id: `cred_${Date.now()}`, supplierId: supplier.id, ...paymentForm };
-        onSave(SUPPLIER_CREDITS_STORAGE_KEY, [...allPayments, newPayment]);
-        setPaymentForm(initialPaymentFormState);
+        try {
+            await onCreateCredit({ supplierId: supplier.id, ...paymentForm });
+            setPaymentForm(initialPaymentFormState);
+        } catch (error) {
+            console.error('Erro ao adicionar pagamento:', error);
+            alert('Erro ao adicionar pagamento. Tente novamente.');
+        }
     };
 
-    const handleDeleteTransaction = (tx: Transaction & { balance: number }) => {
+    const handleDeleteTransaction = async (tx: Transaction & { balance: number }) => {
         if (tx.type === 'debt') {
             if (window.confirm("Tem certeza que deseja excluir esta dívida?")) {
-                onSave(DEBTS_STORAGE_KEY, JSON.parse(localStorage.getItem(DEBTS_STORAGE_KEY) || '[]').filter((d: Debt) => d.id !== tx.id));
+                try {
+                    await onDeleteDebt(tx.id);
+                } catch (error) {
+                    console.error('Erro ao excluir dívida:', error);
+                    alert('Erro ao excluir dívida. Tente novamente.');
+                }
             }
         } else { // type === 'payment'
             if (window.confirm("Tem certeza que deseja excluir este pagamento?")) {
-                onSave(SUPPLIER_CREDITS_STORAGE_KEY, JSON.parse(localStorage.getItem(SUPPLIER_CREDITS_STORAGE_KEY) || '[]').filter((p: SupplierCredit) => p.id !== tx.id));
+                try {
+                    await onDeleteCredit(tx.id);
+                } catch (error) {
+                    console.error('Erro ao excluir pagamento:', error);
+                    alert('Erro ao excluir pagamento. Tente novamente.');
+                }
             }
         }
     };

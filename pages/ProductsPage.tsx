@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useCallback, ChangeEvent, useRef } from 'react';
+import React, { useState, useCallback, ChangeEvent, useRef } from 'react';
 import { Product, PricingModel, Category, CompanyInfo } from '../types';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
 import Textarea from '../components/common/Textarea';
 import Select from '../components/common/Select';
 import Spinner from '../components/common/Spinner';
-import { CARD_SURCHARGE_PERCENTAGE, PRODUCT_CATEGORIES_STORAGE_KEY } from '../constants';
+import { CARD_SURCHARGE_PERCENTAGE } from '../constants';
 import SquaresPlusIcon from '../components/icons/SquaresPlusIcon';
 import PlusIcon from '../components/icons/PlusIcon';
 import TrashIcon from '../components/icons/TrashIcon';
@@ -17,6 +17,7 @@ import { generateProductDescriptionIdea } from '../services/geminiService';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatCurrency } from '../utils';
+import { useProducts, useCategories, useCompany } from '../hooks/useSupabaseData';
 
 const initialProductState: Product = {
   id: '',
@@ -29,9 +30,10 @@ const initialProductState: Product = {
 };
 
 const ProductsPage: React.FC = () => {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
+  const { products, loading: productsLoading, createProduct, updateProduct, deleteProduct } = useProducts();
+  const { categories, loading: categoriesLoading } = useCategories();
+  const { company: companyInfo } = useCompany();
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<Product>(initialProductState);
   const [isEditing, setIsEditing] = useState(false);
@@ -45,21 +47,7 @@ const ProductsPage: React.FC = () => {
   const [priceExportOption, setPriceExportOption] = useState<'cash' | 'card' | 'both'>('both');
   const exportDropdownRef = useRef<HTMLDivElement>(null);
 
-
-  useEffect(() => {
-    const storedProducts = localStorage.getItem('products');
-    if (storedProducts) {
-      setProducts(JSON.parse(storedProducts));
-    }
-    const storedCategories = localStorage.getItem(PRODUCT_CATEGORIES_STORAGE_KEY);
-    if (storedCategories) {
-      setCategories(JSON.parse(storedCategories));
-    }
-    const storedCompanyInfo = localStorage.getItem('companyInfo');
-    if (storedCompanyInfo) {
-      setCompanyInfo(JSON.parse(storedCompanyInfo));
-    }
-
+  React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (exportDropdownRef.current && !exportDropdownRef.current.contains(event.target as Node)) {
         setIsExportDropdownOpen(false);
@@ -69,12 +57,7 @@ const ProductsPage: React.FC = () => {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-
   }, []);
-
-  const saveProductsToStorage = (updatedProducts: Product[]) => {
-    localStorage.setItem('products', JSON.stringify(updatedProducts));
-  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -110,37 +93,42 @@ const ProductsPage: React.FC = () => {
     setCurrentProduct(initialProductState); 
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    let updatedProducts;
-    const productToSave = {
-      ...currentProduct,
-      categoryId: currentProduct.categoryId === '' ? undefined : currentProduct.categoryId
-    };
+    
+    try {
+      const productToSave = {
+        ...currentProduct,
+        categoryId: currentProduct.categoryId === '' ? undefined : currentProduct.categoryId
+      };
 
-    if (isEditing) {
-      updatedProducts = products.map(p => p.id === productToSave.id ? productToSave : p);
-    } else {
-      const newProduct = { ...productToSave, id: Date.now().toString() };
-      updatedProducts = [...products, newProduct];
+      if (isEditing) {
+        await updateProduct(productToSave);
+      } else {
+        await createProduct(productToSave);
+      }
+      closeModal();
+    } catch (error) {
+      console.error('Erro ao salvar produto:', error);
+      alert('Erro ao salvar produto. Tente novamente.');
     }
-    setProducts(updatedProducts);
-    saveProductsToStorage(updatedProducts);
     setIsLoading(false);
-    closeModal();
   };
 
-  const handleDelete = (productId: string) => {
+  const handleDelete = async (productId: string) => {
     if (window.confirm('Tem certeza que deseja excluir este produto?')) {
-      const updatedProducts = products.filter(p => p.id !== productId);
-      setProducts(updatedProducts);
-      saveProductsToStorage(updatedProducts);
-      setSelectedProductIds(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(productId);
-        return newSet;
-      });
+      try {
+        await deleteProduct(productId);
+        setSelectedProductIds(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(productId);
+          return newSet;
+        });
+      } catch (error) {
+        console.error('Erro ao excluir produto:', error);
+        alert('Erro ao excluir produto. Tente novamente.');
+      }
     }
   };
 
@@ -396,6 +384,15 @@ const ProductsPage: React.FC = () => {
     }
     generateProductsPdf(productsToExport, priceExportOption);
   };
+
+  if (productsLoading || categoriesLoading) {
+    return (
+      <div className="p-6 text-white flex items-center justify-center">
+        <Spinner size="lg" />
+        <span className="ml-3">Carregando produtos...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 text-white">

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Quote, Product, CompanyInfo, UserAccessLevel } from '../types';
 import BuildingOfficeIcon from '../components/icons/BuildingOfficeIcon';
@@ -8,6 +8,7 @@ import CurrencyDollarIcon from '../components/icons/CurrencyDollarIcon';
 import PencilIcon from '../components/icons/PencilIcon';
 import CheckCircleIcon from '../components/icons/CheckCircleIcon'; 
 import Button from '../components/common/Button';
+import Spinner from '../components/common/Spinner';
 import Select from '../components/common/Select';
 import { Bar } from 'react-chartjs-2';
 import {
@@ -24,6 +25,7 @@ import {
   Scriptable // Added Scriptable import
 } from 'chart.js';
 import { formatCurrency } from '../utils';
+import { useQuotes, useProducts, useCompany } from '../hooks/useSupabaseData';
 
 ChartJS.register(
   CategoryScale,
@@ -41,11 +43,12 @@ interface DashboardPageProps {
 }
 
 const DashboardPage: React.FC<DashboardPageProps> = ({ userName, userRole, openGlobalViewDetailsModal }) => {
-  const [quoteCount, setQuoteCount] = useState(0);
+  const { quotes: allQuotes, loading: quotesLoading } = useQuotes();
+  const { products, loading: productsLoading } = useProducts();
+  const { company: companyDetails } = useCompany();
+  
   const [draftQuotes, setDraftQuotes] = useState<Quote[]>([]);
   const [recentAcceptedQuotes, setRecentAcceptedQuotes] = useState<Quote[]>([]);
-  const [productCount, setProductCount] = useState(0);
-  const [companyName, setCompanyName] = useState('');
   const [salesChartData, setSalesChartData] = useState<ChartData<'bar'>>({
     labels: [],
     datasets: [],
@@ -54,14 +57,17 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ userName, userRole, openG
   const [availableYears, setAvailableYears] = useState<number[]>([]);
   const navigate = useNavigate();
 
+  const companyName = companyDetails?.name || 'Sua Empresa';
+  const quoteCount = allQuotes.length;
+  const productCount = products.length;
+
+  const acceptedQuotes = useMemo(() => {
+    return allQuotes.filter(q => q.status === 'accepted' || q.status === 'converted_to_order');
+  }, [allQuotes]);
+
   useEffect(() => {
-    const storedQuotesString = localStorage.getItem('quotes');
-    let allQuotes: Quote[] = [];
-    if (storedQuotesString) {
-      allQuotes = JSON.parse(storedQuotesString);
-      setQuoteCount(allQuotes.length);
-    }
-    
+    if (!allQuotes.length) return;
+
     const acceptedForChart = allQuotes.filter(q => q.status === 'accepted' || q.status === 'converted_to_order');
     const currentDrafts = allQuotes
       .filter(q => q.status === 'draft')
@@ -81,18 +87,6 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ userName, userRole, openG
       })
       .sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     setRecentAcceptedQuotes(currentMonthAccepted);
-    
-    const storedProducts = localStorage.getItem('products');
-    if (storedProducts) {
-      setProductCount(JSON.parse(storedProducts).length);
-    }
-
-    const storedCompanyInfo = localStorage.getItem('companyInfo');
-    if (storedCompanyInfo) {
-      setCompanyName(JSON.parse(storedCompanyInfo).name || 'Sua Empresa');
-    } else {
-      setCompanyName('Sua Empresa');
-    }
 
     // Process sales data for chart
     if (acceptedForChart.length > 0) {
@@ -104,16 +98,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ userName, userRole, openG
     } else {
        setAvailableYears([new Date().getFullYear()]); 
     }
-
-  }, []); 
+  }, [allQuotes]);
 
   useEffect(() => { 
-    const storedQuotesString = localStorage.getItem('quotes');
-    let acceptedQuotes: Quote[] = [];
-     if (storedQuotesString) {
-      const allQuotes: Quote[] = JSON.parse(storedQuotesString);
-      acceptedQuotes = allQuotes.filter(q => q.status === 'accepted' || q.status === 'converted_to_order');
-    }
+    if (!acceptedQuotes.length) return;
 
     const yearlySales = acceptedQuotes.filter(q => new Date(q.createdAt).getFullYear() === selectedYear);
     const monthlySales: number[] = Array(12).fill(0);
@@ -139,8 +127,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ userName, userRole, openG
         },
       ],
     });
-
-  }, [selectedYear]);
+  }, [selectedYear, acceptedQuotes]);
 
 
   const getGreeting = () => {
@@ -219,6 +206,14 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ userName, userRole, openG
     ? availableYears.map(year => ({ value: year, label: year.toString() }))
     : [{ value: new Date().getFullYear(), label: new Date().getFullYear().toString() }];
 
+  if (quotesLoading || productsLoading) {
+    return (
+      <div className="p-6 text-white flex items-center justify-center">
+        <Spinner size="lg" />
+        <span className="ml-3">Carregando dados do painel...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 text-white">

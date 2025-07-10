@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { User, Quote, LoggedInUser, UserAccessLevel } from '../types';
 import Select from '../components/common/Select';
+import Spinner from '../components/common/Spinner';
 import ChartBarIcon from '../components/icons/ChartBarIcon';
 import UserGroupIcon from '../components/icons/UserGroupIcon';
-import { USERS_STORAGE_KEY } from '../constants';
 import { Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -17,6 +17,7 @@ import {
   ChartOptions,
 } from 'chart.js';
 import { formatCurrency } from '../utils';
+import { useUsers, useQuotes } from '../hooks/useSupabaseData';
 
 ChartJS.register(
   CategoryScale,
@@ -27,46 +28,38 @@ ChartJS.register(
   Legend
 );
 
-const QUOTES_STORAGE_KEY = 'quotes';
-
 interface UserSalesPerformancePageProps {
   currentUser: LoggedInUser;
 }
 
 const UserSalesPerformancePage: React.FC<UserSalesPerformancePageProps> = ({ currentUser }) => {
-  const [allUsers, setAllUsers] = useState<User[]>([]);
-  const [allAcceptedQuotes, setAllAcceptedQuotes] = useState<Quote[]>([]);
+  const { users: allUsers, loading: usersLoading } = useUsers();
+  const { quotes: allQuotes, loading: quotesLoading } = useQuotes();
   
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number>(new Date().getMonth() + 1); // 1-12
 
   const [availableYears, setAvailableYears] = useState<number[]>([]);
 
-  useEffect(() => {
-    const storedUsers = localStorage.getItem(USERS_STORAGE_KEY);
-    if (storedUsers) {
-      setAllUsers(JSON.parse(storedUsers));
-    }
+  const allAcceptedQuotes = useMemo(() => {
+    return allQuotes.filter(q => q.status === 'accepted' || q.status === 'converted_to_order');
+  }, [allQuotes]);
 
-    const storedQuotes = localStorage.getItem(QUOTES_STORAGE_KEY);
-    let acceptedQuotes: Quote[] = [];
-    if (storedQuotes) {
-      const parsedQuotes: Quote[] = JSON.parse(storedQuotes);
-      acceptedQuotes = parsedQuotes.filter(q => q.status === 'accepted' || q.status === 'converted_to_order');
-      setAllAcceptedQuotes(acceptedQuotes);
+  React.useEffect(() => {
+    if (!allAcceptedQuotes.length) {
+      setAvailableYears([new Date().getFullYear()]);
+      return;
     }
     
-    if (acceptedQuotes.length > 0) {
-      const yearsWithSales = [...new Set(acceptedQuotes.map(q => new Date(q.createdAt).getFullYear()))].sort((a, b) => b - a);
+    if (allAcceptedQuotes.length > 0) {
+      const yearsWithSales = [...new Set(allAcceptedQuotes.map(q => new Date(q.createdAt).getFullYear()))].sort((a, b) => b - a);
       const allPossibleYears = [...new Set([...yearsWithSales, new Date().getFullYear()])].sort((a,b) => b-a);
       setAvailableYears(allPossibleYears);
       if (!allPossibleYears.includes(selectedYear) && allPossibleYears.length > 0) {
         setSelectedYear(allPossibleYears[0]);
       }
-    } else {
-      setAvailableYears([new Date().getFullYear()]);
     }
-  }, []);
+  }, [allAcceptedQuotes, selectedYear]);
 
   const monthOptions = Array.from({ length: 12 }, (_, i) => ({
     value: i + 1,
@@ -163,6 +156,15 @@ const UserSalesPerformancePage: React.FC<UserSalesPerformancePageProps> = ({ cur
       <div className="p-6 text-gray-300 text-center">
         <h2 className="text-xl font-semibold text-red-500">Acesso Negado</h2>
         <p className="text-gray-400">Você não tem permissão para visualizar esta página.</p>
+      </div>
+    );
+  }
+  
+  if (usersLoading || quotesLoading) {
+    return (
+      <div className="p-6 text-white flex items-center justify-center">
+        <Spinner size="lg" />
+        <span className="ml-3">Carregando dados de performance...</span>
       </div>
     );
   }

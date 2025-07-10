@@ -1,16 +1,16 @@
 
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { AccountsPayableEntry } from '../types';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
 import Select from '../components/common/Select';
 import Textarea from '../components/common/Textarea';
+import Spinner from '../components/common/Spinner';
 import BanknotesIcon from '../components/icons/BanknotesIcon';
 import PlusIcon from '../components/icons/PlusIcon';
 import TrashIcon from '../components/icons/TrashIcon';
 import PencilIcon from '../components/icons/PencilIcon';
-import { ACCOUNTS_PAYABLE_STORAGE_KEY } from '../constants';
 import { formatCurrency, formatDateForInput, addMonths, addWeeks } from '../utils';
 import { Pie } from 'react-chartjs-2';
 import {
@@ -21,6 +21,7 @@ import {
   ChartData,
   ChartOptions,
 } from 'chart.js';
+import { useAccountsPayable } from '../hooks/useSupabaseData';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -39,7 +40,7 @@ const initialFormState = {
 };
 
 const AccountsPayablePage: React.FC = () => {
-  const [entries, setEntries] = useState<AccountsPayableEntry[]>([]);
+  const { entries, loading, createEntries, updateEntry, deleteEntry, deleteEntriesBySeries } = useAccountsPayable();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentFormData, setCurrentFormData] = useState(initialFormState);
   const [editingEntry, setEditingEntry] = useState<AccountsPayableEntry | null>(null);
@@ -50,22 +51,6 @@ const AccountsPayablePage: React.FC = () => {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
   const [selectedFilterYear, setSelectedFilterYear] = useState<number>(new Date().getFullYear());
   const [selectedFilterMonth, setSelectedFilterMonth] = useState<number>(new Date().getMonth() + 1); // 1-12
-
-  const loadEntries = useCallback(() => {
-    const storedEntries = localStorage.getItem(ACCOUNTS_PAYABLE_STORAGE_KEY);
-    if (storedEntries) {
-      setEntries(JSON.parse(storedEntries).sort((a: AccountsPayableEntry, b: AccountsPayableEntry) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()));
-    }
-  }, []);
-
-  useEffect(() => {
-    loadEntries();
-  }, [loadEntries]);
-
-  const saveEntries = (updatedEntries: AccountsPayableEntry[]) => {
-    localStorage.setItem(ACCOUNTS_PAYABLE_STORAGE_KEY, JSON.stringify(updatedEntries));
-    setEntries(updatedEntries.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()));
-  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -112,96 +97,149 @@ const AccountsPayablePage: React.FC = () => {
     setCurrentFormData(initialFormState);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    if (editingEntry) { // Editing existing entry
-      const updatedEntry: AccountsPayableEntry = {
-        ...editingEntry,
-        name: currentFormData.name,
-        amount: currentFormData.totalAmount, // This is 'installmentAmount' effectively
-        dueDate: currentFormData.dueDate,
-        isPaid: currentFormData.isPaid,
-        notes: currentFormData.notes,
-      };
-      saveEntries(entries.map(en => en.id === editingEntry.id ? updatedEntry : en));
-    } else { // Adding new entry or series of entries
-      const newEntries: AccountsPayableEntry[] = [];
-      const now = new Date().toISOString();
-      const seriesId = `series-${Date.now()}`;
-
-      if (currentFormData.parcelType === 'none' || currentFormData.numberOfInstallments <= 0) {
-        newEntries.push({
-          id: `entry-${Date.now()}`,
+    try {
+      if (editingEntry) { // Editing existing entry
+        const updatedEntry: AccountsPayableEntry = {
+          ...editingEntry,
           name: currentFormData.name,
-          amount: currentFormData.totalAmount,
+          amount: currentFormData.totalAmount, // This is 'installmentAmount' effectively
           dueDate: currentFormData.dueDate,
           isPaid: currentFormData.isPaid,
-          createdAt: now,
           notes: currentFormData.notes,
-        });
-      } else {
-        const installmentAmount = parseFloat((currentFormData.totalAmount / currentFormData.numberOfInstallments).toFixed(2));
-        let firstDueDate = new Date(currentFormData.dueDate + "T00:00:00"); // Ensure date is parsed correctly
+        };
+        await updateEntry(updatedEntry);
+      } else { // Adding new entry or series of entries
+        const newEntries: Omit<AccountsPayableEntry, 'id'>[] = [];
+        const now = new Date().toISOString();
+        const seriesId = `series-${Date.now()}`;
 
-        for (let i = 0; i < currentFormData.numberOfInstallments; i++) {
-          let currentInstallmentDueDate: Date;
-          if (i === 0) {
-            currentInstallmentDueDate = firstDueDate;
-          } else {
-            currentInstallmentDueDate = currentFormData.parcelType === 'weekly' 
-              ? addWeeks(firstDueDate, i) 
-              : addMonths(firstDueDate, i);
-          }
-          
+        if (currentFormData.parcelType === 'none' || currentFormData.numberOfInstallments <= 0) {
           newEntries.push({
-            id: `entry-${Date.now()}-${i}`,
-            name: `${currentFormData.name} - Parcela ${i + 1}/${currentFormData.numberOfInstallments}`,
-            amount: installmentAmount,
-            // Adjust last installment amount for rounding differences if any
-            ...(i === currentFormData.numberOfInstallments - 1 && currentFormData.numberOfInstallments > 1 && 
-                (installmentAmount * currentFormData.numberOfInstallments !== currentFormData.totalAmount) && {
-                amount: parseFloat((currentFormData.totalAmount - (installmentAmount * (currentFormData.numberOfInstallments - 1))).toFixed(2))
-            }),
-            dueDate: formatDateForInput(currentInstallmentDueDate),
-            isPaid: false, // New installments are pending
-            seriesId: seriesId,
-            totalInstallmentsInSeries: currentFormData.numberOfInstallments,
-            installmentNumberOfSeries: i + 1,
+            name: currentFormData.name,
+            amount: currentFormData.totalAmount,
+            dueDate: currentFormData.dueDate,
+            isPaid: currentFormData.isPaid,
             createdAt: now,
-            notes: i === 0 ? currentFormData.notes : undefined, // Notes typically on the first
+            notes: currentFormData.notes,
           });
+        } else {
+          const installmentAmount = parseFloat((currentFormData.totalAmount / currentFormData.numberOfInstallments).toFixed(2));
+          let firstDueDate = new Date(currentFormData.dueDate + "T00:00:00"); // Ensure date is parsed correctly
+
+          for (let i = 0; i < currentFormData.numberOfInstallments; i++) {
+            let currentInstallmentDueDate: Date;
+            if (i === 0) {
+              currentInstallmentDueDate = firstDueDate;
+            } else {
+              currentInstallmentDueDate = currentFormData.parcelType === 'weekly' 
+                ? addWeeks(firstDueDate, i) 
+                : addMonths(firstDueDate, i);
+            }
+            
+            newEntries.push({
+              name: `${currentFormData.name} - Parcela ${i + 1}/${currentFormData.numberOfInstallments}`,
+              amount: i === currentFormData.numberOfInstallments - 1 && currentFormData.numberOfInstallments > 1 && 
+                      (installmentAmount * currentFormData.numberOfInstallments !== currentFormData.totalAmount) 
+                      ? parseFloat((currentFormData.totalAmount - (installmentAmount * (currentFormData.numberOfInstallments - 1))).toFixed(2))
+                      : installmentAmount,
+              dueDate: formatDateForInput(currentInstallmentDueDate),
+              isPaid: false, // New installments are pending
+              seriesId: seriesId,
+              totalInstallmentsInSeries: currentFormData.numberOfInstallments,
+              installmentNumberOfSeries: i + 1,
+              createdAt: now,
+              notes: i === 0 ? currentFormData.notes : undefined, // Notes typically on the first
+            });
+          }
         }
+        await createEntries(newEntries);
       }
-      saveEntries([...entries, ...newEntries]);
+      closeModal();
+    } catch (error) {
+      console.error('Erro ao salvar conta a pagar:', error);
+      alert('Erro ao salvar conta a pagar. Tente novamente.');
     }
 
     setIsLoading(false);
-    closeModal();
   };
 
-  const handleDeleteEntry = (entryId: string) => {
+  const handleDeleteEntry = async (entryId: string) => {
+    const entryToDelete = entries.find(e => e.id === entryId);
+    if (!entryToDelete) return;
+
+    try {
+      if (entryToDelete.seriesId) {
+          if (window.confirm(`Esta é uma parcela. Deseja excluir apenas esta parcela ou todas as ${entryToDelete.totalInstallmentsInSeries} parcelas desta dívida? \n\nOK = Excluir TODAS as parcelas da série.\nCancelar = Excluir APENAS esta parcela.`)) {
+              // Delete all in series
+              await deleteEntriesBySeries(entryToDelete.seriesId);
+          } else {
+              // Delete only this one
+              await deleteEntry(entryId);
+          }
+      } else {
+          if (window.confirm('Tem certeza que deseja excluir esta dívida?')) {
+              await deleteEntry(entryId);
+          }
+      }
+    } catch (error) {
+      console.error('Erro ao excluir conta a pagar:', error);
+      alert('Erro ao excluir conta a pagar. Tente novamente.');
+    }
+  };
+
+  const handleTogglePaid = async (entryId: string) => {
+    const entry = entries.find(e => e.id === entryId);
+    if (!entry) return;
+    
+    try {
+      await updateEntry({ ...entry, isPaid: !entry.isPaid });
+    } catch (error) {
+      console.error('Erro ao atualizar status da conta:', error);
+      alert('Erro ao atualizar status da conta. Tente novamente.');
+    }
+  };
+
+  const handleTogglePaidOld = (entryId: string) => {
+    const entry = entries.find(e => e.id === entryId);
+    if (!entry) return;
+    
+    const updatedEntry = { ...entry, isPaid: !entry.isPaid };
+    updateEntry(updatedEntry).catch(error => {
+      console.error('Erro ao atualizar status:', error);
+      alert('Erro ao atualizar status. Tente novamente.');
+    });
+  };
+
+  const handleDeleteEntryOld = (entryId: string) => {
     const entryToDelete = entries.find(e => e.id === entryId);
     if (!entryToDelete) return;
 
     if (entryToDelete.seriesId) {
         if (window.confirm(`Esta é uma parcela. Deseja excluir apenas esta parcela ou todas as ${entryToDelete.totalInstallmentsInSeries} parcelas desta dívida? \n\nOK = Excluir TODAS as parcelas da série.\nCancelar = Excluir APENAS esta parcela.`)) {
             // Delete all in series
-            saveEntries(entries.filter(e => e.seriesId !== entryToDelete.seriesId));
+            deleteEntriesBySeries(entryToDelete.seriesId).catch(error => {
+              console.error('Erro ao excluir série:', error);
+              alert('Erro ao excluir série. Tente novamente.');
+            });
         } else {
             // Delete only this one
-            saveEntries(entries.filter(e => e.id !== entryId));
+            deleteEntry(entryId).catch(error => {
+              console.error('Erro ao excluir conta:', error);
+              alert('Erro ao excluir conta. Tente novamente.');
+            });
         }
     } else {
         if (window.confirm('Tem certeza que deseja excluir esta dívida?')) {
-            saveEntries(entries.filter(e => e.id !== entryId));
+            deleteEntry(entryId).catch(error => {
+              console.error('Erro ao excluir conta:', error);
+              alert('Erro ao excluir conta. Tente novamente.');
+            });
         }
     }
-  };
-
-  const handleTogglePaid = (entryId: string) => {
-    saveEntries(entries.map(e => e.id === entryId ? { ...e, isPaid: !e.isPaid } : e));
   };
 
   const availableYears = useMemo(() => {
@@ -353,6 +391,15 @@ const AccountsPayablePage: React.FC = () => {
     { value: 'weekly', label: 'Semanalmente' },
     { value: 'monthly', label: 'Mensalmente' },
   ];
+
+  if (loading) {
+    return (
+      <div className="p-6 text-white flex items-center justify-center">
+        <Spinner size="lg" />
+        <span className="ml-3">Carregando contas a pagar...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 text-gray-300">

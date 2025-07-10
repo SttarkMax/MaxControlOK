@@ -1,14 +1,15 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { User, UserAccessLevel, LoggedInUser } from '../types';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
 import Select from '../components/common/Select';
+import Spinner from '../components/common/Spinner';
 import UserGroupIcon from '../components/icons/UserGroupIcon';
 import PlusIcon from '../components/icons/PlusIcon';
 import TrashIcon from '../components/icons/TrashIcon';
 import PencilIcon from '../components/icons/PencilIcon';
-import { USERS_STORAGE_KEY } from '../constants';
+import { useUsers } from '../hooks/useSupabaseData';
 
 const initialUserState: User = {
   id: '',
@@ -23,27 +24,12 @@ interface UsersPageProps {
 }
 
 const UsersPage: React.FC<UsersPageProps> = ({ loggedInUser }) => {
-  const [users, setUsers] = useState<User[]>([]);
+  const { users, loading, createUser, updateUser, deleteUser } = useUsers();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentUserForm, setCurrentUserForm] = useState<User>(initialUserState);
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [editPassword, setEditPassword] = useState(''); 
-
-  const loadUsers = useCallback(() => {
-    const storedUsers = localStorage.getItem(USERS_STORAGE_KEY);
-    if (storedUsers) {
-      setUsers(JSON.parse(storedUsers));
-    }
-  }, []);
-
-  useEffect(() => {
-    loadUsers();
-  }, [loadUsers]);
-
-  const saveUsersToStorage = (updatedUsers: User[]) => {
-    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(updatedUsers));
-  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -74,7 +60,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ loggedInUser }) => {
     setEditPassword('');
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUserForm.username.trim()) {
         alert("O nome de usuário não pode ser vazio.");
@@ -88,6 +74,10 @@ const UsersPage: React.FC<UsersPageProps> = ({ loggedInUser }) => {
         alert("A senha é obrigatória para novos usuários.");
         return;
     }
+    if (users.some(u => u.username.toLowerCase() === currentUserForm.username.toLowerCase() && u.id !== currentUserForm.id)) {
+        alert("Este nome de usuário já existe.");
+        return;
+    }
     
     if (isEditing && currentUserForm.id === loggedInUser.id && currentUserForm.role !== UserAccessLevel.ADMIN && loggedInUser.role === UserAccessLevel.ADMIN) {
         alert("Você não pode remover seu próprio acesso de administrador.");
@@ -95,44 +85,41 @@ const UsersPage: React.FC<UsersPageProps> = ({ loggedInUser }) => {
     }
 
     setIsLoading(true);
-    let updatedUsers;
-    const userToSave: User = { 
-        ...currentUserForm, 
-        password: isEditing 
-            ? (editPassword.trim() ? editPassword.trim() : currentUserForm.password) 
-            : currentUserForm.password?.trim() 
-    };
     
-    if (isEditing && !editPassword.trim()){
-        delete userToSave.password; 
-    }
-
-    if (isEditing) {
-      updatedUsers = users.map(u => u.id === userToSave.id ? userToSave : u);
-    } else {
-      if (users.some(u => u.username.toLowerCase() === userToSave.username.toLowerCase())) {
-        alert("Este nome de usuário já existe.");
-        setIsLoading(false);
-        return;
+    try {
+      if (isEditing) {
+        const userToUpdate = {
+          ...currentUserForm,
+          ...(editPassword.trim() && { password: editPassword.trim() })
+        };
+        await updateUser(userToUpdate);
+      } else {
+        const userToCreate = {
+          ...currentUserForm,
+          password: currentUserForm.password!
+        };
+        await createUser(userToCreate);
       }
-      const newUser = { ...userToSave, id: Date.now().toString() }; 
-      updatedUsers = [...users, newUser];
+      closeModal();
+    } catch (error) {
+      console.error('Erro ao salvar usuário:', error);
+      alert('Erro ao salvar usuário. Tente novamente.');
     }
-    setUsers(updatedUsers);
-    saveUsersToStorage(updatedUsers);
     setIsLoading(false);
-    closeModal();
   };
 
-  const handleDelete = (userId: string) => {
+  const handleDeleteUser = async (userId: string) => {
     if (userId === loggedInUser.id) {
       alert('Você não pode excluir seu próprio usuário.');
       return;
     }
     if (window.confirm('Tem certeza que deseja excluir este usuário?')) {
-      const updatedUsers = users.filter(user => user.id !== userId);
-      setUsers(updatedUsers);
-      saveUsersToStorage(updatedUsers);
+      try {
+        await deleteUser(userId);
+      } catch (error) {
+        console.error('Erro ao excluir usuário:', error);
+        alert('Erro ao excluir usuário. Tente novamente.');
+      }
     }
   };
   
@@ -155,6 +142,14 @@ const UsersPage: React.FC<UsersPageProps> = ({ loggedInUser }) => {
     return { label, style };
   };
 
+  if (loading) {
+    return (
+      <div className="p-6 text-white flex items-center justify-center">
+        <Spinner size="lg" />
+        <span className="ml-3">Carregando usuários...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 text-gray-300">
@@ -169,8 +164,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ loggedInUser }) => {
       </div>
 
       <p className="text-sm text-gray-400 mb-4">
-        Nota: A senha é simulada e armazenada em texto plano para fins de demonstração.
-        O login principal do sistema ainda é um seletor de perfil e não valida contra esta lista de usuários.
+        Gerencie os usuários do sistema e seus níveis de acesso.
       </p>
 
       {users.length === 0 ? (
@@ -214,7 +208,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ loggedInUser }) => {
                           Editar
                       </Button>
                       <Button 
-                          onClick={() => handleDelete(user.id)} 
+                          onClick={() => handleDeleteUser(user.id)} 
                           variant="danger" 
                           size="sm" 
                           iconLeft={<TrashIcon className="w-4 h-4"/>}
@@ -251,13 +245,13 @@ const UsersPage: React.FC<UsersPageProps> = ({ loggedInUser }) => {
                 required 
               />
               <Input 
-                label={isEditing ? "Nova Senha (deixe em branco para não alterar)" : "Senha (Simulada)"}
+                label={isEditing ? "Nova Senha (deixe em branco para não alterar)" : "Senha"}
                 name={isEditing ? "editPassword" : "password"}
                 type="password" 
                 value={isEditing ? editPassword : currentUserForm.password || ''} 
                 onChange={handleInputChange} 
                 required={!isEditing}
-                placeholder={isEditing ? "Digite nova senha ou deixe em branco" : "Mínimo 6 caracteres"}
+                placeholder={isEditing ? "Digite nova senha ou deixe em branco" : "Digite a senha"}
               />
               <Select
                 label="Nível de Acesso"

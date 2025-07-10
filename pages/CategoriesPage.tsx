@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { Category } from '../types';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
+import Spinner from '../components/common/Spinner';
 import TagIcon from '../components/icons/TagIcon';
 import PlusIcon from '../components/icons/PlusIcon';
 import TrashIcon from '../components/icons/TrashIcon';
 import PencilIcon from '../components/icons/PencilIcon';
-import { PRODUCT_CATEGORIES_STORAGE_KEY } from '../constants';
+import { useCategories } from '../hooks/useSupabaseData';
 
 const initialCategoryState: Category = {
   id: '',
@@ -14,26 +15,11 @@ const initialCategoryState: Category = {
 };
 
 const CategoriesPage: React.FC = () => {
-  const [categories, setCategories] = useState<Category[]>([]);
+  const { categories, loading, createCategory, updateCategory, deleteCategory } = useCategories();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentCategory, setCurrentCategory] = useState<Category>(initialCategoryState);
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
-  const loadCategories = useCallback(() => {
-    const storedCategories = localStorage.getItem(PRODUCT_CATEGORIES_STORAGE_KEY);
-    if (storedCategories) {
-      setCategories(JSON.parse(storedCategories));
-    }
-  }, []);
-
-  useEffect(() => {
-    loadCategories();
-  }, [loadCategories]);
-
-  const saveCategoriesToStorage = (updatedCategories: Category[]) => {
-    localStorage.setItem(PRODUCT_CATEGORIES_STORAGE_KEY, JSON.stringify(updatedCategories));
-  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -57,35 +43,49 @@ const CategoriesPage: React.FC = () => {
     setCurrentCategory(initialCategoryState);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentCategory.name.trim()) {
         alert("O nome da categoria não pode ser vazio.");
         return;
     }
     setIsLoading(true);
-    let updatedCategories;
-    if (isEditing) {
-      updatedCategories = categories.map(cat => cat.id === currentCategory.id ? currentCategory : cat);
-    } else {
-      const newCategory = { ...currentCategory, id: Date.now().toString() };
-      updatedCategories = [...categories, newCategory];
+    
+    try {
+      if (isEditing) {
+        await updateCategory(currentCategory);
+      } else {
+        await createCategory(currentCategory);
+      }
+      closeModal();
+    } catch (error) {
+      console.error('Erro ao salvar categoria:', error);
+      alert('Erro ao salvar categoria. Tente novamente.');
     }
-    setCategories(updatedCategories);
-    saveCategoriesToStorage(updatedCategories);
     setIsLoading(false);
-    closeModal();
   };
 
-  const handleDelete = (categoryId: string) => {
+  const handleDelete = async (categoryId: string) => {
     // Note: Consider implications if products are linked to this category.
     // For now, we'll allow deletion. ProductsPage will handle missing category IDs gracefully.
     if (window.confirm('Tem certeza que deseja excluir esta categoria? Os produtos associados não serão removidos, mas perderão esta categorização.')) {
-      const updatedCategories = categories.filter(cat => cat.id !== categoryId);
-      setCategories(updatedCategories);
-      saveCategoriesToStorage(updatedCategories);
+      try {
+        await deleteCategory(categoryId);
+      } catch (error) {
+        console.error('Erro ao excluir categoria:', error);
+        alert('Erro ao excluir categoria. Tente novamente.');
+      }
     }
   };
+
+  if (loading) {
+    return (
+      <div className="p-6 text-white flex items-center justify-center">
+        <Spinner size="lg" />
+        <span className="ml-3">Carregando categorias...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 text-white">
