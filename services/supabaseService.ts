@@ -37,28 +37,23 @@ export const companyService = {
     }
     
     try {
-      console.log('Attempting to load company from Supabase...');
       const { data, error } = await supabase
         .from('companies')
         .select('*')
         .maybeSingle();
       
       if (error) {
-        console.log('Supabase error, falling back to localStorage:', error);
         handleSupabaseError(error);
         // Fallback to localStorage
         const stored = localStorage.getItem('companyInfo');
         const result = stored ? JSON.parse(stored) : null;
-        console.log('Company loaded from localStorage (fallback):', result);
         return result;
       }
       
       if (!data) {
-        console.log('No company data in Supabase, checking localStorage...');
         // Check localStorage as fallback
         const stored = localStorage.getItem('companyInfo');
         const result = stored ? JSON.parse(stored) : null;
-        console.log('Company loaded from localStorage (no Supabase data):', result);
         return result;
       }
       
@@ -73,15 +68,12 @@ export const companyService = {
         instagram: data.instagram,
         website: data.website,
       };
-      console.log('Company loaded from Supabase:', result);
       return result;
     } catch (error) {
-      console.log('Exception loading from Supabase, using localStorage fallback:', error);
       handleSupabaseError(error);
       // Fallback to localStorage
       const stored = localStorage.getItem('companyInfo');
       const result = stored ? JSON.parse(stored) : null;
-      console.log('Company loaded from localStorage (exception fallback):', result);
       return result;
     }
   },
@@ -94,8 +86,6 @@ export const companyService = {
     }
     
     try {
-      console.log('Attempting to save company:', company);
-      
       // First, check if a company record exists
       const { data: existingCompany, error: selectError } = await supabase
         .from('companies')
@@ -104,7 +94,6 @@ export const companyService = {
         .maybeSingle();
       
       if (selectError && selectError.code !== 'PGRST116') {
-        console.error('Error checking existing company:', selectError);
         handleSupabaseError(selectError);
         // Fallback to localStorage
         localStorage.setItem('companyInfo', JSON.stringify(company));
@@ -139,16 +128,12 @@ export const companyService = {
       }
       
       if (result.error) {
-        console.error('Supabase save error:', result.error);
         handleSupabaseError(result.error);
         // Fallback to localStorage
         localStorage.setItem('companyInfo', JSON.stringify(company));
         return;
       }
-      
-      console.log('Company saved successfully to Supabase');
     } catch (error) {
-      console.error('Unexpected error saving company:', error);
       // Fallback to localStorage
       localStorage.setItem('companyInfo', JSON.stringify(company));
     }

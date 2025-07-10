@@ -85,15 +85,6 @@ const CompanySettingsPage: React.FC = () => {
           Informações salvas com sucesso!
         </div>
       )}
-
-      {/* Debug info - remove in production */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="mb-4 p-3 bg-blue-900 border border-blue-700 text-white rounded-md text-xs">
-          <strong>Debug:</strong> Company loaded: {company ? 'Yes' : 'No'} | 
-          Form name: "{companyInfo.name}" | 
-          Form phone: "{companyInfo.phone}"
-        </div>
-      )}
       <form onSubmit={handleSubmit} className="space-y-6">
         <Input
           label="Nome da Empresa"
