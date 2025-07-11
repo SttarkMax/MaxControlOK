@@ -23,10 +23,20 @@ const CompanySettingsPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
 
+  // Initialize form with existing company data
   React.useEffect(() => {
     if (company) {
-      console.log('Loading company data:', company);
-      setCompanyInfo(company);
+      setCompanyInfo({
+        name: company.name || '',
+        logoUrlDarkBg: company.logoUrlDarkBg || '',
+        logoUrlLightBg: company.logoUrlLightBg || '',
+        address: company.address || '',
+        phone: company.phone || '',
+        email: company.email || '',
+        cnpj: company.cnpj || '',
+        instagram: company.instagram || '',
+        website: company.website || '',
+      });
     }
   }, [company]);
 
