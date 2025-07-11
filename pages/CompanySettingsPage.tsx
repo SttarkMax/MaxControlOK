@@ -13,9 +13,33 @@ const CompanySettingsPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [debugInfo, setDebugInfo] = useState<string>('');
+  const [localStorageData, setLocalStorageData] = useState<string>('');
 
   // Initialize form with existing company data
   React.useEffect(() => {
+    // Force check localStorage immediately
+    const storedData = localStorage.getItem('companyInfo');
+    setLocalStorageData(storedData || 'No data in localStorage');
+    
+    console.log('=== CompanySettingsPage useEffect ===');
+    console.log('localStorage companyInfo:', storedData);
+    console.log('company from hook:', company);
+    console.log('loading from hook:', loading);
+    console.log('current companyInfo state:', companyInfo);
+    
+    // If we have localStorage data but no company from hook, use localStorage
+    if (storedData && !company && !loading) {
+      try {
+        const parsedData = JSON.parse(storedData);
+        console.log('Using localStorage data:', parsedData);
+        setCompanyInfo(parsedData);
+        setDebugInfo('Loaded from localStorage');
+        return;
+      } catch (error) {
+        console.error('Error parsing localStorage data:', error);
+      }
+    }
+    
     console.log('CompanySettingsPage useEffect triggered');
     console.log('company:', company);
     console.log('loading:', loading);
@@ -55,6 +79,23 @@ const CompanySettingsPage: React.FC = () => {
     }
   }, [company, loading, companyInfo]);
 
+  // Add a manual button to force reload from localStorage
+  const forceLoadFromLocalStorage = () => {
+    const storedData = localStorage.getItem('companyInfo');
+    console.log('Force loading from localStorage:', storedData);
+    if (storedData) {
+      try {
+        const parsedData = JSON.parse(storedData);
+        setCompanyInfo(parsedData);
+        setDebugInfo('Force loaded from localStorage');
+      } catch (error) {
+        console.error('Error parsing localStorage:', error);
+        setDebugInfo('Error parsing localStorage');
+      }
+    } else {
+      setDebugInfo('No data in localStorage to load');
+    }
+  };
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (!companyInfo) return;
     setCompanyInfo({ ...companyInfo, [e.target.name]: e.target.value });
@@ -118,6 +159,15 @@ const CompanySettingsPage: React.FC = () => {
         Loading: {loading.toString()}<br/>
         CompanyInfo state: {JSON.stringify(companyInfo)}<br/>
         Debug: {debugInfo}
+        <br/>
+        localStorage data: {localStorageData}
+        <br/>
+        <button 
+          onClick={forceLoadFromLocalStorage}
+          style={{ padding: '4px 8px', margin: '4px', backgroundColor: '#333', color: 'white', border: '1px solid #666' }}
+        >
+          Force Load from localStorage
+        </button>
       </div>
 
       {isSaved && (
