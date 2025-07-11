@@ -25,45 +25,13 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     setError('');
 
     try {
-      if (supabase) {
-        try {
-          // Try Supabase authentication first
-          const { data, error: authError } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
-
-          if (authError) {
-            if (authError.message === 'Invalid login credentials') {
-                setShowInstructions(true);
-                throw new Error('Usuário não encontrado no Supabase. Veja as instruções abaixo para criar o usuário.');
-            }
-            throw new Error(authError.message);
-          }
-
-          if (data.user) {
-            // Authentication successful, the auth state change will handle user data
-            // Just trigger the login callback
-            onLogin(data.user.email?.split('@')[0] || 'admin');
-          }
-        } catch (authError: any) {
-          console.warn('Supabase authentication failed, using fallback:', authError);
-          // Fallback to demo authentication
-          if (email === 'admin@example.com' && password === 'password123') {
-            onLogin('admin');
-          } else {
-            throw new Error('Credenciais inválidas');
-          }
-        }
+      // Simple demo authentication
+      if (email === 'admin@example.com' && password === 'password123') {
+        onLogin('admin');
+        navigate('/');
       } else {
-        // Fallback authentication for development/demo
-        if (email === 'admin@example.com' && password === 'password123') {
-          onLogin('admin');
-        } else {
-          throw new Error('Credenciais inválidas');
-        }
+        throw new Error('Credenciais inválidas. Use admin@example.com / password123');
       }
-      navigate('/');
     } catch (error: any) {
       console.error('Login error:', error);
       setError(error.message || 'Erro ao fazer login');
@@ -120,27 +88,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
           </Button>
         </form>
         <div className="mt-4 text-center text-xs text-gray-400">
-          {showInstructions && (
-            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <h3 className="text-lg font-semibold text-blue-800 mb-2">
-                📋 Como criar o usuário no Supabase:
-              </h3>
-              <ol className="text-sm text-blue-700 space-y-1 list-decimal list-inside">
-                <li>Acesse seu <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer" className="underline">Dashboard do Supabase</a></li>
-                <li>Selecione seu projeto</li>
-                <li>Vá para <strong>Authentication → Users</strong></li>
-                <li>Clique em <strong>"Add user"</strong></li>
-                <li>Email: <code className="bg-blue-100 px-1 rounded">admin@example.com</code></li>
-                <li>Password: <code className="bg-blue-100 px-1 rounded">password123</code></li>
-                <li>Clique em <strong>"Create user"</strong></li>
-                <li>Tente fazer login novamente</li>
-              </ol>
-              <p className="text-xs text-blue-600 mt-2">
-                💡 Alternativamente, o sistema funcionará em modo demo se o Supabase não estiver configurado.
-              </p>
-            </div>
-          )}
-
           <p>Credenciais padrão:</p>
           <p>Email: admin@example.com</p>
           <p>Senha: password123</p>

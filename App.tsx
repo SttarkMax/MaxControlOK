@@ -34,149 +34,21 @@ const App: React.FC = () => {
   // Check for existing Supabase session on app load
   useEffect(() => {
     const checkSession = async () => {
-      if (!supabase) {
-        // If Supabase is not configured, check localStorage for existing session
-        const savedUser = localStorage.getItem('currentUser');
-        if (savedUser) {
+      // Check localStorage for existing session first
+      const savedUser = localStorage.getItem('currentUser');
+      if (savedUser) {
+        try {
           const user: LoggedInUser = JSON.parse(savedUser);
           setCurrentUser(user);
           setIsAuthenticated(true);
-        }
-        return;
-      }
-      
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          // User is authenticated with Supabase - try to get user data from app_users table
-          try {
-            const { data: userData, error } = await supabase
-              .from('app_users')
-              .select('*')
-              .eq('username', session.user.email?.split('@')[0] || 'admin')
-              .single();
-
-            if (userData && !error) {
-              const loggedInUser: LoggedInUser = {
-                id: userData.id,
-                username: userData.username,
-                fullName: userData.full_name || userData.username,
-                role: userData.role as any,
-              };
-              setCurrentUser(loggedInUser);
-              setIsAuthenticated(true);
-              localStorage.setItem('currentUser', JSON.stringify(loggedInUser));
-            } else {
-              // Fallback to basic user data from auth
-              const fallbackUser: LoggedInUser = {
-                id: session.user.id,
-                username: session.user.email?.split('@')[0] || 'User',
-                fullName: session.user.user_metadata?.full_name || session.user.email || 'User',
-                role: 'admin', // Default to admin for authenticated users
-              };
-              setCurrentUser(fallbackUser);
-              setIsAuthenticated(true);
-              localStorage.setItem('currentUser', JSON.stringify(fallbackUser));
-            }
-          } catch (error) {
-            console.warn('Error fetching user data from app_users, using fallback:', error);
-            // Fallback authentication
-            const fallbackUser: LoggedInUser = {
-              id: session.user.id,
-              username: session.user.email?.split('@')[0] || 'User',
-              fullName: session.user.email || 'User',
-              role: 'admin',
-            };
-            setCurrentUser(fallbackUser);
-            setIsAuthenticated(true);
-            localStorage.setItem('currentUser', JSON.stringify(fallbackUser));
-          }
-        } else {
-          // No session, check localStorage for fallback
-          const savedUser = localStorage.getItem('currentUser');
-          if (savedUser) {
-            const user: LoggedInUser = JSON.parse(savedUser);
-            setCurrentUser(user);
-            setIsAuthenticated(true);
-          }
-        }
-      } catch (error) {
-        console.warn('Error checking Supabase session, using localStorage fallback:', error);
-        // Fallback to localStorage
-        const savedUser = localStorage.getItem('currentUser');
-        if (savedUser) {
-          const user: LoggedInUser = JSON.parse(savedUser);
-          setCurrentUser(user);
-          setIsAuthenticated(true);
+        } catch (error) {
+          console.warn('Error parsing saved user data:', error);
+          localStorage.removeItem('currentUser');
         }
       }
     };
     
     checkSession();
-    
-    // Listen for auth changes
-    let subscription: any = null;
-    
-    if (supabase) {
-      const { data } = supabase.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) {
-          // Handle sign in - get user data from app_users table
-          supabase
-            .from('app_users')
-            .select('*')
-            .eq('username', session.user.email?.split('@')[0] || 'admin')
-            .single()
-            .then(({ data: userData, error }) => {
-              if (userData && !error) {
-                const loggedInUser: LoggedInUser = {
-                  id: userData.id,
-                  username: userData.username,
-                  fullName: userData.full_name || userData.username,
-                  role: userData.role as any,
-                };
-                setCurrentUser(loggedInUser);
-                setIsAuthenticated(true);
-                localStorage.setItem('currentUser', JSON.stringify(loggedInUser));
-              } else {
-                // Fallback
-                const fallbackUser: LoggedInUser = {
-                  id: session.user.id,
-                  username: session.user.email?.split('@')[0] || 'User',
-                  fullName: session.user.email || 'User',
-                  role: 'admin',
-                };
-                setCurrentUser(fallbackUser);
-                setIsAuthenticated(true);
-                localStorage.setItem('currentUser', JSON.stringify(fallbackUser));
-              }
-            })
-            .catch(error => {
-              console.warn('Error fetching user data on auth change, using fallback:', error);
-              // Fallback
-              const fallbackUser: LoggedInUser = {
-                id: session.user.id,
-                username: session.user.email?.split('@')[0] || 'User',
-                fullName: session.user.email || 'User',
-                role: 'admin',
-              };
-              setCurrentUser(fallbackUser);
-              setIsAuthenticated(true);
-              localStorage.setItem('currentUser', JSON.stringify(fallbackUser));
-            });
-        } else if (event === 'SIGNED_OUT') {
-          setCurrentUser(null);
-          setIsAuthenticated(false);
-          localStorage.removeItem('currentUser');
-        }
-      });
-      subscription = data.subscription;
-    }
-    
-    return () => {
-      if (subscription) {
-        subscription.unsubscribe();
-      }
-    };
   }, []);
 
   useEffect(() => {
