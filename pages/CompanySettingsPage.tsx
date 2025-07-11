@@ -12,44 +12,10 @@ const CompanySettingsPage: React.FC = () => {
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<string>('');
-  const [localStorageData, setLocalStorageData] = useState<string>('');
 
   // Initialize form with existing company data
   React.useEffect(() => {
-    // Force check localStorage immediately
-    const storedData = localStorage.getItem('companyInfo');
-    setLocalStorageData(storedData || 'No data in localStorage');
-    
-    console.log('=== CompanySettingsPage useEffect ===');
-    console.log('localStorage companyInfo:', storedData);
-    console.log('company from hook:', company);
-    console.log('loading from hook:', loading);
-    console.log('current companyInfo state:', companyInfo);
-    
-    // If we have localStorage data but no company from hook, use localStorage
-    if (storedData && !company && !loading) {
-      try {
-        const parsedData = JSON.parse(storedData);
-        console.log('Using localStorage data:', parsedData);
-        setCompanyInfo(parsedData);
-        setDebugInfo('Loaded from localStorage');
-        return;
-      } catch (error) {
-        console.error('Error parsing localStorage data:', error);
-      }
-    }
-    
-    console.log('CompanySettingsPage useEffect triggered');
-    console.log('company:', company);
-    console.log('loading:', loading);
-    console.log('companyInfo:', companyInfo);
-    
-    setDebugInfo(`company: ${JSON.stringify(company)}, loading: ${loading}, companyInfo: ${JSON.stringify(companyInfo)}`);
-    
     if (company && !companyInfo) {
-      console.log('Loading company data:', company);
-      setDebugInfo('Loading company data from hook');
       setCompanyInfo({
         name: company.name || '',
         logoUrlDarkBg: company.logoUrlDarkBg || '',
@@ -63,8 +29,6 @@ const CompanySettingsPage: React.FC = () => {
       });
     } else if (!company && !loading && !companyInfo) {
       // Initialize with empty data if no company exists
-      console.log('No company data found, initializing empty form');
-      setDebugInfo('No company data found, initializing empty form');
       setCompanyInfo({
         name: '',
         logoUrlDarkBg: '',
@@ -78,24 +42,6 @@ const CompanySettingsPage: React.FC = () => {
       });
     }
   }, [company, loading, companyInfo]);
-
-  // Add a manual button to force reload from localStorage
-  const forceLoadFromLocalStorage = () => {
-    const storedData = localStorage.getItem('companyInfo');
-    console.log('Force loading from localStorage:', storedData);
-    if (storedData) {
-      try {
-        const parsedData = JSON.parse(storedData);
-        setCompanyInfo(parsedData);
-        setDebugInfo('Force loaded from localStorage');
-      } catch (error) {
-        console.error('Error parsing localStorage:', error);
-        setDebugInfo('Error parsing localStorage');
-      }
-    } else {
-      setDebugInfo('No data in localStorage to load');
-    }
-  };
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (!companyInfo) return;
     setCompanyInfo({ ...companyInfo, [e.target.name]: e.target.value });
@@ -119,10 +65,8 @@ const CompanySettingsPage: React.FC = () => {
     e.preventDefault();
     if (!companyInfo) return;
     setIsLoading(true);
-    console.log('Submitting company form:', companyInfo);
     try {
       await saveCompany(companyInfo);
-      console.log('Company saved successfully');
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 3000); // Hide message after 3 seconds
     } catch (error) {
@@ -138,9 +82,6 @@ const CompanySettingsPage: React.FC = () => {
       <div className="p-6 text-white flex items-center justify-center">
         <Spinner size="lg" />
         <span className="ml-3">{loading ? 'Carregando informações da empresa...' : 'Inicializando formulário...'}</span>
-        <div className="mt-4 text-xs text-gray-400">
-          Debug: {debugInfo}
-        </div>
       </div>
     );
   }
@@ -150,24 +91,6 @@ const CompanySettingsPage: React.FC = () => {
       <div className="flex items-center mb-6">
         <BuildingOfficeIcon className="h-8 w-8 text-yellow-500 mr-3" />
         <h2 className="text-2xl font-semibold text-white">Informações da Empresa</h2>
-      </div>
-
-      {/* Debug info */}
-      <div className="mb-4 p-2 bg-gray-800 rounded text-xs">
-        <strong>Debug Info:</strong><br/>
-        Company from hook: {JSON.stringify(company)}<br/>
-        Loading: {loading.toString()}<br/>
-        CompanyInfo state: {JSON.stringify(companyInfo)}<br/>
-        Debug: {debugInfo}
-        <br/>
-        localStorage data: {localStorageData}
-        <br/>
-        <button 
-          onClick={forceLoadFromLocalStorage}
-          style={{ padding: '4px 8px', margin: '4px', backgroundColor: '#333', color: 'white', border: '1px solid #666' }}
-        >
-          Force Load from localStorage
-        </button>
       </div>
 
       {isSaved && (
