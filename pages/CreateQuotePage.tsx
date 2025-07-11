@@ -437,7 +437,7 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
       item.pricingModel === PricingModel.PER_SQUARE_METER 
         ? `${item.quantity.toFixed(2)} m²`
         : `${item.quantity} un`,
-      formatCurrency(item.unitPrice),
+      formatCurrency(item.unitPrice * (1 + CARD_SURCHARGE_PERCENTAGE / 100)),
       formatCurrency(item.totalPrice)
     ]);
 
