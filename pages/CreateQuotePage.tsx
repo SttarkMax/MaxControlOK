@@ -412,10 +412,10 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
     
     // Totals section with both prices
     doc.setFont('helvetica', 'bold');
-    doc.text(`TOTAL À VISTA: ${formatCurrency(currentQuote.totalCash!)}`, pageWidth - margin, yPos, { align: 'right' });
+    doc.text(`Total à Vista com Desconto: ${formatCurrency(currentQuote.totalCash!)}`, pageWidth - margin, yPos, { align: 'right' });
     yPos += 6;
     doc.setFont('helvetica', 'normal');
-    doc.text(`Total no Cartão: ${formatCurrency(currentQuote.totalCard!)}`, pageWidth - margin, yPos, { align: 'right' });
+    doc.text(`Total: ${formatCurrency(currentQuote.totalCard!)}`, pageWidth - margin, yPos, { align: 'right' });
     
     // Payment method and installment info
     if (currentQuote.selectedPaymentMethod) {
