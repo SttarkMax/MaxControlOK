@@ -47,6 +47,7 @@ export const useCompany = () => {
           const fallbackData = JSON.parse(stored);
           console.log('useCompany: Using localStorage fallback:', fallbackData);
           setCompany(fallbackData);
+          setError(null); // Clear error if localStorage works
         }
       } catch (fallbackError) {
         console.error('useCompany: localStorage fallback failed:', fallbackError);
@@ -59,10 +60,13 @@ export const useCompany = () => {
 
   const saveCompany = async (companyData: CompanyInfo) => {
     try {
+      console.log('useCompany: Saving company data:', companyData);
       await companyService.saveCompany(companyData);
       setCompany(companyData);
       setError(null);
+      console.log('useCompany: Company data saved and state updated');
     } catch (err) {
+      console.error('useCompany: Error saving company:', err);
       setError(err instanceof Error ? err.message : 'Erro ao salvar empresa');
       throw err;
     }

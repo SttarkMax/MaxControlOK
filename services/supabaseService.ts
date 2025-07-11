@@ -43,14 +43,16 @@ export const companyService = {
     
     try {
       console.log('companyService.getCompany: Querying Supabase');
+      // Always get the first company record (there should only be one)
       const { data, error } = await supabase
         .from('companies')
         .select('*')
-        .maybeSingle();
+        .limit(1)
+        .single();
       
       console.log('companyService.getCompany: Supabase response:', { data, error });
       
-      if (error) {
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
         console.log('companyService.getCompany: Error from Supabase, falling back to localStorage');
         handleSupabaseError(error);
         // Fallback to localStorage
@@ -59,7 +61,7 @@ export const companyService = {
         return result;
       }
       
-      if (!data) {
+      if (!data || error?.code === 'PGRST116') {
         console.log('companyService.getCompany: No data from Supabase, checking localStorage');
         // Check localStorage as fallback
         const result = stored ? JSON.parse(stored) : null;
@@ -103,12 +105,10 @@ export const companyService = {
     }
     
     try {
-      // First, check if a company record exists
-      const { data: existingCompany, error: selectError } = await supabase
+      // Always try to get the first company record
+      const { data: existingCompanies, error: selectError } = await supabase
         .from('companies')
-        .select('id')
-        .limit(1)
-        .maybeSingle();
+        .select('id');
       
       if (selectError && selectError.code !== 'PGRST116') {
         handleSupabaseError(selectError);
@@ -131,12 +131,23 @@ export const companyService = {
       };
       
       let result;
-      if (existingCompany) {
-        // Update existing record
+      if (existingCompanies && existingCompanies.length > 0) {
+        // Update the first existing record
         result = await supabase
           .from('companies')
           .update(companyData)
-          .eq('id', existingCompany.id);
+          .eq('id', existingCompanies[0].id);
+          
+        // If there are multiple company records, delete the extras
+        if (existingCompanies.length > 1) {
+          console.log(`Found ${existingCompanies.length} company records, cleaning up extras...`);
+          const extraIds = existingCompanies.slice(1).map(c => c.id);
+          await supabase
+            .from('companies')
+            .delete()
+            .in('id', extraIds);
+          console.log('Cleaned up extra company records');
+        }
       } else {
         // Insert new record
         result = await supabase
@@ -150,7 +161,12 @@ export const companyService = {
         localStorage.setItem('companyInfo', JSON.stringify(company));
         return;
       }
+      
+      // Always save to localStorage as backup
+      localStorage.setItem('companyInfo', JSON.stringify(company));
+      console.log('Company data saved successfully to both Supabase and localStorage');
     } catch (error) {
+      console.error('Error saving company data:', error);
       // Fallback to localStorage
       localStorage.setItem('companyInfo', JSON.stringify(company));
     }
