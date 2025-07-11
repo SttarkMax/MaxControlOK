@@ -47,6 +47,7 @@ export const companyService = {
         // Fallback to localStorage
         const stored = localStorage.getItem('companyInfo');
         const result = stored ? JSON.parse(stored) : null;
+        console.log('Company loaded from localStorage (after error):', result);
         return result;
       }
       
@@ -54,6 +55,7 @@ export const companyService = {
         // Check localStorage as fallback
         const stored = localStorage.getItem('companyInfo');
         const result = stored ? JSON.parse(stored) : null;
+        console.log('Company loaded from localStorage (no data):', result);
         return result;
       }
       
@@ -68,12 +70,14 @@ export const companyService = {
         instagram: data.instagram,
         website: data.website,
       };
+      console.log('Company loaded from Supabase:', result);
       return result;
     } catch (error) {
       handleSupabaseError(error);
       // Fallback to localStorage
       const stored = localStorage.getItem('companyInfo');
       const result = stored ? JSON.parse(stored) : null;
+      console.log('Company loaded from localStorage (catch):', result);
       return result;
     }
   },

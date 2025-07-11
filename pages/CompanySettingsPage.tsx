@@ -9,23 +9,14 @@ import { useCompany } from '../hooks/useSupabaseData';
 
 const CompanySettingsPage: React.FC = () => {
   const { company, loading, saveCompany } = useCompany();
-  const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({
-    name: '',
-    logoUrlDarkBg: '',
-    logoUrlLightBg: '',
-    address: '',
-    phone: '',
-    email: '',
-    cnpj: '',
-    instagram: '',
-    website: '',
-  });
+  const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
 
   // Initialize form with existing company data
   React.useEffect(() => {
-    if (company) {
+    if (company && !companyInfo) {
+      console.log('Loading company data:', company);
       setCompanyInfo({
         name: company.name || '',
         logoUrlDarkBg: company.logoUrlDarkBg || '',
@@ -37,15 +28,31 @@ const CompanySettingsPage: React.FC = () => {
         instagram: company.instagram || '',
         website: company.website || '',
       });
+    } else if (!company && !loading && !companyInfo) {
+      // Initialize with empty data if no company exists
+      console.log('No company data found, initializing empty form');
+      setCompanyInfo({
+        name: '',
+        logoUrlDarkBg: '',
+        logoUrlLightBg: '',
+        address: '',
+        phone: '',
+        email: '',
+        cnpj: '',
+        instagram: '',
+        website: '',
+      });
     }
-  }, [company]);
+  }, [company, loading, companyInfo]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    if (!companyInfo) return;
     setCompanyInfo({ ...companyInfo, [e.target.name]: e.target.value });
     setIsSaved(false);
   };
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>, logoType: 'dark' | 'light') => {
+    if (!companyInfo) return;
     if (e.target.files && e.target.files[0]) {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -59,6 +66,7 @@ const CompanySettingsPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!companyInfo) return;
     setIsLoading(true);
     console.log('Submitting company form:', companyInfo);
     try {
@@ -74,11 +82,11 @@ const CompanySettingsPage: React.FC = () => {
     }
   };
 
-  if (loading) {
+  if (loading || !companyInfo) {
     return (
       <div className="p-6 text-white flex items-center justify-center">
         <Spinner size="lg" />
-        <span className="ml-3">Carregando informações da empresa...</span>
+        <span className="ml-3">{loading ? 'Carregando informações da empresa...' : 'Inicializando formulário...'}</span>
       </div>
     );
   }
