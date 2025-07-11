@@ -27,6 +27,12 @@ export const handleSupabaseError = (error: any) => {
     return; // Allow fallback to localStorage instead of throwing
   }
   
+  // Also handle cases where message might contain 'Failed to fetch'
+  if (error?.message?.includes('Failed to fetch')) {
+    console.warn('Network error: Unable to connect to Supabase. Falling back to localStorage.');
+    return; // Allow fallback to localStorage instead of throwing
+  }
+  
   // Handle PGRST116 (no rows found) as a non-critical error
   if (error?.code === 'PGRST116') {
     return; // Don't throw an error for 'no rows found' scenarios
