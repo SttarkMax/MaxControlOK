@@ -169,6 +169,7 @@ export const companyService = {
       console.error('Error saving company data:', error);
       // Fallback to localStorage
       localStorage.setItem('companyInfo', JSON.stringify(company));
+      return;
     }
   }
 };
@@ -212,7 +213,7 @@ export const categoryService = {
       };
     } catch (error) {
       handleSupabaseError(error);
-      throw error;
+      return { id: '', name: '' };
     }
   },
 
@@ -229,6 +230,7 @@ export const categoryService = {
       if (error) handleSupabaseError(error);
     } catch (error) {
       handleSupabaseError(error);
+      return;
     }
   },
 
@@ -242,6 +244,7 @@ export const categoryService = {
       if (error) handleSupabaseError(error);
     } catch (error) {
       handleSupabaseError(error);
+      return;
     }
   }
 };
@@ -309,7 +312,7 @@ export const productService = {
       };
     } catch (error) {
       handleSupabaseError(error);
-      throw error;
+      return { id: '', name: '', description: '', pricingModel: 'unidade', basePrice: 0, unit: 'un' };
     }
   },
 
@@ -334,6 +337,7 @@ export const productService = {
       if (error) handleSupabaseError(error);
     } catch (error) {
       handleSupabaseError(error);
+      return;
     }
   },
 
@@ -347,6 +351,7 @@ export const productService = {
       if (error) handleSupabaseError(error);
     } catch (error) {
       handleSupabaseError(error);
+      return;
     }
   }
 };
@@ -440,7 +445,7 @@ export const customerService = {
       };
     } catch (error) {
       handleSupabaseError(error);
-      throw error;
+      return { id: '', name: '', documentType: 'CPF', documentNumber: '', phone: '', email: '', address: '', city: '', postalCode: '', downPayments: [] };
     }
   },
 
@@ -487,6 +492,7 @@ export const customerService = {
       }
     } catch (error) {
       handleSupabaseError(error);
+      return;
     }
   },
 
@@ -500,6 +506,7 @@ export const customerService = {
       if (error) handleSupabaseError(error);
     } catch (error) {
       handleSupabaseError(error);
+      return;
     }
   }
 };
@@ -621,7 +628,7 @@ export const quoteService = {
       };
     } catch (error) {
       handleSupabaseError(error);
-      throw error;
+      return { id: '', quoteNumber: '', customerId: undefined, clientName: '', clientContact: '', items: [], subtotal: 0, discountType: 'none', discountValue: 0, discountAmountCalculated: 0, subtotalAfterDiscount: 0, totalCash: 0, totalCard: 0, downPaymentApplied: 0, selectedPaymentMethod: '', paymentDate: undefined, deliveryDeadline: undefined, createdAt: '', status: 'draft', companyInfoSnapshot: { name: '', logoUrlDarkBg: '', logoUrlLightBg: '', address: '', phone: '', email: '', cnpj: '', instagram: '', website: '' }, notes: '', salespersonUsername: '', salespersonFullName: '' };
     }
   },
 
@@ -686,6 +693,7 @@ export const quoteService = {
       }
     } catch (error) {
       handleSupabaseError(error);
+      return;
     }
   },
 
@@ -699,6 +707,7 @@ export const quoteService = {
       if (error) handleSupabaseError(error);
     } catch (error) {
       handleSupabaseError(error);
+      return;
     }
   }
 };
@@ -757,7 +766,7 @@ export const supplierService = {
       };
     } catch (error) {
       handleSupabaseError(error);
-      throw error;
+      return { id: '', name: '', cnpj: '', phone: '', email: '', address: '', notes: '' };
     }
   },
 
@@ -779,6 +788,7 @@ export const supplierService = {
       if (error) handleSupabaseError(error);
     } catch (error) {
       handleSupabaseError(error);
+      return;
     }
   },
 
@@ -792,6 +802,7 @@ export const supplierService = {
       if (error) handleSupabaseError(error);
     } catch (error) {
       handleSupabaseError(error);
+      return;
     }
   },
 
@@ -841,7 +852,7 @@ export const supplierService = {
       };
     } catch (error) {
       handleSupabaseError(error);
-      throw error;
+      return { id: '', supplierId: '', description: '', totalAmount: 0, dateAdded: '' };
     }
   },
 
@@ -855,6 +866,7 @@ export const supplierService = {
       if (error) handleSupabaseError(error);
     } catch (error) {
       handleSupabaseError(error);
+      return;
     }
   },
 
@@ -904,7 +916,7 @@ export const supplierService = {
       };
     } catch (error) {
       handleSupabaseError(error);
-      throw error;
+      return { id: '', supplierId: '', amount: 0, date: '', description: '' };
     }
   },
 
@@ -918,6 +930,7 @@ export const supplierService = {
       if (error) handleSupabaseError(error);
     } catch (error) {
       handleSupabaseError(error);
+      return;
     }
   }
 };
@@ -985,7 +998,7 @@ export const accountsPayableService = {
       })) || [];
     } catch (error) {
       handleSupabaseError(error);
-      throw error;
+      return [];
     }
   },
 
@@ -1006,6 +1019,7 @@ export const accountsPayableService = {
       if (error) handleSupabaseError(error);
     } catch (error) {
       handleSupabaseError(error);
+      return;
     }
   },
 
@@ -1019,6 +1033,7 @@ export const accountsPayableService = {
       if (error) handleSupabaseError(error);
     } catch (error) {
       handleSupabaseError(error);
+      return;
     }
   },
 
@@ -1032,6 +1047,7 @@ export const accountsPayableService = {
       if (error) handleSupabaseError(error);
     } catch (error) {
       handleSupabaseError(error);
+      return;
     }
   }
 };
@@ -1087,7 +1103,7 @@ export const userService = {
       };
     } catch (error) {
       handleSupabaseError(error);
-      throw error;
+      return { id: '', username: '', fullName: '', password: '', role: 'sales' };
     }
   },
 
@@ -1112,6 +1128,7 @@ export const userService = {
       if (error) handleSupabaseError(error);
     } catch (error) {
       handleSupabaseError(error);
+      return;
     }
   },
 
@@ -1125,6 +1142,7 @@ export const userService = {
       if (error) handleSupabaseError(error);
     } catch (error) {
       handleSupabaseError(error);
+      return;
     }
   },
 
