@@ -16,50 +16,88 @@ import {
   UserAccessLevel
 } from '../types';
 
-// Helper function to check if Supabase is configured
-const checkSupabaseConnection = () => {
-  if (!supabase) {
-    throw new Error('SUPABASE_NOT_CONFIGURED');
-  }
-  return true;
-};
-
-// Helper function to generate unique IDs
-const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
 // Company Services
 export const companyService = {
   async getCompany(): Promise<CompanyInfo | null> {
     try {
-      checkSupabaseConnection();
-      // This will throw SUPABASE_NOT_CONFIGURED
-    } catch (error) {
-      // Use localStorage fallback
-      const stored = localStorage.getItem('companyInfo');
-      if (stored) {
-        return JSON.parse(stored);
+      const { data, error } = await supabase
+        .from('companies')
+        .select('*')
+        .limit(1)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+        handleSupabaseError(error);
       }
+
+      if (!data) {
+        return {
+          name: 'Sua Empresa',
+          logoUrlDarkBg: '',
+          logoUrlLightBg: '',
+          address: '',
+          phone: '',
+          email: '',
+          cnpj: '',
+          instagram: '',
+          website: '',
+        };
+      }
+
       return {
-        name: 'Sua Empresa',
-        logoUrlDarkBg: '',
-        logoUrlLightBg: '',
-        address: '',
-        phone: '',
-        email: '',
-        cnpj: '',
-        instagram: '',
-        website: '',
+        name: data.name,
+        logoUrlDarkBg: data.logo_url_dark_bg || '',
+        logoUrlLightBg: data.logo_url_light_bg || '',
+        address: data.address || '',
+        phone: data.phone || '',
+        email: data.email || '',
+        cnpj: data.cnpj || '',
+        instagram: data.instagram || '',
+        website: data.website || '',
       };
+    } catch (error) {
+      handleSupabaseError(error);
+      return null;
     }
   },
 
   async saveCompany(company: CompanyInfo): Promise<void> {
     try {
-      checkSupabaseConnection();
-      // This will throw SUPABASE_NOT_CONFIGURED
+      const { data: existing } = await supabase
+        .from('companies')
+        .select('id')
+        .limit(1)
+        .single();
+
+      const companyData = {
+        name: company.name,
+        logo_url_dark_bg: company.logoUrlDarkBg,
+        logo_url_light_bg: company.logoUrlLightBg,
+        address: company.address,
+        phone: company.phone,
+        email: company.email,
+        cnpj: company.cnpj,
+        instagram: company.instagram,
+        website: company.website,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (existing) {
+        const { error } = await supabase
+          .from('companies')
+          .update(companyData)
+          .eq('id', existing.id);
+
+        if (error) handleSupabaseError(error);
+      } else {
+        const { error } = await supabase
+          .from('companies')
+          .insert([companyData]);
+
+        if (error) handleSupabaseError(error);
+      }
     } catch (error) {
-      // Save to localStorage
-      localStorage.setItem('companyInfo', JSON.stringify(company));
+      handleSupabaseError(error);
     }
   }
 };
@@ -68,48 +106,63 @@ export const companyService = {
 export const categoryService = {
   async getCategories(): Promise<Category[]> {
     try {
-      checkSupabaseConnection();
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .order('name');
+
+      if (error) handleSupabaseError(error);
+      return data || [];
     } catch (error) {
-      const stored = localStorage.getItem('categories');
-      return stored ? JSON.parse(stored) : [];
+      handleSupabaseError(error);
+      return [];
     }
   },
 
   async createCategory(category: Omit<Category, 'id'>): Promise<Category> {
     try {
-      checkSupabaseConnection();
+      const { data, error } = await supabase
+        .from('categories')
+        .insert([{
+          name: category.name,
+        }])
+        .select()
+        .single();
+
+      if (error) handleSupabaseError(error);
+      return data;
     } catch (error) {
-      const newCategory = { ...category, id: generateId() };
-      const stored = localStorage.getItem('categories');
-      const categories = stored ? JSON.parse(stored) : [];
-      categories.push(newCategory);
-      localStorage.setItem('categories', JSON.stringify(categories));
-      return newCategory;
+      handleSupabaseError(error);
+      throw error;
     }
   },
 
   async updateCategory(category: Category): Promise<void> {
     try {
-      checkSupabaseConnection();
+      const { error } = await supabase
+        .from('categories')
+        .update({
+          name: category.name,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', category.id);
+
+      if (error) handleSupabaseError(error);
     } catch (error) {
-      const stored = localStorage.getItem('categories');
-      const categories = stored ? JSON.parse(stored) : [];
-      const index = categories.findIndex((c: Category) => c.id === category.id);
-      if (index !== -1) {
-        categories[index] = category;
-        localStorage.setItem('categories', JSON.stringify(categories));
-      }
+      handleSupabaseError(error);
     }
   },
 
   async deleteCategory(id: string): Promise<void> {
     try {
-      checkSupabaseConnection();
+      const { error } = await supabase
+        .from('categories')
+        .delete()
+        .eq('id', id);
+
+      if (error) handleSupabaseError(error);
     } catch (error) {
-      const stored = localStorage.getItem('categories');
-      const categories = stored ? JSON.parse(stored) : [];
-      const filtered = categories.filter((c: Category) => c.id !== id);
-      localStorage.setItem('categories', JSON.stringify(filtered));
+      handleSupabaseError(error);
     }
   }
 };
@@ -118,48 +171,103 @@ export const categoryService = {
 export const productService = {
   async getProducts(): Promise<Product[]> {
     try {
-      checkSupabaseConnection();
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('name');
+
+      if (error) handleSupabaseError(error);
+      
+      return (data || []).map(item => ({
+        id: item.id,
+        name: item.name,
+        description: item.description || '',
+        pricingModel: item.pricing_model as any,
+        basePrice: Number(item.base_price),
+        unit: item.unit || 'un',
+        customCashPrice: item.custom_cash_price ? Number(item.custom_cash_price) : undefined,
+        customCardPrice: item.custom_card_price ? Number(item.custom_card_price) : undefined,
+        supplierCost: item.supplier_cost ? Number(item.supplier_cost) : undefined,
+        categoryId: item.category_id || undefined,
+      }));
     } catch (error) {
-      const stored = localStorage.getItem('products');
-      return stored ? JSON.parse(stored) : [];
+      handleSupabaseError(error);
+      return [];
     }
   },
 
   async createProduct(product: Omit<Product, 'id'>): Promise<Product> {
     try {
-      checkSupabaseConnection();
+      const { data, error } = await supabase
+        .from('products')
+        .insert([{
+          name: product.name,
+          description: product.description,
+          pricing_model: product.pricingModel,
+          base_price: product.basePrice,
+          unit: product.unit,
+          custom_cash_price: product.customCashPrice,
+          custom_card_price: product.customCardPrice,
+          supplier_cost: product.supplierCost,
+          category_id: product.categoryId,
+        }])
+        .select()
+        .single();
+
+      if (error) handleSupabaseError(error);
+      
+      return {
+        id: data.id,
+        name: data.name,
+        description: data.description || '',
+        pricingModel: data.pricing_model as any,
+        basePrice: Number(data.base_price),
+        unit: data.unit || 'un',
+        customCashPrice: data.custom_cash_price ? Number(data.custom_cash_price) : undefined,
+        customCardPrice: data.custom_card_price ? Number(data.custom_card_price) : undefined,
+        supplierCost: data.supplier_cost ? Number(data.supplier_cost) : undefined,
+        categoryId: data.category_id || undefined,
+      };
     } catch (error) {
-      const newProduct = { ...product, id: generateId() };
-      const stored = localStorage.getItem('products');
-      const products = stored ? JSON.parse(stored) : [];
-      products.push(newProduct);
-      localStorage.setItem('products', JSON.stringify(products));
-      return newProduct;
+      handleSupabaseError(error);
+      throw error;
     }
   },
 
   async updateProduct(product: Product): Promise<void> {
     try {
-      checkSupabaseConnection();
+      const { error } = await supabase
+        .from('products')
+        .update({
+          name: product.name,
+          description: product.description,
+          pricing_model: product.pricingModel,
+          base_price: product.basePrice,
+          unit: product.unit,
+          custom_cash_price: product.customCashPrice,
+          custom_card_price: product.customCardPrice,
+          supplier_cost: product.supplierCost,
+          category_id: product.categoryId,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', product.id);
+
+      if (error) handleSupabaseError(error);
     } catch (error) {
-      const stored = localStorage.getItem('products');
-      const products = stored ? JSON.parse(stored) : [];
-      const index = products.findIndex((p: Product) => p.id === product.id);
-      if (index !== -1) {
-        products[index] = product;
-        localStorage.setItem('products', JSON.stringify(products));
-      }
+      handleSupabaseError(error);
     }
   },
 
   async deleteProduct(id: string): Promise<void> {
     try {
-      checkSupabaseConnection();
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', id);
+
+      if (error) handleSupabaseError(error);
     } catch (error) {
-      const stored = localStorage.getItem('products');
-      const products = stored ? JSON.parse(stored) : [];
-      const filtered = products.filter((p: Product) => p.id !== id);
-      localStorage.setItem('products', JSON.stringify(filtered));
+      handleSupabaseError(error);
     }
   }
 };
@@ -168,48 +276,159 @@ export const productService = {
 export const customerService = {
   async getCustomers(): Promise<Customer[]> {
     try {
-      checkSupabaseConnection();
+      const { data: customersData, error: customersError } = await supabase
+        .from('customers')
+        .select('*')
+        .order('name');
+
+      if (customersError) handleSupabaseError(customersError);
+
+      const { data: downPaymentsData, error: downPaymentsError } = await supabase
+        .from('customer_down_payments')
+        .select('*')
+        .order('date');
+
+      if (downPaymentsError) handleSupabaseError(downPaymentsError);
+
+      return (customersData || []).map(customer => {
+        const customerDownPayments = (downPaymentsData || [])
+          .filter(dp => dp.customer_id === customer.id)
+          .map(dp => ({
+            id: dp.id,
+            amount: Number(dp.amount),
+            date: dp.date,
+            description: dp.description || '',
+          }));
+
+        return {
+          id: customer.id,
+          name: customer.name,
+          documentType: customer.document_type as any,
+          documentNumber: customer.document_number || '',
+          phone: customer.phone,
+          email: customer.email || '',
+          address: customer.address || '',
+          city: customer.city || '',
+          postalCode: customer.postal_code || '',
+          downPayments: customerDownPayments,
+        };
+      });
     } catch (error) {
-      const stored = localStorage.getItem('customers');
-      return stored ? JSON.parse(stored) : [];
+      handleSupabaseError(error);
+      return [];
     }
   },
 
   async createCustomer(customer: Omit<Customer, 'id'>): Promise<Customer> {
     try {
-      checkSupabaseConnection();
+      const { data, error } = await supabase
+        .from('customers')
+        .insert([{
+          name: customer.name,
+          document_type: customer.documentType,
+          document_number: customer.documentNumber,
+          phone: customer.phone,
+          email: customer.email,
+          address: customer.address,
+          city: customer.city,
+          postal_code: customer.postalCode,
+        }])
+        .select()
+        .single();
+
+      if (error) handleSupabaseError(error);
+
+      // Insert down payments if any
+      if (customer.downPayments && customer.downPayments.length > 0) {
+        const downPaymentsToInsert = customer.downPayments.map(dp => ({
+          customer_id: data.id,
+          amount: dp.amount,
+          date: dp.date,
+          description: dp.description,
+        }));
+
+        const { error: dpError } = await supabase
+          .from('customer_down_payments')
+          .insert(downPaymentsToInsert);
+
+        if (dpError) handleSupabaseError(dpError);
+      }
+
+      return {
+        id: data.id,
+        name: data.name,
+        documentType: data.document_type as any,
+        documentNumber: data.document_number || '',
+        phone: data.phone,
+        email: data.email || '',
+        address: data.address || '',
+        city: data.city || '',
+        postalCode: data.postal_code || '',
+        downPayments: customer.downPayments || [],
+      };
     } catch (error) {
-      const newCustomer = { ...customer, id: generateId() };
-      const stored = localStorage.getItem('customers');
-      const customers = stored ? JSON.parse(stored) : [];
-      customers.push(newCustomer);
-      localStorage.setItem('customers', JSON.stringify(customers));
-      return newCustomer;
+      handleSupabaseError(error);
+      throw error;
     }
   },
 
   async updateCustomer(customer: Customer): Promise<void> {
     try {
-      checkSupabaseConnection();
-    } catch (error) {
-      const stored = localStorage.getItem('customers');
-      const customers = stored ? JSON.parse(stored) : [];
-      const index = customers.findIndex((c: Customer) => c.id === customer.id);
-      if (index !== -1) {
-        customers[index] = customer;
-        localStorage.setItem('customers', JSON.stringify(customers));
+      const { error } = await supabase
+        .from('customers')
+        .update({
+          name: customer.name,
+          document_type: customer.documentType,
+          document_number: customer.documentNumber,
+          phone: customer.phone,
+          email: customer.email,
+          address: customer.address,
+          city: customer.city,
+          postal_code: customer.postalCode,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', customer.id);
+
+      if (error) handleSupabaseError(error);
+
+      // Delete existing down payments
+      const { error: deleteError } = await supabase
+        .from('customer_down_payments')
+        .delete()
+        .eq('customer_id', customer.id);
+
+      if (deleteError) handleSupabaseError(deleteError);
+
+      // Insert new down payments
+      if (customer.downPayments && customer.downPayments.length > 0) {
+        const downPaymentsToInsert = customer.downPayments.map(dp => ({
+          customer_id: customer.id,
+          amount: dp.amount,
+          date: dp.date,
+          description: dp.description,
+        }));
+
+        const { error: insertError } = await supabase
+          .from('customer_down_payments')
+          .insert(downPaymentsToInsert);
+
+        if (insertError) handleSupabaseError(insertError);
       }
+    } catch (error) {
+      handleSupabaseError(error);
     }
   },
 
   async deleteCustomer(id: string): Promise<void> {
     try {
-      checkSupabaseConnection();
+      const { error } = await supabase
+        .from('customers')
+        .delete()
+        .eq('id', id);
+
+      if (error) handleSupabaseError(error);
     } catch (error) {
-      const stored = localStorage.getItem('customers');
-      const customers = stored ? JSON.parse(stored) : [];
-      const filtered = customers.filter((c: Customer) => c.id !== id);
-      localStorage.setItem('customers', JSON.stringify(filtered));
+      handleSupabaseError(error);
     }
   }
 };
@@ -218,48 +437,226 @@ export const customerService = {
 export const quoteService = {
   async getQuotes(): Promise<Quote[]> {
     try {
-      checkSupabaseConnection();
+      const { data: quotesData, error: quotesError } = await supabase
+        .from('quotes')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (quotesError) handleSupabaseError(quotesError);
+
+      const { data: itemsData, error: itemsError } = await supabase
+        .from('quote_items')
+        .select('*')
+        .order('created_at');
+
+      if (itemsError) handleSupabaseError(itemsError);
+
+      return (quotesData || []).map(quote => {
+        const quoteItems = (itemsData || [])
+          .filter(item => item.quote_id === quote.id)
+          .map(item => ({
+            productId: item.product_id || '',
+            productName: item.product_name,
+            quantity: Number(item.quantity),
+            unitPrice: Number(item.unit_price),
+            totalPrice: Number(item.total_price),
+            pricingModel: item.pricing_model as any,
+            width: item.width ? Number(item.width) : undefined,
+            height: item.height ? Number(item.height) : undefined,
+            itemCountForAreaCalc: item.item_count_for_area_calc || undefined,
+          }));
+
+        return {
+          id: quote.id,
+          quoteNumber: quote.quote_number,
+          customerId: quote.customer_id || undefined,
+          clientName: quote.client_name,
+          clientContact: quote.client_contact || '',
+          items: quoteItems,
+          subtotal: Number(quote.subtotal),
+          discountType: quote.discount_type as any,
+          discountValue: Number(quote.discount_value),
+          discountAmountCalculated: Number(quote.discount_amount_calculated),
+          subtotalAfterDiscount: Number(quote.subtotal_after_discount),
+          totalCash: Number(quote.total_cash),
+          totalCard: Number(quote.total_card),
+          downPaymentApplied: Number(quote.down_payment_applied),
+          selectedPaymentMethod: quote.selected_payment_method || '',
+          paymentDate: quote.payment_date || undefined,
+          deliveryDeadline: quote.delivery_deadline || undefined,
+          status: quote.status as any,
+          companyInfoSnapshot: quote.company_info_snapshot as CompanyInfo,
+          notes: quote.notes || '',
+          salespersonUsername: quote.salesperson_username,
+          salespersonFullName: quote.salesperson_full_name || '',
+          createdAt: quote.created_at,
+        };
+      });
     } catch (error) {
-      const stored = localStorage.getItem('quotes');
-      return stored ? JSON.parse(stored) : [];
+      handleSupabaseError(error);
+      return [];
     }
   },
 
   async createQuote(quote: Omit<Quote, 'id'>): Promise<Quote> {
     try {
-      checkSupabaseConnection();
+      const { data, error } = await supabase
+        .from('quotes')
+        .insert([{
+          quote_number: quote.quoteNumber,
+          customer_id: quote.customerId,
+          client_name: quote.clientName,
+          client_contact: quote.clientContact,
+          subtotal: quote.subtotal,
+          discount_type: quote.discountType,
+          discount_value: quote.discountValue,
+          discount_amount_calculated: quote.discountAmountCalculated,
+          subtotal_after_discount: quote.subtotalAfterDiscount,
+          total_cash: quote.totalCash,
+          total_card: quote.totalCard,
+          down_payment_applied: quote.downPaymentApplied,
+          selected_payment_method: quote.selectedPaymentMethod,
+          payment_date: quote.paymentDate,
+          delivery_deadline: quote.deliveryDeadline,
+          status: quote.status,
+          company_info_snapshot: quote.companyInfoSnapshot,
+          notes: quote.notes,
+          salesperson_username: quote.salespersonUsername,
+          salesperson_full_name: quote.salespersonFullName,
+        }])
+        .select()
+        .single();
+
+      if (error) handleSupabaseError(error);
+
+      // Insert quote items
+      if (quote.items && quote.items.length > 0) {
+        const itemsToInsert = quote.items.map(item => ({
+          quote_id: data.id,
+          product_id: item.productId,
+          product_name: item.productName,
+          quantity: item.quantity,
+          unit_price: item.unitPrice,
+          total_price: item.totalPrice,
+          pricing_model: item.pricingModel,
+          width: item.width,
+          height: item.height,
+          item_count_for_area_calc: item.itemCountForAreaCalc,
+        }));
+
+        const { error: itemsError } = await supabase
+          .from('quote_items')
+          .insert(itemsToInsert);
+
+        if (itemsError) handleSupabaseError(itemsError);
+      }
+
+      return {
+        id: data.id,
+        quoteNumber: data.quote_number,
+        customerId: data.customer_id || undefined,
+        clientName: data.client_name,
+        clientContact: data.client_contact || '',
+        items: quote.items,
+        subtotal: Number(data.subtotal),
+        discountType: data.discount_type as any,
+        discountValue: Number(data.discount_value),
+        discountAmountCalculated: Number(data.discount_amount_calculated),
+        subtotalAfterDiscount: Number(data.subtotal_after_discount),
+        totalCash: Number(data.total_cash),
+        totalCard: Number(data.total_card),
+        downPaymentApplied: Number(data.down_payment_applied),
+        selectedPaymentMethod: data.selected_payment_method || '',
+        paymentDate: data.payment_date || undefined,
+        deliveryDeadline: data.delivery_deadline || undefined,
+        status: data.status as any,
+        companyInfoSnapshot: data.company_info_snapshot as CompanyInfo,
+        notes: data.notes || '',
+        salespersonUsername: data.salesperson_username,
+        salespersonFullName: data.salesperson_full_name || '',
+        createdAt: data.created_at,
+      };
     } catch (error) {
-      const newQuote = { ...quote, id: generateId() };
-      const stored = localStorage.getItem('quotes');
-      const quotes = stored ? JSON.parse(stored) : [];
-      quotes.unshift(newQuote);
-      localStorage.setItem('quotes', JSON.stringify(quotes));
-      return newQuote;
+      handleSupabaseError(error);
+      throw error;
     }
   },
 
   async updateQuote(quote: Quote): Promise<void> {
     try {
-      checkSupabaseConnection();
-    } catch (error) {
-      const stored = localStorage.getItem('quotes');
-      const quotes = stored ? JSON.parse(stored) : [];
-      const index = quotes.findIndex((q: Quote) => q.id === quote.id);
-      if (index !== -1) {
-        quotes[index] = quote;
-        localStorage.setItem('quotes', JSON.stringify(quotes));
+      const { error } = await supabase
+        .from('quotes')
+        .update({
+          quote_number: quote.quoteNumber,
+          customer_id: quote.customerId,
+          client_name: quote.clientName,
+          client_contact: quote.clientContact,
+          subtotal: quote.subtotal,
+          discount_type: quote.discountType,
+          discount_value: quote.discountValue,
+          discount_amount_calculated: quote.discountAmountCalculated,
+          subtotal_after_discount: quote.subtotalAfterDiscount,
+          total_cash: quote.totalCash,
+          total_card: quote.totalCard,
+          down_payment_applied: quote.downPaymentApplied,
+          selected_payment_method: quote.selectedPaymentMethod,
+          payment_date: quote.paymentDate,
+          delivery_deadline: quote.deliveryDeadline,
+          status: quote.status,
+          company_info_snapshot: quote.companyInfoSnapshot,
+          notes: quote.notes,
+          salesperson_username: quote.salespersonUsername,
+          salesperson_full_name: quote.salespersonFullName,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', quote.id);
+
+      if (error) handleSupabaseError(error);
+
+      // Delete existing items
+      const { error: deleteError } = await supabase
+        .from('quote_items')
+        .delete()
+        .eq('quote_id', quote.id);
+
+      if (deleteError) handleSupabaseError(deleteError);
+
+      // Insert new items
+      if (quote.items && quote.items.length > 0) {
+        const itemsToInsert = quote.items.map(item => ({
+          quote_id: quote.id,
+          product_id: item.productId,
+          product_name: item.productName,
+          quantity: item.quantity,
+          unit_price: item.unitPrice,
+          total_price: item.totalPrice,
+          pricing_model: item.pricingModel,
+          width: item.width,
+          height: item.height,
+          item_count_for_area_calc: item.itemCountForAreaCalc,
+        }));
+
+        const { error: insertError } = await supabase
+          .from('quote_items')
+          .insert(itemsToInsert);
+
+        if (insertError) handleSupabaseError(insertError);
       }
+    } catch (error) {
+      handleSupabaseError(error);
     }
   },
 
   async deleteQuote(id: string): Promise<void> {
     try {
-      checkSupabaseConnection();
+      const { error } = await supabase
+        .from('quotes')
+        .delete()
+        .eq('id', id);
+
+      if (error) handleSupabaseError(error);
     } catch (error) {
-      const stored = localStorage.getItem('quotes');
-      const quotes = stored ? JSON.parse(stored) : [];
-      const filtered = quotes.filter((q: Quote) => q.id !== id);
-      localStorage.setItem('quotes', JSON.stringify(filtered));
+      handleSupabaseError(error);
     }
   }
 };
@@ -268,123 +665,217 @@ export const quoteService = {
 export const supplierService = {
   async getSuppliers(): Promise<Supplier[]> {
     try {
-      checkSupabaseConnection();
+      const { data, error } = await supabase
+        .from('suppliers')
+        .select('*')
+        .order('name');
+
+      if (error) handleSupabaseError(error);
+      
+      return (data || []).map(supplier => ({
+        id: supplier.id,
+        name: supplier.name,
+        cnpj: supplier.cnpj || '',
+        phone: supplier.phone || '',
+        email: supplier.email || '',
+        address: supplier.address || '',
+        notes: supplier.notes || '',
+      }));
     } catch (error) {
-      const stored = localStorage.getItem('suppliers');
-      return stored ? JSON.parse(stored) : [];
+      handleSupabaseError(error);
+      return [];
     }
   },
 
   async createSupplier(supplier: Omit<Supplier, 'id'>): Promise<Supplier> {
     try {
-      checkSupabaseConnection();
+      const { data, error } = await supabase
+        .from('suppliers')
+        .insert([{
+          name: supplier.name,
+          cnpj: supplier.cnpj,
+          phone: supplier.phone,
+          email: supplier.email,
+          address: supplier.address,
+          notes: supplier.notes,
+        }])
+        .select()
+        .single();
+
+      if (error) handleSupabaseError(error);
+      
+      return {
+        id: data.id,
+        name: data.name,
+        cnpj: data.cnpj || '',
+        phone: data.phone || '',
+        email: data.email || '',
+        address: data.address || '',
+        notes: data.notes || '',
+      };
     } catch (error) {
-      const newSupplier = { ...supplier, id: generateId() };
-      const stored = localStorage.getItem('suppliers');
-      const suppliers = stored ? JSON.parse(stored) : [];
-      suppliers.push(newSupplier);
-      localStorage.setItem('suppliers', JSON.stringify(suppliers));
-      return newSupplier;
+      handleSupabaseError(error);
+      throw error;
     }
   },
 
   async updateSupplier(supplier: Supplier): Promise<void> {
     try {
-      checkSupabaseConnection();
+      const { error } = await supabase
+        .from('suppliers')
+        .update({
+          name: supplier.name,
+          cnpj: supplier.cnpj,
+          phone: supplier.phone,
+          email: supplier.email,
+          address: supplier.address,
+          notes: supplier.notes,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', supplier.id);
+
+      if (error) handleSupabaseError(error);
     } catch (error) {
-      const stored = localStorage.getItem('suppliers');
-      const suppliers = stored ? JSON.parse(stored) : [];
-      const index = suppliers.findIndex((s: Supplier) => s.id === supplier.id);
-      if (index !== -1) {
-        suppliers[index] = supplier;
-        localStorage.setItem('suppliers', JSON.stringify(suppliers));
-      }
+      handleSupabaseError(error);
     }
   },
 
   async deleteSupplier(id: string): Promise<void> {
     try {
-      checkSupabaseConnection();
+      const { error } = await supabase
+        .from('suppliers')
+        .delete()
+        .eq('id', id);
+
+      if (error) handleSupabaseError(error);
     } catch (error) {
-      const stored = localStorage.getItem('suppliers');
-      const suppliers = stored ? JSON.parse(stored) : [];
-      const filtered = suppliers.filter((s: Supplier) => s.id !== id);
-      localStorage.setItem('suppliers', JSON.stringify(filtered));
-      
-      // Also remove related debts and credits
-      const debts = JSON.parse(localStorage.getItem('supplierDebts') || '[]');
-      const filteredDebts = debts.filter((d: Debt) => d.supplierId !== id);
-      localStorage.setItem('supplierDebts', JSON.stringify(filteredDebts));
-      
-      const credits = JSON.parse(localStorage.getItem('supplierCredits') || '[]');
-      const filteredCredits = credits.filter((c: SupplierCredit) => c.supplierId !== id);
-      localStorage.setItem('supplierCredits', JSON.stringify(filteredCredits));
+      handleSupabaseError(error);
     }
   },
 
   async getSupplierDebts(): Promise<Debt[]> {
     try {
-      checkSupabaseConnection();
+      const { data, error } = await supabase
+        .from('supplier_debts')
+        .select('*')
+        .order('date_added', { ascending: false });
+
+      if (error) handleSupabaseError(error);
+      
+      return (data || []).map(debt => ({
+        id: debt.id,
+        supplierId: debt.supplier_id,
+        description: debt.description || '',
+        totalAmount: Number(debt.total_amount),
+        dateAdded: debt.date_added,
+      }));
     } catch (error) {
-      const stored = localStorage.getItem('supplierDebts');
-      return stored ? JSON.parse(stored) : [];
+      handleSupabaseError(error);
+      return [];
     }
   },
 
   async createSupplierDebt(debt: Omit<Debt, 'id'>): Promise<Debt> {
     try {
-      checkSupabaseConnection();
+      const { data, error } = await supabase
+        .from('supplier_debts')
+        .insert([{
+          supplier_id: debt.supplierId,
+          description: debt.description,
+          total_amount: debt.totalAmount,
+          date_added: debt.dateAdded,
+        }])
+        .select()
+        .single();
+
+      if (error) handleSupabaseError(error);
+      
+      return {
+        id: data.id,
+        supplierId: data.supplier_id,
+        description: data.description || '',
+        totalAmount: Number(data.total_amount),
+        dateAdded: data.date_added,
+      };
     } catch (error) {
-      const newDebt = { ...debt, id: generateId() };
-      const stored = localStorage.getItem('supplierDebts');
-      const debts = stored ? JSON.parse(stored) : [];
-      debts.unshift(newDebt);
-      localStorage.setItem('supplierDebts', JSON.stringify(debts));
-      return newDebt;
+      handleSupabaseError(error);
+      throw error;
     }
   },
 
   async deleteSupplierDebt(id: string): Promise<void> {
     try {
-      checkSupabaseConnection();
+      const { error } = await supabase
+        .from('supplier_debts')
+        .delete()
+        .eq('id', id);
+
+      if (error) handleSupabaseError(error);
     } catch (error) {
-      const stored = localStorage.getItem('supplierDebts');
-      const debts = stored ? JSON.parse(stored) : [];
-      const filtered = debts.filter((d: Debt) => d.id !== id);
-      localStorage.setItem('supplierDebts', JSON.stringify(filtered));
+      handleSupabaseError(error);
     }
   },
 
   async getSupplierCredits(): Promise<SupplierCredit[]> {
     try {
-      checkSupabaseConnection();
+      const { data, error } = await supabase
+        .from('supplier_credits')
+        .select('*')
+        .order('date', { ascending: false });
+
+      if (error) handleSupabaseError(error);
+      
+      return (data || []).map(credit => ({
+        id: credit.id,
+        supplierId: credit.supplier_id,
+        amount: Number(credit.amount),
+        date: credit.date,
+        description: credit.description || '',
+      }));
     } catch (error) {
-      const stored = localStorage.getItem('supplierCredits');
-      return stored ? JSON.parse(stored) : [];
+      handleSupabaseError(error);
+      return [];
     }
   },
 
   async createSupplierCredit(credit: Omit<SupplierCredit, 'id'>): Promise<SupplierCredit> {
     try {
-      checkSupabaseConnection();
+      const { data, error } = await supabase
+        .from('supplier_credits')
+        .insert([{
+          supplier_id: credit.supplierId,
+          amount: credit.amount,
+          date: credit.date,
+          description: credit.description,
+        }])
+        .select()
+        .single();
+
+      if (error) handleSupabaseError(error);
+      
+      return {
+        id: data.id,
+        supplierId: data.supplier_id,
+        amount: Number(data.amount),
+        date: data.date,
+        description: data.description || '',
+      };
     } catch (error) {
-      const newCredit = { ...credit, id: generateId() };
-      const stored = localStorage.getItem('supplierCredits');
-      const credits = stored ? JSON.parse(stored) : [];
-      credits.unshift(newCredit);
-      localStorage.setItem('supplierCredits', JSON.stringify(credits));
-      return newCredit;
+      handleSupabaseError(error);
+      throw error;
     }
   },
 
   async deleteSupplierCredit(id: string): Promise<void> {
     try {
-      checkSupabaseConnection();
+      const { error } = await supabase
+        .from('supplier_credits')
+        .delete()
+        .eq('id', id);
+
+      if (error) handleSupabaseError(error);
     } catch (error) {
-      const stored = localStorage.getItem('supplierCredits');
-      const credits = stored ? JSON.parse(stored) : [];
-      const filtered = credits.filter((c: SupplierCredit) => c.id !== id);
-      localStorage.setItem('supplierCredits', JSON.stringify(filtered));
+      handleSupabaseError(error);
     }
   }
 };
@@ -393,59 +884,115 @@ export const supplierService = {
 export const accountsPayableService = {
   async getAccountsPayable(): Promise<AccountsPayableEntry[]> {
     try {
-      checkSupabaseConnection();
+      const { data, error } = await supabase
+        .from('accounts_payable')
+        .select('*')
+        .order('due_date');
+
+      if (error) handleSupabaseError(error);
+      
+      return (data || []).map(entry => ({
+        id: entry.id,
+        name: entry.name,
+        amount: Number(entry.amount),
+        dueDate: entry.due_date,
+        isPaid: entry.is_paid,
+        notes: entry.notes || '',
+        seriesId: entry.series_id || undefined,
+        totalInstallmentsInSeries: entry.total_installments_in_series || undefined,
+        installmentNumberOfSeries: entry.installment_number_of_series || undefined,
+        createdAt: entry.created_at,
+      }));
     } catch (error) {
-      const stored = localStorage.getItem('accountsPayable');
-      return stored ? JSON.parse(stored) : [];
+      handleSupabaseError(error);
+      return [];
     }
   },
 
   async createAccountsPayable(entries: Omit<AccountsPayableEntry, 'id'>[]): Promise<AccountsPayableEntry[]> {
     try {
-      checkSupabaseConnection();
+      const entriesToInsert = entries.map(entry => ({
+        name: entry.name,
+        amount: entry.amount,
+        due_date: entry.dueDate,
+        is_paid: entry.isPaid,
+        notes: entry.notes,
+        series_id: entry.seriesId,
+        total_installments_in_series: entry.totalInstallmentsInSeries,
+        installment_number_of_series: entry.installmentNumberOfSeries,
+      }));
+
+      const { data, error } = await supabase
+        .from('accounts_payable')
+        .insert(entriesToInsert)
+        .select();
+
+      if (error) handleSupabaseError(error);
+      
+      return (data || []).map(entry => ({
+        id: entry.id,
+        name: entry.name,
+        amount: Number(entry.amount),
+        dueDate: entry.due_date,
+        isPaid: entry.is_paid,
+        notes: entry.notes || '',
+        seriesId: entry.series_id || undefined,
+        totalInstallmentsInSeries: entry.total_installments_in_series || undefined,
+        installmentNumberOfSeries: entry.installment_number_of_series || undefined,
+        createdAt: entry.created_at,
+      }));
     } catch (error) {
-      const newEntries = entries.map(entry => ({ ...entry, id: generateId(), createdAt: new Date().toISOString() }));
-      const stored = localStorage.getItem('accountsPayable');
-      const allEntries = stored ? JSON.parse(stored) : [];
-      allEntries.push(...newEntries);
-      localStorage.setItem('accountsPayable', JSON.stringify(allEntries));
-      return newEntries;
+      handleSupabaseError(error);
+      throw error;
     }
   },
 
   async updateAccountsPayable(entry: AccountsPayableEntry): Promise<void> {
     try {
-      checkSupabaseConnection();
+      const { error } = await supabase
+        .from('accounts_payable')
+        .update({
+          name: entry.name,
+          amount: entry.amount,
+          due_date: entry.dueDate,
+          is_paid: entry.isPaid,
+          notes: entry.notes,
+          series_id: entry.seriesId,
+          total_installments_in_series: entry.totalInstallmentsInSeries,
+          installment_number_of_series: entry.installmentNumberOfSeries,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', entry.id);
+
+      if (error) handleSupabaseError(error);
     } catch (error) {
-      const stored = localStorage.getItem('accountsPayable');
-      const entries = stored ? JSON.parse(stored) : [];
-      const index = entries.findIndex((e: AccountsPayableEntry) => e.id === entry.id);
-      if (index !== -1) {
-        entries[index] = entry;
-        localStorage.setItem('accountsPayable', JSON.stringify(entries));
-      }
+      handleSupabaseError(error);
     }
   },
 
   async deleteAccountsPayable(id: string): Promise<void> {
     try {
-      checkSupabaseConnection();
+      const { error } = await supabase
+        .from('accounts_payable')
+        .delete()
+        .eq('id', id);
+
+      if (error) handleSupabaseError(error);
     } catch (error) {
-      const stored = localStorage.getItem('accountsPayable');
-      const entries = stored ? JSON.parse(stored) : [];
-      const filtered = entries.filter((e: AccountsPayableEntry) => e.id !== id);
-      localStorage.setItem('accountsPayable', JSON.stringify(filtered));
+      handleSupabaseError(error);
     }
   },
 
   async deleteAccountsPayableBySeries(seriesId: string): Promise<void> {
     try {
-      checkSupabaseConnection();
+      const { error } = await supabase
+        .from('accounts_payable')
+        .delete()
+        .eq('series_id', seriesId);
+
+      if (error) handleSupabaseError(error);
     } catch (error) {
-      const stored = localStorage.getItem('accountsPayable');
-      const entries = stored ? JSON.parse(stored) : [];
-      const filtered = entries.filter((e: AccountsPayableEntry) => e.seriesId !== seriesId);
-      localStorage.setItem('accountsPayable', JSON.stringify(filtered));
+      handleSupabaseError(error);
     }
   }
 };
@@ -454,74 +1001,120 @@ export const accountsPayableService = {
 export const userService = {
   async getUsers(): Promise<User[]> {
     try {
-      checkSupabaseConnection();
+      const { data, error } = await supabase
+        .from('app_users')
+        .select('*')
+        .order('username');
+
+      if (error) handleSupabaseError(error);
+      
+      return (data || []).map(user => ({
+        id: user.id,
+        username: user.username,
+        fullName: user.full_name || '',
+        password: '', // Never return password
+        role: user.role as UserAccessLevel,
+      }));
     } catch (error) {
-      const stored = localStorage.getItem('appUsers');
-      return stored ? JSON.parse(stored) : [];
+      handleSupabaseError(error);
+      return [];
     }
   },
 
   async createUser(user: Omit<User, 'id'> & { password: string }): Promise<User> {
     try {
-      checkSupabaseConnection();
+      const hashedPassword = await bcrypt.hash(user.password, 10);
+      
+      const { data, error } = await supabase
+        .from('app_users')
+        .insert([{
+          username: user.username,
+          full_name: user.fullName,
+          password_hash: hashedPassword,
+          role: user.role,
+        }])
+        .select()
+        .single();
+
+      if (error) handleSupabaseError(error);
+      
+      return {
+        id: data.id,
+        username: data.username,
+        fullName: data.full_name || '',
+        password: '', // Never return password
+        role: data.role as UserAccessLevel,
+      };
     } catch (error) {
-      const newUser = { ...user, id: generateId(), password: '' }; // Don't store password in localStorage
-      const stored = localStorage.getItem('appUsers');
-      const users = stored ? JSON.parse(stored) : [];
-      users.push(newUser);
-      localStorage.setItem('appUsers', JSON.stringify(users));
-      return newUser;
+      handleSupabaseError(error);
+      throw error;
     }
   },
 
   async updateUser(user: User & { password?: string }): Promise<void> {
     try {
-      checkSupabaseConnection();
-    } catch (error) {
-      const stored = localStorage.getItem('appUsers');
-      const users = stored ? JSON.parse(stored) : [];
-      const index = users.findIndex((u: User) => u.id === user.id);
-      if (index !== -1) {
-        users[index] = { ...user, password: '' }; // Don't store password
-        localStorage.setItem('appUsers', JSON.stringify(users));
+      const updateData: any = {
+        username: user.username,
+        full_name: user.fullName,
+        role: user.role,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (user.password) {
+        updateData.password_hash = await bcrypt.hash(user.password, 10);
       }
+
+      const { error } = await supabase
+        .from('app_users')
+        .update(updateData)
+        .eq('id', user.id);
+
+      if (error) handleSupabaseError(error);
+    } catch (error) {
+      handleSupabaseError(error);
     }
   },
 
   async deleteUser(id: string): Promise<void> {
     try {
-      checkSupabaseConnection();
+      const { error } = await supabase
+        .from('app_users')
+        .delete()
+        .eq('id', id);
+
+      if (error) handleSupabaseError(error);
     } catch (error) {
-      const stored = localStorage.getItem('appUsers');
-      const users = stored ? JSON.parse(stored) : [];
-      const filtered = users.filter((u: User) => u.id !== id);
-      localStorage.setItem('appUsers', JSON.stringify(filtered));
+      handleSupabaseError(error);
     }
   },
 
   async authenticateUser(username: string, password: string): Promise<User | null> {
     try {
-      checkSupabaseConnection();
+      const { data, error } = await supabase
+        .from('app_users')
+        .select('*')
+        .eq('username', username)
+        .single();
+
+      if (error || !data) return null;
+
+      const isValid = await bcrypt.compare(password, data.password_hash);
+      if (!isValid) return null;
+
+      return {
+        id: data.id,
+        username: data.username,
+        fullName: data.full_name || '',
+        password: '', // Never return password
+        role: data.role as UserAccessLevel,
+      };
     } catch (error) {
-      // Simple demo authentication
-      if (username === 'admin' && password === 'password123') {
-        return {
-          id: 'admin',
-          username: 'admin',
-          fullName: 'Administrador',
-          password: '',
-          role: UserAccessLevel.ADMIN,
-        };
-      }
       return null;
     }
   },
 
   async getUserByEmail(email: string) {
-    try {
-      checkSupabaseConnection();
-    } catch (error) {
-      return null;
-    }
+    // This method is not used in the current implementation
+    return null;
   }
 };

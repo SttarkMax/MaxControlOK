@@ -4,17 +4,14 @@ import { Database } from './database.types';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// For demo purposes, we'll disable Supabase and use localStorage
-const isSupabaseConfigured = false;
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('Missing Supabase environment variables');
+}
 
-console.log('Supabase temporarily disabled - using localStorage for demo');
-
-export const supabase = isSupabaseConfigured 
-  ? createClient<Database>(supabaseUrl, supabaseAnonKey) 
-  : null;
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
 
 // Helper function to handle Supabase errors
 export const handleSupabaseError = (error: any) => {
-  // Always throw SUPABASE_NOT_CONFIGURED for demo
-  throw new Error('SUPABASE_NOT_CONFIGURED');
+  console.error('Supabase error:', error);
+  throw new Error(error.message || 'Database operation failed');
 };
