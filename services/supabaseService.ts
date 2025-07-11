@@ -769,6 +769,10 @@ export const quoteService = {
 // Supplier Services
 export const supplierService = {
   async getSuppliers(): Promise<Supplier[]> {
+    if (!checkSupabaseConnection()) {
+      return getLocalStorageFallback('suppliers', []);
+    }
+    
     try {
       const { data, error } = await supabase
         .from('suppliers')
@@ -793,6 +797,17 @@ export const supplierService = {
   },
 
   async createSupplier(supplier: Omit<Supplier, 'id'>): Promise<Supplier> {
+    if (!checkSupabaseConnection()) {
+      const newSupplier = {
+        ...supplier,
+        id: `supplier-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      };
+      const existing = getLocalStorageFallback('suppliers', []);
+      const updated = [...existing, newSupplier];
+      saveToLocalStorage('suppliers', updated);
+      return newSupplier;
+    }
+    
     try {
       const { data, error } = await supabase
         .from('suppliers')
@@ -825,6 +840,13 @@ export const supplierService = {
   },
 
   async updateSupplier(supplier: Supplier): Promise<void> {
+    if (!checkSupabaseConnection()) {
+      const existing = getLocalStorageFallback('suppliers', []);
+      const updated = existing.map(s => s.id === supplier.id ? supplier : s);
+      saveToLocalStorage('suppliers', updated);
+      return;
+    }
+    
     try {
       const { error } = await supabase
         .from('suppliers')
@@ -847,6 +869,20 @@ export const supplierService = {
   },
 
   async deleteSupplier(id: string): Promise<void> {
+    if (!checkSupabaseConnection()) {
+      const existing = getLocalStorageFallback('suppliers', []);
+      const updated = existing.filter(s => s.id !== id);
+      saveToLocalStorage('suppliers', updated);
+      // Also clean up related data
+      const existingDebts = getLocalStorageFallback('supplier_debts', []);
+      const updatedDebts = existingDebts.filter(d => d.supplierId !== id);
+      saveToLocalStorage('supplier_debts', updatedDebts);
+      const existingCredits = getLocalStorageFallback('supplier_credits', []);
+      const updatedCredits = existingCredits.filter(c => c.supplierId !== id);
+      saveToLocalStorage('supplier_credits', updatedCredits);
+      return;
+    }
+    
     try {
       const { error } = await supabase
         .from('suppliers')
@@ -861,6 +897,10 @@ export const supplierService = {
   },
 
   async getSupplierDebts(): Promise<Debt[]> {
+    if (!checkSupabaseConnection()) {
+      return getLocalStorageFallback('supplier_debts', []);
+    }
+    
     try {
       const { data, error } = await supabase
         .from('supplier_debts')
@@ -883,6 +923,17 @@ export const supplierService = {
   },
 
   async createSupplierDebt(debt: Omit<Debt, 'id'>): Promise<Debt> {
+    if (!checkSupabaseConnection()) {
+      const newDebt = {
+        ...debt,
+        id: `debt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      };
+      const existing = getLocalStorageFallback('supplier_debts', []);
+      const updated = [newDebt, ...existing];
+      saveToLocalStorage('supplier_debts', updated);
+      return newDebt;
+    }
+    
     try {
       const { data, error } = await supabase
         .from('supplier_debts')
@@ -911,6 +962,13 @@ export const supplierService = {
   },
 
   async deleteSupplierDebt(id: string): Promise<void> {
+    if (!checkSupabaseConnection()) {
+      const existing = getLocalStorageFallback('supplier_debts', []);
+      const updated = existing.filter(d => d.id !== id);
+      saveToLocalStorage('supplier_debts', updated);
+      return;
+    }
+    
     try {
       const { error } = await supabase
         .from('supplier_debts')
@@ -925,6 +983,10 @@ export const supplierService = {
   },
 
   async getSupplierCredits(): Promise<SupplierCredit[]> {
+    if (!checkSupabaseConnection()) {
+      return getLocalStorageFallback('supplier_credits', []);
+    }
+    
     try {
       const { data, error } = await supabase
         .from('supplier_credits')
@@ -947,6 +1009,17 @@ export const supplierService = {
   },
 
   async createSupplierCredit(credit: Omit<SupplierCredit, 'id'>): Promise<SupplierCredit> {
+    if (!checkSupabaseConnection()) {
+      const newCredit = {
+        ...credit,
+        id: `credit-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      };
+      const existing = getLocalStorageFallback('supplier_credits', []);
+      const updated = [newCredit, ...existing];
+      saveToLocalStorage('supplier_credits', updated);
+      return newCredit;
+    }
+    
     try {
       const { data, error } = await supabase
         .from('supplier_credits')
@@ -975,6 +1048,13 @@ export const supplierService = {
   },
 
   async deleteSupplierCredit(id: string): Promise<void> {
+    if (!checkSupabaseConnection()) {
+      const existing = getLocalStorageFallback('supplier_credits', []);
+      const updated = existing.filter(c => c.id !== id);
+      saveToLocalStorage('supplier_credits', updated);
+      return;
+    }
+    
     try {
       const { error } = await supabase
         .from('supplier_credits')
