@@ -4,14 +4,13 @@ import { Database } from './database.types';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Temporarily disable Supabase to prevent fetch errors
-const isSupabaseConfigured = false;
+// Enable Supabase for full functionality
+const isSupabaseConfigured = !!(supabaseUrl && supabaseAnonKey);
 
 console.log('Supabase Config Check:', {
-  url: supabaseUrl ? `${supabaseUrl.substring(0, 20)}...` : 'undefined',
-  key: supabaseAnonKey ? `${supabaseAnonKey.substring(0, 20)}...` : 'undefined',
-  isConfigured: isSupabaseConfigured,
-  note: 'Supabase temporarily disabled to prevent fetch errors'
+  url: supabaseUrl ? `${supabaseUrl.substring(0, 30)}...` : 'undefined',
+  key: supabaseAnonKey ? `${supabaseAnonKey.substring(0, 30)}...` : 'undefined',
+  isConfigured: isSupabaseConfigured
 });
 
 export const supabase = isSupabaseConfigured 
@@ -22,22 +21,20 @@ export const supabase = isSupabaseConfigured
 export const handleSupabaseError = (error: any) => {
   // Check if Supabase is not configured
   if (!supabase) {
-    console.warn('Supabase not configured. Using fallback behavior.');
-    return;
+    console.warn('Supabase not configured. Please check environment variables.');
+    throw new Error('Database not configured');
   }
   
   // Handle network connectivity issues
   if (error instanceof TypeError && error.message === 'Failed to fetch') {
-    console.warn('Network error: Unable to connect to Supabase.');
-    console.warn('Falling back to localStorage or default values.');
-    return;
+    console.error('Network error: Unable to connect to Supabase.');
+    throw new Error('Erro de conexão com o banco de dados');
   }
   
   // Also handle cases where message might contain 'Failed to fetch'
   if (error?.message?.includes('Failed to fetch')) {
-    console.warn('Network error: Unable to connect to Supabase.');
-    console.warn('Falling back to localStorage or default values.');
-    return;
+    console.error('Network error: Unable to connect to Supabase.');
+    throw new Error('Erro de conexão com o banco de dados');
   }
   
   // Handle PGRST116 (no rows found) as a non-critical error
@@ -46,6 +43,5 @@ export const handleSupabaseError = (error: any) => {
   }
   
   console.error('Supabase error:', error);
-  // Don't throw errors, just log them and continue
-  console.warn('Continuing with fallback behavior due to Supabase error');
+  throw error;
 };

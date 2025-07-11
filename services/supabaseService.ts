@@ -18,46 +18,17 @@ import {
 
 // Helper function to check if Supabase is configured
 const checkSupabaseConnection = () => {
-  // Always return false to force localStorage usage
-  console.log('Supabase disabled - using localStorage fallback');
-  return false;
-};
-
-// Helper function to get fallback data from localStorage
-const getLocalStorageFallback = (key: string, defaultValue: any = []) => {
-  try {
-    const stored = localStorage.getItem(key);
-    return stored ? JSON.parse(stored) : defaultValue;
-  } catch (error) {
-    console.error(`Error reading ${key} from localStorage:`, error);
-    return defaultValue;
+  if (!supabase) {
+    throw new Error('Supabase não está configurado. Verifique as variáveis de ambiente.');
   }
-};
-
-// Helper function to save data to localStorage
-const saveToLocalStorage = (key: string, data: any) => {
-  try {
-    localStorage.setItem(key, JSON.stringify(data));
-  } catch (error) {
-    console.error(`Error saving ${key} to localStorage:`, error);
-  }
+  return true;
 };
 
 // Company Services
 export const companyService = {
   async getCompany(): Promise<CompanyInfo | null> {
     console.log('companyService.getCompany: Starting...');
-    
-    // First check localStorage
-    const stored = localStorage.getItem('companyInfo');
-    console.log('companyService.getCompany: localStorage data:', stored);
-    
-    if (!checkSupabaseConnection()) {
-      console.warn('Supabase not configured, using localStorage fallback');
-      const result = stored ? JSON.parse(stored) : null;
-      console.log('Company loaded from localStorage:', result);
-      return result;
-    }
+    checkSupabaseConnection();
     
     try {
       console.log('companyService.getCompany: Querying Supabase');
@@ -71,20 +42,12 @@ export const companyService = {
       console.log('companyService.getCompany: Supabase response:', { data, error });
       
       if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
-        console.log('companyService.getCompany: Error from Supabase, falling back to localStorage');
-        console.warn('Supabase error, using fallback:', error.message);
-        // Fallback to localStorage
-        const result = stored ? JSON.parse(stored) : null;
-        console.log('Company loaded from localStorage (after error):', result);
-        return result;
+        handleSupabaseError(error);
       }
       
       if (!data || error?.code === 'PGRST116') {
-        console.log('companyService.getCompany: No data from Supabase, checking localStorage');
-        // Check localStorage as fallback
-        const result = stored ? JSON.parse(stored) : null;
-        console.log('Company loaded from localStorage (no data):', result);
-        return result;
+        console.log('companyService.getCompany: No data from Supabase');
+        return null;
       }
       
       const result = {
@@ -100,27 +63,16 @@ export const companyService = {
       };
       console.log('Company loaded from Supabase:', result);
       
-      // Save to localStorage as backup
-      localStorage.setItem('companyInfo', JSON.stringify(result));
-      console.log('Company data saved to localStorage as backup');
-      
       return result;
     } catch (error) {
-      console.error('companyService.getCompany: Catch block error:', error);
-      console.warn('Supabase error in catch block, using fallback:', error);
-      // Fallback to localStorage
-      const result = stored ? JSON.parse(stored) : null;
-      console.log('Company loaded from localStorage (catch):', result);
-      return result;
+      console.error('companyService.getCompany: Error:', error);
+      handleSupabaseError(error);
+      return null;
     }
   },
 
   async saveCompany(company: CompanyInfo): Promise<void> {
-    if (!checkSupabaseConnection()) {
-      console.warn('Supabase not configured, using localStorage fallback');
-      localStorage.setItem('companyInfo', JSON.stringify(company));
-      return;
-    }
+    checkSupabaseConnection();
     
     try {
       // Always try to get the first company record
@@ -130,9 +82,6 @@ export const companyService = {
       
       if (selectError && selectError.code !== 'PGRST116') {
         handleSupabaseError(selectError);
-        // Fallback to localStorage
-        localStorage.setItem('companyInfo', JSON.stringify(company));
-        return;
       }
       
       const companyData = {
@@ -175,19 +124,12 @@ export const companyService = {
       
       if (result.error) {
         handleSupabaseError(result.error);
-        // Fallback to localStorage
-        localStorage.setItem('companyInfo', JSON.stringify(company));
-        return;
       }
       
-      // Always save to localStorage as backup
-      localStorage.setItem('companyInfo', JSON.stringify(company));
-      console.log('Company data saved successfully to both Supabase and localStorage');
+      console.log('Company data saved successfully to Supabase');
     } catch (error) {
       console.error('Error saving company data:', error);
-      // Fallback to localStorage
-      localStorage.setItem('companyInfo', JSON.stringify(company));
-      return;
+      handleSupabaseError(error);
     }
   }
 };
@@ -195,9 +137,7 @@ export const companyService = {
 // Category Services
 export const categoryService = {
   async getCategories(): Promise<Category[]> {
-    if (!checkSupabaseConnection()) {
-      return getLocalStorageFallback('categories', []);
-    }
+    checkSupabaseConnection();
     
     try {
       const { data, error } = await supabase
@@ -206,8 +146,7 @@ export const categoryService = {
         .order('name');
       
       if (error) {
-        console.warn('Error loading categories from Supabase:', error);
-        return getLocalStorageFallback('categories', []);
+        handleSupabaseError(error);
       }
       
       const result = data?.map(item => ({
@@ -215,16 +154,16 @@ export const categoryService = {
         name: item.name,
       })) || [];
       
-      // Save to localStorage as backup
-      saveToLocalStorage('categories', result);
       return result;
     } catch (error) {
-      console.warn('Error in getCategories:', error);
-      return getLocalStorageFallback('categories', []);
+      handleSupabaseError(error);
+      return [];
     }
   },
 
   async createCategory(category: Omit<Category, 'id'>): Promise<Category> {
+    checkSupabaseConnection();
+    
     try {
       const { data, error } = await supabase
         .from('categories')
@@ -242,11 +181,13 @@ export const categoryService = {
       };
     } catch (error) {
       handleSupabaseError(error);
-      return { id: '', name: '' };
+      throw error;
     }
   },
 
   async updateCategory(category: Category): Promise<void> {
+    checkSupabaseConnection();
+    
     try {
       const { error } = await supabase
         .from('categories')
@@ -259,11 +200,13 @@ export const categoryService = {
       if (error) handleSupabaseError(error);
     } catch (error) {
       handleSupabaseError(error);
-      return;
+      throw error;
     }
   },
 
   async deleteCategory(id: string): Promise<void> {
+    checkSupabaseConnection();
+    
     try {
       const { error } = await supabase
         .from('categories')
@@ -273,7 +216,7 @@ export const categoryService = {
       if (error) handleSupabaseError(error);
     } catch (error) {
       handleSupabaseError(error);
-      return;
+      throw error;
     }
   }
 };
@@ -281,9 +224,7 @@ export const categoryService = {
 // Product Services
 export const productService = {
   async getProducts(): Promise<Product[]> {
-    if (!checkSupabaseConnection()) {
-      return getLocalStorageFallback('products', []);
-    }
+    checkSupabaseConnection();
     
     try {
       const { data, error } = await supabase
@@ -292,8 +233,7 @@ export const productService = {
         .order('name');
       
       if (error) {
-        console.warn('Error loading products from Supabase:', error);
-        return getLocalStorageFallback('products', []);
+        handleSupabaseError(error);
       }
       
       const result = data?.map(item => ({
@@ -309,16 +249,16 @@ export const productService = {
         categoryId: item.category_id || undefined,
       })) || [];
       
-      // Save to localStorage as backup
-      saveToLocalStorage('products', result);
       return result;
     } catch (error) {
-      console.warn('Error in getProducts:', error);
-      return getLocalStorageFallback('products', []);
+      handleSupabaseError(error);
+      return [];
     }
   },
 
   async createProduct(product: Omit<Product, 'id'>): Promise<Product> {
+    checkSupabaseConnection();
+    
     try {
       const { data, error } = await supabase
         .from('products')
@@ -352,11 +292,13 @@ export const productService = {
       };
     } catch (error) {
       handleSupabaseError(error);
-      return { id: '', name: '', description: '', pricingModel: 'unidade', basePrice: 0, unit: 'un' };
+      throw error;
     }
   },
 
   async updateProduct(product: Product): Promise<void> {
+    checkSupabaseConnection();
+    
     try {
       const { error } = await supabase
         .from('products')
@@ -377,11 +319,13 @@ export const productService = {
       if (error) handleSupabaseError(error);
     } catch (error) {
       handleSupabaseError(error);
-      return;
+      throw error;
     }
   },
 
   async deleteProduct(id: string): Promise<void> {
+    checkSupabaseConnection();
+    
     try {
       const { error } = await supabase
         .from('products')
@@ -391,7 +335,7 @@ export const productService = {
       if (error) handleSupabaseError(error);
     } catch (error) {
       handleSupabaseError(error);
-      return;
+      throw error;
     }
   }
 };
@@ -399,6 +343,8 @@ export const productService = {
 // Customer Services
 export const customerService = {
   async getCustomers(): Promise<Customer[]> {
+    checkSupabaseConnection();
+    
     try {
       const { data: customersData, error: customersError } = await supabase
         .from('customers')
@@ -437,6 +383,8 @@ export const customerService = {
   },
 
   async createCustomer(customer: Omit<Customer, 'id'>): Promise<Customer> {
+    checkSupabaseConnection();
+    
     try {
       const { data, error } = await supabase
         .from('customers')
@@ -485,11 +433,13 @@ export const customerService = {
       };
     } catch (error) {
       handleSupabaseError(error);
-      return { id: '', name: '', documentType: 'CPF', documentNumber: '', phone: '', email: '', address: '', city: '', postalCode: '', downPayments: [] };
+      throw error;
     }
   },
 
   async updateCustomer(customer: Customer): Promise<void> {
+    checkSupabaseConnection();
+    
     try {
       const { error } = await supabase
         .from('customers')
@@ -532,11 +482,13 @@ export const customerService = {
       }
     } catch (error) {
       handleSupabaseError(error);
-      return;
+      throw error;
     }
   },
 
   async deleteCustomer(id: string): Promise<void> {
+    checkSupabaseConnection();
+    
     try {
       const { error } = await supabase
         .from('customers')
@@ -546,7 +498,7 @@ export const customerService = {
       if (error) handleSupabaseError(error);
     } catch (error) {
       handleSupabaseError(error);
-      return;
+      throw error;
     }
   }
 };
@@ -554,9 +506,7 @@ export const customerService = {
 // Quote Services
 export const quoteService = {
   async getQuotes(): Promise<Quote[]> {
-    if (!checkSupabaseConnection()) {
-      return getLocalStorageFallback('quotes', []);
-    }
+    checkSupabaseConnection();
     
     try {
       const { data: quotesData, error: quotesError } = await supabase
@@ -565,8 +515,7 @@ export const quoteService = {
         .order('created_at', { ascending: false });
       
       if (quotesError) {
-        console.warn('Error loading quotes from Supabase:', quotesError);
-        return getLocalStorageFallback('quotes', []);
+        handleSupabaseError(quotesError);
       }
       
       const { data: itemsData, error: itemsError } = await supabase
@@ -574,8 +523,7 @@ export const quoteService = {
         .select('*');
       
       if (itemsError) {
-        console.warn('Error loading quote items from Supabase:', itemsError);
-        // Continue without items data
+        handleSupabaseError(itemsError);
       }
       
       const result = quotesData?.map(quote => ({
@@ -614,16 +562,16 @@ export const quoteService = {
         salespersonFullName: quote.salesperson_full_name,
       })) || [];
       
-      // Save to localStorage as backup
-      saveToLocalStorage('quotes', result);
       return result;
     } catch (error) {
-      console.warn('Error in getQuotes:', error);
-      return getLocalStorageFallback('quotes', []);
+      handleSupabaseError(error);
+      return [];
     }
   },
 
   async createQuote(quote: Omit<Quote, 'id'>): Promise<Quote> {
+    checkSupabaseConnection();
+    
     try {
       const { data, error } = await supabase
         .from('quotes')
@@ -682,11 +630,13 @@ export const quoteService = {
       };
     } catch (error) {
       handleSupabaseError(error);
-      return { id: '', quoteNumber: '', customerId: undefined, clientName: '', clientContact: '', items: [], subtotal: 0, discountType: 'none', discountValue: 0, discountAmountCalculated: 0, subtotalAfterDiscount: 0, totalCash: 0, totalCard: 0, downPaymentApplied: 0, selectedPaymentMethod: '', paymentDate: undefined, deliveryDeadline: undefined, createdAt: '', status: 'draft', companyInfoSnapshot: { name: '', logoUrlDarkBg: '', logoUrlLightBg: '', address: '', phone: '', email: '', cnpj: '', instagram: '', website: '' }, notes: '', salespersonUsername: '', salespersonFullName: '' };
+      throw error;
     }
   },
 
   async updateQuote(quote: Quote): Promise<void> {
+    checkSupabaseConnection();
+    
     try {
       const { error } = await supabase
         .from('quotes')
@@ -747,11 +697,13 @@ export const quoteService = {
       }
     } catch (error) {
       handleSupabaseError(error);
-      return;
+      throw error;
     }
   },
 
   async deleteQuote(id: string): Promise<void> {
+    checkSupabaseConnection();
+    
     try {
       const { error } = await supabase
         .from('quotes')
@@ -761,7 +713,7 @@ export const quoteService = {
       if (error) handleSupabaseError(error);
     } catch (error) {
       handleSupabaseError(error);
-      return;
+      throw error;
     }
   }
 };
@@ -769,9 +721,7 @@ export const quoteService = {
 // Supplier Services
 export const supplierService = {
   async getSuppliers(): Promise<Supplier[]> {
-    if (!checkSupabaseConnection()) {
-      return getLocalStorageFallback('suppliers', []);
-    }
+    checkSupabaseConnection();
     
     try {
       const { data, error } = await supabase
@@ -797,16 +747,7 @@ export const supplierService = {
   },
 
   async createSupplier(supplier: Omit<Supplier, 'id'>): Promise<Supplier> {
-    if (!checkSupabaseConnection()) {
-      const newSupplier = {
-        ...supplier,
-        id: `supplier-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-      };
-      const existing = getLocalStorageFallback('suppliers', []);
-      const updated = [...existing, newSupplier];
-      saveToLocalStorage('suppliers', updated);
-      return newSupplier;
-    }
+    checkSupabaseConnection();
     
     try {
       const { data, error } = await supabase
@@ -835,17 +776,12 @@ export const supplierService = {
       };
     } catch (error) {
       handleSupabaseError(error);
-      return { id: '', name: '', cnpj: '', phone: '', email: '', address: '', notes: '' };
+      throw error;
     }
   },
 
   async updateSupplier(supplier: Supplier): Promise<void> {
-    if (!checkSupabaseConnection()) {
-      const existing = getLocalStorageFallback('suppliers', []);
-      const updated = existing.map(s => s.id === supplier.id ? supplier : s);
-      saveToLocalStorage('suppliers', updated);
-      return;
-    }
+    checkSupabaseConnection();
     
     try {
       const { error } = await supabase
@@ -864,24 +800,12 @@ export const supplierService = {
       if (error) handleSupabaseError(error);
     } catch (error) {
       handleSupabaseError(error);
-      return;
+      throw error;
     }
   },
 
   async deleteSupplier(id: string): Promise<void> {
-    if (!checkSupabaseConnection()) {
-      const existing = getLocalStorageFallback('suppliers', []);
-      const updated = existing.filter(s => s.id !== id);
-      saveToLocalStorage('suppliers', updated);
-      // Also clean up related data
-      const existingDebts = getLocalStorageFallback('supplier_debts', []);
-      const updatedDebts = existingDebts.filter(d => d.supplierId !== id);
-      saveToLocalStorage('supplier_debts', updatedDebts);
-      const existingCredits = getLocalStorageFallback('supplier_credits', []);
-      const updatedCredits = existingCredits.filter(c => c.supplierId !== id);
-      saveToLocalStorage('supplier_credits', updatedCredits);
-      return;
-    }
+    checkSupabaseConnection();
     
     try {
       const { error } = await supabase
@@ -892,14 +816,12 @@ export const supplierService = {
       if (error) handleSupabaseError(error);
     } catch (error) {
       handleSupabaseError(error);
-      return;
+      throw error;
     }
   },
 
   async getSupplierDebts(): Promise<Debt[]> {
-    if (!checkSupabaseConnection()) {
-      return getLocalStorageFallback('supplier_debts', []);
-    }
+    checkSupabaseConnection();
     
     try {
       const { data, error } = await supabase
@@ -923,16 +845,7 @@ export const supplierService = {
   },
 
   async createSupplierDebt(debt: Omit<Debt, 'id'>): Promise<Debt> {
-    if (!checkSupabaseConnection()) {
-      const newDebt = {
-        ...debt,
-        id: `debt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-      };
-      const existing = getLocalStorageFallback('supplier_debts', []);
-      const updated = [newDebt, ...existing];
-      saveToLocalStorage('supplier_debts', updated);
-      return newDebt;
-    }
+    checkSupabaseConnection();
     
     try {
       const { data, error } = await supabase
@@ -957,17 +870,12 @@ export const supplierService = {
       };
     } catch (error) {
       handleSupabaseError(error);
-      return { id: '', supplierId: '', description: '', totalAmount: 0, dateAdded: '' };
+      throw error;
     }
   },
 
   async deleteSupplierDebt(id: string): Promise<void> {
-    if (!checkSupabaseConnection()) {
-      const existing = getLocalStorageFallback('supplier_debts', []);
-      const updated = existing.filter(d => d.id !== id);
-      saveToLocalStorage('supplier_debts', updated);
-      return;
-    }
+    checkSupabaseConnection();
     
     try {
       const { error } = await supabase
@@ -978,14 +886,12 @@ export const supplierService = {
       if (error) handleSupabaseError(error);
     } catch (error) {
       handleSupabaseError(error);
-      return;
+      throw error;
     }
   },
 
   async getSupplierCredits(): Promise<SupplierCredit[]> {
-    if (!checkSupabaseConnection()) {
-      return getLocalStorageFallback('supplier_credits', []);
-    }
+    checkSupabaseConnection();
     
     try {
       const { data, error } = await supabase
@@ -1009,16 +915,7 @@ export const supplierService = {
   },
 
   async createSupplierCredit(credit: Omit<SupplierCredit, 'id'>): Promise<SupplierCredit> {
-    if (!checkSupabaseConnection()) {
-      const newCredit = {
-        ...credit,
-        id: `credit-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-      };
-      const existing = getLocalStorageFallback('supplier_credits', []);
-      const updated = [newCredit, ...existing];
-      saveToLocalStorage('supplier_credits', updated);
-      return newCredit;
-    }
+    checkSupabaseConnection();
     
     try {
       const { data, error } = await supabase
@@ -1043,17 +940,12 @@ export const supplierService = {
       };
     } catch (error) {
       handleSupabaseError(error);
-      return { id: '', supplierId: '', amount: 0, date: '', description: '' };
+      throw error;
     }
   },
 
   async deleteSupplierCredit(id: string): Promise<void> {
-    if (!checkSupabaseConnection()) {
-      const existing = getLocalStorageFallback('supplier_credits', []);
-      const updated = existing.filter(c => c.id !== id);
-      saveToLocalStorage('supplier_credits', updated);
-      return;
-    }
+    checkSupabaseConnection();
     
     try {
       const { error } = await supabase
@@ -1064,7 +956,7 @@ export const supplierService = {
       if (error) handleSupabaseError(error);
     } catch (error) {
       handleSupabaseError(error);
-      return;
+      throw error;
     }
   }
 };
@@ -1072,6 +964,8 @@ export const supplierService = {
 // Accounts Payable Services
 export const accountsPayableService = {
   async getAccountsPayable(): Promise<AccountsPayableEntry[]> {
+    checkSupabaseConnection();
+    
     try {
       const { data, error } = await supabase
         .from('accounts_payable')
@@ -1099,6 +993,8 @@ export const accountsPayableService = {
   },
 
   async createAccountsPayable(entries: Omit<AccountsPayableEntry, 'id'>[]): Promise<AccountsPayableEntry[]> {
+    checkSupabaseConnection();
+    
     try {
       const { data, error } = await supabase
         .from('accounts_payable')
@@ -1137,6 +1033,8 @@ export const accountsPayableService = {
   },
 
   async updateAccountsPayable(entry: AccountsPayableEntry): Promise<void> {
+    checkSupabaseConnection();
+    
     try {
       const { error } = await supabase
         .from('accounts_payable')
@@ -1153,11 +1051,13 @@ export const accountsPayableService = {
       if (error) handleSupabaseError(error);
     } catch (error) {
       handleSupabaseError(error);
-      return;
+      throw error;
     }
   },
 
   async deleteAccountsPayable(id: string): Promise<void> {
+    checkSupabaseConnection();
+    
     try {
       const { error } = await supabase
         .from('accounts_payable')
@@ -1167,11 +1067,13 @@ export const accountsPayableService = {
       if (error) handleSupabaseError(error);
     } catch (error) {
       handleSupabaseError(error);
-      return;
+      throw error;
     }
   },
 
   async deleteAccountsPayableBySeries(seriesId: string): Promise<void> {
+    checkSupabaseConnection();
+    
     try {
       const { error } = await supabase
         .from('accounts_payable')
@@ -1181,7 +1083,7 @@ export const accountsPayableService = {
       if (error) handleSupabaseError(error);
     } catch (error) {
       handleSupabaseError(error);
-      return;
+      throw error;
     }
   }
 };
@@ -1189,6 +1091,8 @@ export const accountsPayableService = {
 // User Services
 export const userService = {
   async getUsers(): Promise<User[]> {
+    checkSupabaseConnection();
+    
     try {
       const { data, error } = await supabase
         .from('app_users')
@@ -1211,6 +1115,8 @@ export const userService = {
   },
 
   async createUser(user: Omit<User, 'id'> & { password: string }): Promise<User> {
+    checkSupabaseConnection();
+    
     try {
       // Hash the password properly
       const passwordHash = await bcrypt.hash(user.password, 10);
@@ -1237,11 +1143,13 @@ export const userService = {
       };
     } catch (error) {
       handleSupabaseError(error);
-      return { id: '', username: '', fullName: '', password: '', role: 'sales' };
+      throw error;
     }
   },
 
   async updateUser(user: User & { password?: string }): Promise<void> {
+    checkSupabaseConnection();
+    
     try {
       const updateData: any = {
         username: user.username,
@@ -1262,11 +1170,13 @@ export const userService = {
       if (error) handleSupabaseError(error);
     } catch (error) {
       handleSupabaseError(error);
-      return;
+      throw error;
     }
   },
 
   async deleteUser(id: string): Promise<void> {
+    checkSupabaseConnection();
+    
     try {
       const { error } = await supabase
         .from('app_users')
@@ -1276,11 +1186,13 @@ export const userService = {
       if (error) handleSupabaseError(error);
     } catch (error) {
       handleSupabaseError(error);
-      return;
+      throw error;
     }
   },
 
   async authenticateUser(username: string, password: string): Promise<User | null> {
+    checkSupabaseConnection();
+    
     try {
       const { data, error } = await supabase
         .from('app_users')
@@ -1313,7 +1225,7 @@ export const userService = {
 
   // Get user by email
   async getUserByEmail(email: string) {
-    if (!supabase) return null;
+    checkSupabaseConnection();
     
     try {
       const { data, error } = await supabase
