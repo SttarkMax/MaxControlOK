@@ -45,50 +45,69 @@ const App: React.FC = () => {
         return;
       }
       
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        // User is authenticated with Supabase - get user data from app_users table
-        try {
-          const { data: userData, error } = await supabase
-            .from('app_users')
-            .select('*')
-            .eq('username', session.user.email?.split('@')[0] || 'admin')
-            .single();
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          // User is authenticated with Supabase - try to get user data from app_users table
+          try {
+            const { data: userData, error } = await supabase
+              .from('app_users')
+              .select('*')
+              .eq('username', session.user.email?.split('@')[0] || 'admin')
+              .single();
 
-          if (userData && !error) {
-            const loggedInUser: LoggedInUser = {
-              id: userData.id,
-              username: userData.username,
-              fullName: userData.full_name || userData.username,
-              role: userData.role as any,
-            };
-            setCurrentUser(loggedInUser);
-            setIsAuthenticated(true);
-            localStorage.setItem('currentUser', JSON.stringify(loggedInUser));
-          } else {
-            // Fallback to basic user data from auth
+            if (userData && !error) {
+              const loggedInUser: LoggedInUser = {
+                id: userData.id,
+                username: userData.username,
+                fullName: userData.full_name || userData.username,
+                role: userData.role as any,
+              };
+              setCurrentUser(loggedInUser);
+              setIsAuthenticated(true);
+              localStorage.setItem('currentUser', JSON.stringify(loggedInUser));
+            } else {
+              // Fallback to basic user data from auth
+              const fallbackUser: LoggedInUser = {
+                id: session.user.id,
+                username: session.user.email?.split('@')[0] || 'User',
+                fullName: session.user.user_metadata?.full_name || session.user.email || 'User',
+                role: 'admin', // Default to admin for authenticated users
+              };
+              setCurrentUser(fallbackUser);
+              setIsAuthenticated(true);
+              localStorage.setItem('currentUser', JSON.stringify(fallbackUser));
+            }
+          } catch (error) {
+            console.warn('Error fetching user data from app_users, using fallback:', error);
+            // Fallback authentication
             const fallbackUser: LoggedInUser = {
               id: session.user.id,
               username: session.user.email?.split('@')[0] || 'User',
-              fullName: session.user.user_metadata?.full_name || session.user.email || 'User',
-              role: 'admin', // Default to admin for authenticated users
+              fullName: session.user.email || 'User',
+              role: 'admin',
             };
             setCurrentUser(fallbackUser);
             setIsAuthenticated(true);
             localStorage.setItem('currentUser', JSON.stringify(fallbackUser));
           }
-        } catch (error) {
-          console.error('Error fetching user data:', error);
-          // Fallback authentication
-          const fallbackUser: LoggedInUser = {
-            id: session.user.id,
-            username: session.user.email?.split('@')[0] || 'User',
-            fullName: session.user.email || 'User',
-            role: 'admin',
-          };
-          setCurrentUser(fallbackUser);
+        } else {
+          // No session, check localStorage for fallback
+          const savedUser = localStorage.getItem('currentUser');
+          if (savedUser) {
+            const user: LoggedInUser = JSON.parse(savedUser);
+            setCurrentUser(user);
+            setIsAuthenticated(true);
+          }
+        }
+      } catch (error) {
+        console.warn('Error checking Supabase session, using localStorage fallback:', error);
+        // Fallback to localStorage
+        const savedUser = localStorage.getItem('currentUser');
+        if (savedUser) {
+          const user: LoggedInUser = JSON.parse(savedUser);
+          setCurrentUser(user);
           setIsAuthenticated(true);
-          localStorage.setItem('currentUser', JSON.stringify(fallbackUser));
         }
       }
     };
@@ -130,6 +149,19 @@ const App: React.FC = () => {
                 setIsAuthenticated(true);
                 localStorage.setItem('currentUser', JSON.stringify(fallbackUser));
               }
+            })
+            .catch(error => {
+              console.warn('Error fetching user data on auth change, using fallback:', error);
+              // Fallback
+              const fallbackUser: LoggedInUser = {
+                id: session.user.id,
+                username: session.user.email?.split('@')[0] || 'User',
+                fullName: session.user.email || 'User',
+                role: 'admin',
+              };
+              setCurrentUser(fallbackUser);
+              setIsAuthenticated(true);
+              localStorage.setItem('currentUser', JSON.stringify(fallbackUser));
             });
         } else if (event === 'SIGNED_OUT') {
           setCurrentUser(null);

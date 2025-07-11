@@ -1237,17 +1237,22 @@ export const userService = {
   async getUserByEmail(email: string) {
     if (!supabase) return null;
     
-    const { data, error } = await supabase
-      .from('app_users')
-      .select('*')
-      .eq('username', email.split('@')[0])
-      .single();
-    
-    if (error) {
-      console.log('User not found in app_users table:', error.message);
+    try {
+      const { data, error } = await supabase
+        .from('app_users')
+        .select('*')
+        .eq('username', email.split('@')[0])
+        .single();
+      
+      if (error) {
+        console.log('User not found in app_users table:', error.message);
+        return null;
+      }
+      
+      return data;
+    } catch (error) {
+      console.warn('Error fetching user by email:', error);
       return null;
     }
-    
-    return data;
   }
 };
