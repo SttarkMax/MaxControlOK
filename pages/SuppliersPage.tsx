@@ -396,8 +396,8 @@ const SupplierDetailsModal: React.FC<{
                                     <th className="px-3 py-2 text-center text-xs font-medium uppercase">Ação</th>
                                 </tr></thead>
                                 <tbody className="divide-y divide-[#1F1F1F]">
-                                    {unifiedTransactions.length > 0 ? unifiedTransactions.map(tx => (
-                                        <tr key={`${tx.type}-${tx.id}`} className="hover:bg-[#1F1F1F]/50">
+                                    {unifiedTransactions.length > 0 ? unifiedTransactions.map((tx, index) => (
+                                        <tr key={`${tx.type}-${tx.id}-${index}`} className="hover:bg-[#1F1F1F]/50">
                                             <td className="px-3 py-2 text-sm whitespace-nowrap">{new Date(tx.date + "T00:00:00").toLocaleDateString('pt-BR')}</td>
                                             <td className="px-3 py-2 text-sm">{tx.description || '-'}</td>
                                             <td className="px-3 py-2 text-sm text-right text-red-400">{tx.debit > 0 ? formatCurrency(tx.debit) : '-'}</td>
