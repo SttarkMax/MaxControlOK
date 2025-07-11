@@ -31,13 +31,18 @@ export const useCompany = () => {
   const loadCompany = async () => {
     try {
       setLoading(true);
+      console.log('useCompany: Starting to load company data');
       const data = await companyService.getCompany();
+      console.log('useCompany: Received data from service:', data);
       setCompany(data);
       setError(null);
+      console.log('useCompany: Company state updated to:', data);
     } catch (err) {
+      console.error('useCompany: Error loading company:', err);
       setError(err instanceof Error ? err.message : 'Erro ao carregar empresa');
     } finally {
       setLoading(false);
+      console.log('useCompany: Loading finished');
     }
   };
 

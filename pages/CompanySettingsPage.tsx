@@ -12,11 +12,20 @@ const CompanySettingsPage: React.FC = () => {
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<string>('');
 
   // Initialize form with existing company data
   React.useEffect(() => {
+    console.log('CompanySettingsPage useEffect triggered');
+    console.log('company:', company);
+    console.log('loading:', loading);
+    console.log('companyInfo:', companyInfo);
+    
+    setDebugInfo(`company: ${JSON.stringify(company)}, loading: ${loading}, companyInfo: ${JSON.stringify(companyInfo)}`);
+    
     if (company && !companyInfo) {
       console.log('Loading company data:', company);
+      setDebugInfo('Loading company data from hook');
       setCompanyInfo({
         name: company.name || '',
         logoUrlDarkBg: company.logoUrlDarkBg || '',
@@ -31,6 +40,7 @@ const CompanySettingsPage: React.FC = () => {
     } else if (!company && !loading && !companyInfo) {
       // Initialize with empty data if no company exists
       console.log('No company data found, initializing empty form');
+      setDebugInfo('No company data found, initializing empty form');
       setCompanyInfo({
         name: '',
         logoUrlDarkBg: '',
@@ -87,6 +97,9 @@ const CompanySettingsPage: React.FC = () => {
       <div className="p-6 text-white flex items-center justify-center">
         <Spinner size="lg" />
         <span className="ml-3">{loading ? 'Carregando informações da empresa...' : 'Inicializando formulário...'}</span>
+        <div className="mt-4 text-xs text-gray-400">
+          Debug: {debugInfo}
+        </div>
       </div>
     );
   }
@@ -96,6 +109,15 @@ const CompanySettingsPage: React.FC = () => {
       <div className="flex items-center mb-6">
         <BuildingOfficeIcon className="h-8 w-8 text-yellow-500 mr-3" />
         <h2 className="text-2xl font-semibold text-white">Informações da Empresa</h2>
+      </div>
+
+      {/* Debug info */}
+      <div className="mb-4 p-2 bg-gray-800 rounded text-xs">
+        <strong>Debug Info:</strong><br/>
+        Company from hook: {JSON.stringify(company)}<br/>
+        Loading: {loading.toString()}<br/>
+        CompanyInfo state: {JSON.stringify(companyInfo)}<br/>
+        Debug: {debugInfo}
       </div>
 
       {isSaved && (

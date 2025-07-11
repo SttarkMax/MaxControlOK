@@ -37,12 +37,16 @@ export const companyService = {
     }
     
     try {
+      console.log('companyService.getCompany: Querying Supabase');
       const { data, error } = await supabase
         .from('companies')
         .select('*')
         .maybeSingle();
       
+      console.log('companyService.getCompany: Supabase response:', { data, error });
+      
       if (error) {
+        console.log('companyService.getCompany: Error from Supabase, falling back to localStorage');
         handleSupabaseError(error);
         // Fallback to localStorage
         const stored = localStorage.getItem('companyInfo');
@@ -52,6 +56,7 @@ export const companyService = {
       }
       
       if (!data) {
+        console.log('companyService.getCompany: No data from Supabase, checking localStorage');
         // Check localStorage as fallback
         const stored = localStorage.getItem('companyInfo');
         const result = stored ? JSON.parse(stored) : null;
@@ -73,6 +78,7 @@ export const companyService = {
       console.log('Company loaded from Supabase:', result);
       return result;
     } catch (error) {
+      console.error('companyService.getCompany: Catch block error:', error);
       handleSupabaseError(error);
       // Fallback to localStorage
       const stored = localStorage.getItem('companyInfo');
