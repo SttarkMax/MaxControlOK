@@ -401,12 +401,10 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
     yPos = doc.lastAutoTable.finalY + 10;
 
     // Totals
-    doc.text(`Subtotal: ${formatCurrency(currentQuote.subtotal!)}`, pageWidth - margin, yPos, { align: 'right' });
     if (currentQuote.discountAmountCalculated! > 0) {
-      yPos += 6;
       doc.text(`Desconto: ${formatCurrency(currentQuote.discountAmountCalculated!)}`, pageWidth - margin, yPos, { align: 'right' });
+      yPos += 6;
     }
-    yPos += 6;
     doc.text(`Subtotal com Desconto: ${formatCurrency(currentQuote.subtotalAfterDiscount!)}`, pageWidth - margin, yPos, { align: 'right' });
     yPos += 8;
     
