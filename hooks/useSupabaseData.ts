@@ -40,6 +40,17 @@ export const useCompany = () => {
     } catch (err) {
       console.error('useCompany: Error loading company:', err);
       setError(err instanceof Error ? err.message : 'Erro ao carregar empresa');
+      // Try localStorage fallback on error
+      try {
+        const stored = localStorage.getItem('companyInfo');
+        if (stored) {
+          const fallbackData = JSON.parse(stored);
+          console.log('useCompany: Using localStorage fallback:', fallbackData);
+          setCompany(fallbackData);
+        }
+      } catch (fallbackError) {
+        console.error('useCompany: localStorage fallback failed:', fallbackError);
+      }
     } finally {
       setLoading(false);
       console.log('useCompany: Loading finished');

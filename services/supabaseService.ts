@@ -28,9 +28,14 @@ const checkSupabaseConnection = () => {
 // Company Services
 export const companyService = {
   async getCompany(): Promise<CompanyInfo | null> {
+    console.log('companyService.getCompany: Starting...');
+    
+    // First check localStorage
+    const stored = localStorage.getItem('companyInfo');
+    console.log('companyService.getCompany: localStorage data:', stored);
+    
     if (!checkSupabaseConnection()) {
       console.warn('Supabase not configured, using localStorage fallback');
-      const stored = localStorage.getItem('companyInfo');
       const result = stored ? JSON.parse(stored) : null;
       console.log('Company loaded from localStorage:', result);
       return result;
@@ -49,7 +54,6 @@ export const companyService = {
         console.log('companyService.getCompany: Error from Supabase, falling back to localStorage');
         handleSupabaseError(error);
         // Fallback to localStorage
-        const stored = localStorage.getItem('companyInfo');
         const result = stored ? JSON.parse(stored) : null;
         console.log('Company loaded from localStorage (after error):', result);
         return result;
@@ -58,7 +62,6 @@ export const companyService = {
       if (!data) {
         console.log('companyService.getCompany: No data from Supabase, checking localStorage');
         // Check localStorage as fallback
-        const stored = localStorage.getItem('companyInfo');
         const result = stored ? JSON.parse(stored) : null;
         console.log('Company loaded from localStorage (no data):', result);
         return result;
@@ -76,12 +79,16 @@ export const companyService = {
         website: data.website,
       };
       console.log('Company loaded from Supabase:', result);
+      
+      // Save to localStorage as backup
+      localStorage.setItem('companyInfo', JSON.stringify(result));
+      console.log('Company data saved to localStorage as backup');
+      
       return result;
     } catch (error) {
       console.error('companyService.getCompany: Catch block error:', error);
       handleSupabaseError(error);
       // Fallback to localStorage
-      const stored = localStorage.getItem('companyInfo');
       const result = stored ? JSON.parse(stored) : null;
       console.log('Company loaded from localStorage (catch):', result);
       return result;
