@@ -39,17 +39,39 @@ export const useCompany = () => {
       console.log('useCompany: Company state updated to:', data);
     } catch (err) {
       console.error('useCompany: Error loading company:', err);
-      console.warn('useCompany: Using fallback behavior due to error');
-      setError(null); // Don't set error, just continue
-      // Try localStorage fallback on error
-      try {
-        const stored = localStorage.getItem('companyInfo');
-        if (stored) {
-          const fallbackData = JSON.parse(stored);
-          console.log('useCompany: Using localStorage fallback:', fallbackData);
-          setCompany(fallbackData);
-        } else {
-          // Set default company if no data exists
+      
+      // Handle specific error types
+      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+      
+      if (errorMessage === 'SUPABASE_NOT_CONFIGURED' || errorMessage === 'NETWORK_ERROR') {
+        console.warn('useCompany: Using fallback behavior due to Supabase unavailability');
+        setError(null); // Don't show error to user, just use fallback
+        
+        // Try localStorage fallback on Supabase error
+        try {
+          const stored = localStorage.getItem('companyInfo');
+          if (stored) {
+            const fallbackData = JSON.parse(stored);
+            console.log('useCompany: Using localStorage fallback:', fallbackData);
+            setCompany(fallbackData);
+          } else {
+            // Set default company if no data exists
+            const defaultCompany = {
+              name: 'Sua Empresa',
+              logoUrlDarkBg: '',
+              logoUrlLightBg: '',
+              address: '',
+              phone: '',
+              email: '',
+              cnpj: '',
+              instagram: '',
+              website: '',
+            };
+            setCompany(defaultCompany);
+          }
+        } catch (fallbackError) {
+          console.error('useCompany: localStorage fallback failed:', fallbackError);
+          // Set default company even if localStorage fails
           const defaultCompany = {
             name: 'Sua Empresa',
             logoUrlDarkBg: '',
@@ -63,9 +85,9 @@ export const useCompany = () => {
           };
           setCompany(defaultCompany);
         }
-      } catch (fallbackError) {
-        console.error('useCompany: localStorage fallback failed:', fallbackError);
-        // Set default company even if localStorage fails
+      } else {
+        // For other errors, show them to the user
+        setError(errorMessage);
         const defaultCompany = {
           name: 'Sua Empresa',
           logoUrlDarkBg: '',
@@ -94,8 +116,26 @@ export const useCompany = () => {
       console.log('useCompany: Company data saved and state updated');
     } catch (err) {
       console.error('useCompany: Error saving company:', err);
-      setError(err instanceof Error ? err.message : 'Erro ao salvar empresa');
-      throw err;
+      
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao salvar empresa';
+      
+      if (errorMessage === 'SUPABASE_NOT_CONFIGURED' || errorMessage === 'NETWORK_ERROR') {
+        // Save to localStorage as fallback
+        console.warn('useCompany: Saving to localStorage due to Supabase unavailability');
+        try {
+          localStorage.setItem('companyInfo', JSON.stringify(companyData));
+          setCompany(companyData);
+          setError(null);
+          console.log('useCompany: Company data saved to localStorage');
+        } catch (localError) {
+          console.error('useCompany: Failed to save to localStorage:', localError);
+          setError('Erro ao salvar empresa');
+          throw localError;
+        }
+      } else {
+        setError(errorMessage);
+        throw err;
+      }
     }
   };
 

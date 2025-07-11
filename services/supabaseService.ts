@@ -19,7 +19,7 @@ import {
 // Helper function to check if Supabase is configured
 const checkSupabaseConnection = () => {
   if (!supabase) {
-    throw new Error('Supabase não está configurado. Verifique as variáveis de ambiente.');
+    throw new Error('SUPABASE_NOT_CONFIGURED');
   }
   return true;
 };
