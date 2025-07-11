@@ -1,13 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
 import { Database } from './database.types';
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 const isSupabaseConfigured = supabaseUrl && 
   supabaseAnonKey && 
   !supabaseUrl.includes('your-project-url-here') && 
   !supabaseAnonKey.includes('your-anon-key-here');
+
+console.log('Supabase Config Check:', {
+  url: supabaseUrl ? `${supabaseUrl.substring(0, 20)}...` : 'undefined',
+  key: supabaseAnonKey ? `${supabaseAnonKey.substring(0, 20)}...` : 'undefined',
+  isConfigured: isSupabaseConfigured
+});
 
 export const supabase = isSupabaseConfigured 
   ? createClient<Database>(supabaseUrl, supabaseAnonKey) 
@@ -24,13 +30,15 @@ export const handleSupabaseError = (error: any) => {
   // Handle network connectivity issues
   if (error instanceof TypeError && error.message === 'Failed to fetch') {
     console.warn('Network error: Unable to connect to Supabase.');
-    throw new Error('Não foi possível conectar ao servidor. Verifique sua conexão com a internet.');
+    console.warn('Falling back to localStorage or default values.');
+    return;
   }
   
   // Also handle cases where message might contain 'Failed to fetch'
   if (error?.message?.includes('Failed to fetch')) {
     console.warn('Network error: Unable to connect to Supabase.');
-    throw new Error('Não foi possível conectar ao servidor. Verifique sua conexão com a internet.');
+    console.warn('Falling back to localStorage or default values.');
+    return;
   }
   
   // Handle PGRST116 (no rows found) as a non-critical error
@@ -39,8 +47,6 @@ export const handleSupabaseError = (error: any) => {
   }
   
   console.error('Supabase error:', error);
-  if (error?.message) {
-    throw new Error(error.message);
-  }
-  throw new Error('Erro desconhecido no banco de dados');
+  // Don't throw errors, just log them and continue
+  console.warn('Continuing with fallback behavior due to Supabase error');
 };

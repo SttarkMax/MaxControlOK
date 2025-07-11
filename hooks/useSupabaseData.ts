@@ -39,7 +39,8 @@ export const useCompany = () => {
       console.log('useCompany: Company state updated to:', data);
     } catch (err) {
       console.error('useCompany: Error loading company:', err);
-      setError(err instanceof Error ? err.message : 'Erro ao carregar empresa');
+      console.warn('useCompany: Using fallback behavior due to error');
+      setError(null); // Don't set error, just continue
       // Try localStorage fallback on error
       try {
         const stored = localStorage.getItem('companyInfo');
@@ -47,10 +48,36 @@ export const useCompany = () => {
           const fallbackData = JSON.parse(stored);
           console.log('useCompany: Using localStorage fallback:', fallbackData);
           setCompany(fallbackData);
-          setError(null); // Clear error if localStorage works
+        } else {
+          // Set default company if no data exists
+          const defaultCompany = {
+            name: 'Sua Empresa',
+            logoUrlDarkBg: '',
+            logoUrlLightBg: '',
+            address: '',
+            phone: '',
+            email: '',
+            cnpj: '',
+            instagram: '',
+            website: '',
+          };
+          setCompany(defaultCompany);
         }
       } catch (fallbackError) {
         console.error('useCompany: localStorage fallback failed:', fallbackError);
+        // Set default company even if localStorage fails
+        const defaultCompany = {
+          name: 'Sua Empresa',
+          logoUrlDarkBg: '',
+          logoUrlLightBg: '',
+          address: '',
+          phone: '',
+          email: '',
+          cnpj: '',
+          instagram: '',
+          website: '',
+        };
+        setCompany(defaultCompany);
       }
     } finally {
       setLoading(false);

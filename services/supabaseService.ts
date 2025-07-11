@@ -25,6 +25,26 @@ const checkSupabaseConnection = () => {
   return true;
 };
 
+// Helper function to get fallback data from localStorage
+const getLocalStorageFallback = (key: string, defaultValue: any = []) => {
+  try {
+    const stored = localStorage.getItem(key);
+    return stored ? JSON.parse(stored) : defaultValue;
+  } catch (error) {
+    console.error(`Error reading ${key} from localStorage:`, error);
+    return defaultValue;
+  }
+};
+
+// Helper function to save data to localStorage
+const saveToLocalStorage = (key: string, data: any) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (error) {
+    console.error(`Error saving ${key} to localStorage:`, error);
+  }
+};
+
 // Company Services
 export const companyService = {
   async getCompany(): Promise<CompanyInfo | null> {
@@ -54,7 +74,7 @@ export const companyService = {
       
       if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
         console.log('companyService.getCompany: Error from Supabase, falling back to localStorage');
-        handleSupabaseError(error);
+        console.warn('Supabase error, using fallback:', error.message);
         // Fallback to localStorage
         const result = stored ? JSON.parse(stored) : null;
         console.log('Company loaded from localStorage (after error):', result);
@@ -89,7 +109,7 @@ export const companyService = {
       return result;
     } catch (error) {
       console.error('companyService.getCompany: Catch block error:', error);
-      handleSupabaseError(error);
+      console.warn('Supabase error in catch block, using fallback:', error);
       // Fallback to localStorage
       const result = stored ? JSON.parse(stored) : null;
       console.log('Company loaded from localStorage (catch):', result);
@@ -177,21 +197,32 @@ export const companyService = {
 // Category Services
 export const categoryService = {
   async getCategories(): Promise<Category[]> {
+    if (!checkSupabaseConnection()) {
+      return getLocalStorageFallback('categories', []);
+    }
+    
     try {
       const { data, error } = await supabase
         .from('categories')
         .select('*')
         .order('name');
       
-      if (error) handleSupabaseError(error);
+      if (error) {
+        console.warn('Error loading categories from Supabase:', error);
+        return getLocalStorageFallback('categories', []);
+      }
       
-      return data?.map(item => ({
+      const result = data?.map(item => ({
         id: item.id,
         name: item.name,
       })) || [];
+      
+      // Save to localStorage as backup
+      saveToLocalStorage('categories', result);
+      return result;
     } catch (error) {
-      handleSupabaseError(error);
-      return [];
+      console.warn('Error in getCategories:', error);
+      return getLocalStorageFallback('categories', []);
     }
   },
 
@@ -252,15 +283,22 @@ export const categoryService = {
 // Product Services
 export const productService = {
   async getProducts(): Promise<Product[]> {
+    if (!checkSupabaseConnection()) {
+      return getLocalStorageFallback('products', []);
+    }
+    
     try {
       const { data, error } = await supabase
         .from('products')
         .select('*')
         .order('name');
       
-      if (error) handleSupabaseError(error);
+      if (error) {
+        console.warn('Error loading products from Supabase:', error);
+        return getLocalStorageFallback('products', []);
+      }
       
-      return data?.map(item => ({
+      const result = data?.map(item => ({
         id: item.id,
         name: item.name,
         description: item.description,
@@ -272,9 +310,13 @@ export const productService = {
         supplierCost: item.supplier_cost ? Number(item.supplier_cost) : undefined,
         categoryId: item.category_id || undefined,
       })) || [];
+      
+      // Save to localStorage as backup
+      saveToLocalStorage('products', result);
+      return result;
     } catch (error) {
-      handleSupabaseError(error);
-      return [];
+      console.warn('Error in getProducts:', error);
+      return getLocalStorageFallback('products', []);
     }
   },
 
@@ -514,21 +556,31 @@ export const customerService = {
 // Quote Services
 export const quoteService = {
   async getQuotes(): Promise<Quote[]> {
+    if (!checkSupabaseConnection()) {
+      return getLocalStorageFallback('quotes', []);
+    }
+    
     try {
       const { data: quotesData, error: quotesError } = await supabase
         .from('quotes')
         .select('*')
         .order('created_at', { ascending: false });
       
-      if (quotesError) handleSupabaseError(quotesError);
+      if (quotesError) {
+        console.warn('Error loading quotes from Supabase:', quotesError);
+        return getLocalStorageFallback('quotes', []);
+      }
       
       const { data: itemsData, error: itemsError } = await supabase
         .from('quote_items')
         .select('*');
       
-      if (itemsError) handleSupabaseError(itemsError);
+      if (itemsError) {
+        console.warn('Error loading quote items from Supabase:', itemsError);
+        // Continue without items data
+      }
       
-      return quotesData?.map(quote => ({
+      const result = quotesData?.map(quote => ({
         id: quote.id,
         quoteNumber: quote.quote_number,
         customerId: quote.customer_id || undefined,
@@ -563,9 +615,13 @@ export const quoteService = {
         salespersonUsername: quote.salesperson_username,
         salespersonFullName: quote.salesperson_full_name,
       })) || [];
+      
+      // Save to localStorage as backup
+      saveToLocalStorage('quotes', result);
+      return result;
     } catch (error) {
-      handleSupabaseError(error);
-      return [];
+      console.warn('Error in getQuotes:', error);
+      return getLocalStorageFallback('quotes', []);
     }
   },
 
