@@ -88,9 +88,3 @@ const Sidebar: React.FC<SidebarProps> = ({ currentRole, isOpen, setIsOpen }) => 
 };
 
 export default Sidebar;
-      </div>
-    </aside>
-  );
-};
-
-export default Sidebar;
