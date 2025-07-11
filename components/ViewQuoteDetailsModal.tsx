@@ -95,6 +95,8 @@ const ViewQuoteDetailsModal: React.FC<ViewQuoteDetailsModalProps> = ({ isOpen, o
                 doc.addImage(logoForPdf, imageFormat, margin, yPos, maxLogoDisplayWidth, maxLogoDisplayHeight);
                 companyDetailsX = margin + maxLogoDisplayWidth + 5; 
                 potentialLogoHeight = maxLogoDisplayHeight; 
+            } else {
+                console.warn(`Formato de logo (OS PDF) não suportado: ${imageFormat}. Apenas PNG, JPEG/JPG são bem suportados. Logo não adicionado.`);
             }
         } catch (e) { console.error("Erro ao adicionar logo (OS PDF):", e); }
     }
@@ -105,21 +107,26 @@ const ViewQuoteDetailsModal: React.FC<ViewQuoteDetailsModalProps> = ({ isOpen, o
         doc.text(quoteDataForOs.companyInfoSnapshot.name, companyDetailsX, textYPos); textYPos += (lineHeight + 2);
         
         doc.setFontSize(9); doc.setFont('helvetica', 'normal');
-        const addressLines = doc.splitTextToSize(quoteDataForOs.companyInfoSnapshot.address || '', pageWidth - companyDetailsX - margin);
-        doc.text(addressLines, companyDetailsX, textYPos);
-        textYPos += (addressLines.length * lineHeight);
+        if (quoteDataForOs.companyInfoSnapshot.address) {
+            const addressLines = doc.splitTextToSize(quoteDataForOs.companyInfoSnapshot.address, pageWidth - companyDetailsX - margin);
+            doc.text(addressLines, companyDetailsX, textYPos);
+            textYPos += (addressLines.length * lineHeight);
+        }
         
         let contactLine = '';
         if (quoteDataForOs.companyInfoSnapshot.phone) contactLine += `Tel: ${quoteDataForOs.companyInfoSnapshot.phone}`;
         if (quoteDataForOs.companyInfoSnapshot.email) contactLine += `${quoteDataForOs.companyInfoSnapshot.phone ? ' | ' : ''}Email: ${quoteDataForOs.companyInfoSnapshot.email}`;
         if (contactLine) { doc.text(contactLine, companyDetailsX, textYPos); textYPos += lineHeight; }
         
+        if (quoteDataForOs.companyInfoSnapshot.cnpj) { 
+            doc.text(`CNPJ: ${quoteDataForOs.companyInfoSnapshot.cnpj}`, companyDetailsX, textYPos); 
+            textYPos += lineHeight;
+        }
+        
         let webLine = '';
         if (quoteDataForOs.companyInfoSnapshot.instagram) webLine += `Instagram: ${quoteDataForOs.companyInfoSnapshot.instagram}`;
         if (quoteDataForOs.companyInfoSnapshot.website) webLine += `${quoteDataForOs.companyInfoSnapshot.instagram ? ' | ' : ''}Site: ${quoteDataForOs.companyInfoSnapshot.website}`;
-         if (webLine) { doc.text(webLine, companyDetailsX, textYPos); textYPos += lineHeight; }
-
-        if (quoteDataForOs.companyInfoSnapshot.cnpj) { doc.text(`CNPJ: ${quoteDataForOs.companyInfoSnapshot.cnpj}`, companyDetailsX, textYPos); textYPos += lineHeight;}
+        if (webLine) { doc.text(webLine, companyDetailsX, textYPos); textYPos += lineHeight; }
     }
     
     const headerBlockBottomY = Math.max(textYPos, yPos + potentialLogoHeight);
