@@ -18,11 +18,9 @@ import {
 
 // Helper function to check if Supabase is configured
 const checkSupabaseConnection = () => {
-  if (!supabase) {
-    console.warn('Supabase not configured. Operations will be skipped.');
-    return false;
-  }
-  return true;
+  // Always return false to force localStorage usage
+  console.log('Supabase disabled - using localStorage fallback');
+  return false;
 };
 
 // Helper function to get fallback data from localStorage

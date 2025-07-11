@@ -4,15 +4,14 @@ import { Database } from './database.types';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-const isSupabaseConfigured = supabaseUrl && 
-  supabaseAnonKey && 
-  !supabaseUrl.includes('your-project-url-here') && 
-  !supabaseAnonKey.includes('your-anon-key-here');
+// Temporarily disable Supabase to prevent fetch errors
+const isSupabaseConfigured = false;
 
 console.log('Supabase Config Check:', {
   url: supabaseUrl ? `${supabaseUrl.substring(0, 20)}...` : 'undefined',
   key: supabaseAnonKey ? `${supabaseAnonKey.substring(0, 20)}...` : 'undefined',
-  isConfigured: isSupabaseConfigured
+  isConfigured: isSupabaseConfigured,
+  note: 'Supabase temporarily disabled to prevent fetch errors'
 });
 
 export const supabase = isSupabaseConfigured 
