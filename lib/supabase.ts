@@ -23,14 +23,14 @@ export const handleSupabaseError = (error: any) => {
   
   // Handle network connectivity issues
   if (error instanceof TypeError && error.message === 'Failed to fetch') {
-    console.warn('Network error: Unable to connect to Supabase. Falling back to localStorage.');
-    return; // Allow fallback to localStorage instead of throwing
+    console.warn('Network error: Unable to connect to Supabase.');
+    throw new Error('Não foi possível conectar ao servidor. Verifique sua conexão com a internet.');
   }
   
   // Also handle cases where message might contain 'Failed to fetch'
   if (error?.message?.includes('Failed to fetch')) {
-    console.warn('Network error: Unable to connect to Supabase. Falling back to localStorage.');
-    return; // Allow fallback to localStorage instead of throwing
+    console.warn('Network error: Unable to connect to Supabase.');
+    throw new Error('Não foi possível conectar ao servidor. Verifique sua conexão com a internet.');
   }
   
   // Handle PGRST116 (no rows found) as a non-critical error
