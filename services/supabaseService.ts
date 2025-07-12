@@ -837,12 +837,20 @@ export const supplierService = {
 
   async getSupplierDebts(): Promise<Debt[]> {
     try {
+      if (!isSupabaseConfigured() || !supabase) {
+        console.warn('🔌 Supabase not available for supplier debts');
+        return [];
+      }
+
       const { data, error } = await supabase
         .from('supplier_debts')
         .select('*')
         .order('date_added', { ascending: false });
 
-      if (error) handleSupabaseError(error);
+      if (error) {
+        console.warn('🔌 Supplier debts error - switching to offline mode:', error.message);
+        return [];
+      }
       
       return (data || []).map(debt => ({
         id: debt.id,
@@ -852,7 +860,6 @@ export const supplierService = {
         dateAdded: debt.date_added,
       }));
     } catch (error) {
-      handleSupabaseError(error);
       return [];
     }
   },
@@ -900,12 +907,20 @@ export const supplierService = {
 
   async getSupplierCredits(): Promise<SupplierCredit[]> {
     try {
+      if (!isSupabaseConfigured() || !supabase) {
+        console.warn('🔌 Supabase not available for supplier credits');
+        return [];
+      }
+
       const { data, error } = await supabase
         .from('supplier_credits')
         .select('*')
         .order('date', { ascending: false });
 
-      if (error) handleSupabaseError(error);
+      if (error) {
+        console.warn('🔌 Supplier credits error - switching to offline mode:', error.message);
+        return [];
+      }
       
       return (data || []).map(credit => ({
         id: credit.id,
@@ -915,7 +930,6 @@ export const supplierService = {
         description: credit.description || '',
       }));
     } catch (error) {
-      handleSupabaseError(error);
       return [];
     }
   },

@@ -423,11 +423,51 @@ export const useSuppliers = () => {
       setError(null);
     } catch (err) {
       console.error('❌ useSuppliers: Error loading suppliers data:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar fornecedores';
-      setError(errorMessage);
-      setSuppliers([]);
-      setDebts([]);
-      setCredits([]);
+      
+      // Handle all errors gracefully in development
+      console.warn('🔌 Switching to offline mode for suppliers');
+      setError('Modo offline: Verifique a conexão com Supabase');
+      
+      // Try to load from localStorage as fallback
+      const localSuppliers = localStorage.getItem('suppliers_backup');
+      const localDebts = localStorage.getItem('supplier_debts_backup');
+      const localCredits = localStorage.getItem('supplier_credits_backup');
+      
+      if (localSuppliers) {
+        try {
+          const parsedSuppliers = JSON.parse(localSuppliers);
+          setSuppliers(parsedSuppliers);
+          console.log('📦 Loaded suppliers from localStorage backup');
+        } catch {
+          setSuppliers([]);
+        }
+      } else {
+        setSuppliers([]);
+      }
+      
+      if (localDebts) {
+        try {
+          const parsedDebts = JSON.parse(localDebts);
+          setDebts(parsedDebts);
+          console.log('📦 Loaded supplier debts from localStorage backup');
+        } catch {
+          setDebts([]);
+        }
+      } else {
+        setDebts([]);
+      }
+      
+      if (localCredits) {
+        try {
+          const parsedCredits = JSON.parse(localCredits);
+          setCredits(parsedCredits);
+          console.log('📦 Loaded supplier credits from localStorage backup');
+        } catch {
+          setCredits([]);
+        }
+      } else {
+        setCredits([]);
+      }
     } finally {
       setLoading(false);
     }
