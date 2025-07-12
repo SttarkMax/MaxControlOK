@@ -31,12 +31,10 @@ export const supabase = createClient<Database>(
   supabaseUrl || 'https://placeholder.supabase.co', 
   supabaseAnonKey || 'placeholder-key', 
   {
-    auth: {
-      persistSession: false
-    },
     global: {
       headers: {
-        'apikey': supabaseAnonKey || 'placeholder-key'
+        'apikey': supabaseAnonKey || 'placeholder-key',
+        'Authorization': `Bearer ${supabaseAnonKey || 'placeholder-key'}`
       }
     }
   }
