@@ -72,6 +72,12 @@ const App: React.FC = () => {
         role: UserAccessLevel.ADMIN
       });
       console.log('✅ Fresh admin user created successfully');
+    } catch (error) {
+      console.error('❌ Error creating default admin user:', error);
+    }
+  };
+
+  useEffect(() => {
     const checkSession = async () => {
       // Check localStorage for existing session first
       const savedUser = localStorage.getItem('currentUser');
