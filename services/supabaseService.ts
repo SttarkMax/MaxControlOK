@@ -85,88 +85,6 @@ export const companyService = {
       handleSupabaseError(error);
       throw error;
     }
-
-    if (!supabase) {
-      throw new Error('Cliente Supabase não inicializado');
-    }
-
-    try {
-    const { data, error } = await supabase
-      .from('companies')
-      .select('*')
-      .limit(1)
-      .maybeSingle();
-
-    if (error && (error.code === 'PGRST116' || error.code === '42P01')) {
-      // No rows found - return default company info
-      return {
-        name: 'Sua Empresa',
-        logoUrlDarkBg: '',
-        logoUrlLightBg: '',
-        address: '',
-        phone: '',
-        email: '',
-        cnpj: '',
-        instagram: '',
-        website: '',
-      };
-    }
-
-    if (error) {
-      handleSupabaseError(error);
-      return {
-        name: 'Sua Empresa',
-        logoUrlDarkBg: '',
-        logoUrlLightBg: '',
-        address: '',
-        phone: '',
-        email: '',
-        cnpj: '',
-        instagram: '',
-        website: '',
-      };
-    }
-
-    if (!data) {
-      return {
-        name: 'Sua Empresa',
-        logoUrlDarkBg: '',
-        logoUrlLightBg: '',
-        address: '',
-        phone: '',
-        email: '',
-        cnpj: '',
-        instagram: '',
-        website: '',
-      };
-    }
-
-    return {
-      name: data.name,
-      logoUrlDarkBg: data.logo_url_dark_bg || '',
-      logoUrlLightBg: data.logo_url_light_bg || '',
-      address: data.address || '',
-      phone: data.phone || '',
-      email: data.email || '',
-      cnpj: data.cnpj || '',
-      instagram: data.instagram || '',
-      website: data.website || '',
-    };
-    } catch (error) {
-      console.warn('🔌 Company service - switching to offline mode');
-      handleSupabaseError(error);
-      return {
-        name: 'Sua Empresa',
-        logoUrlDarkBg: '',
-        logoUrlLightBg: '',
-        address: '',
-        phone: '',
-        email: '',
-        cnpj: '',
-        instagram: '',
-        website: '',
-      };
-    }
   },
 
   async saveCompany(company: CompanyInfo): Promise<void> {
@@ -334,23 +252,6 @@ export const productService = {
       console.error('❌ Products service error:', error);
       handleSupabaseError(error);
       throw error;
-    }
-  },
-      return (data || []).map(item => ({
-        id: item.id,
-        name: item.name,
-        description: item.description || '',
-        pricingModel: item.pricing_model as any,
-        basePrice: Number(item.base_price),
-        unit: item.unit || 'un',
-        customCashPrice: item.custom_cash_price ? Number(item.custom_cash_price) : undefined,
-        customCardPrice: item.custom_card_price ? Number(item.custom_card_price) : undefined,
-        supplierCost: item.supplier_cost ? Number(item.supplier_cost) : undefined,
-        categoryId: item.category_id || undefined,
-      }));
-    } catch (error) {
-      console.warn('🔌 Products service - switching to offline mode');
-      return [];
     }
   },
 
@@ -945,8 +846,7 @@ export const supplierService = {
       return (data || []).map(debt => ({
         id: debt.id,
         supplierId: debt.supplier_id,
-        descr
-}iption: debt.description || '',
+        description: debt.description || '',
         totalAmount: Number(debt.total_amount),
         dateAdded: debt.date_added,
       }));
