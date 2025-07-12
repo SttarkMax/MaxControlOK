@@ -498,6 +498,12 @@ export const quoteService = {
     try {
       // Check if Supabase is configured first
       if (!isSupabaseConfigured()) {
+        console.warn('🔌 Supabase not configured - using offline mode');
+        return [];
+      }
+
+      if (!supabase) {
+        console.warn('🔌 Supabase client not available - using offline mode');
         return [];
       }
 
@@ -507,12 +513,7 @@ export const quoteService = {
         .order('created_at', { ascending: false });
 
       if (quotesError) {
-        // Handle missing table gracefully
-        if (quotesError.code === '42P01') {
-          console.warn('🔌 Quotes table does not exist - switching to offline mode');
-          return [];
-        }
-        handleSupabaseError(quotesError);
+        console.warn('🔌 Quotes error - switching to offline mode:', quotesError.message);
         return [];
       }
 

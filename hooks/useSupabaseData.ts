@@ -326,26 +326,21 @@ export const useQuotes = () => {
     } catch (err) {
       console.error('❌ useQuotes: Error loading quotes:', err);
       
-      // Handle CORS errors gracefully
-      if (err instanceof Error && err.message.includes('CORS')) {
-        console.warn('🔌 CORS error detected - using offline mode for quotes');
-        setError('Modo offline: Configure CORS no Supabase para sincronização');
-        // Try to load from localStorage as fallback
-        const localQuotes = localStorage.getItem('quotes_backup');
-        if (localQuotes) {
-          try {
-            const parsedQuotes = JSON.parse(localQuotes);
-            setQuotes(parsedQuotes);
-            console.log('📦 Loaded quotes from localStorage backup');
-          } catch {
-            setQuotes([]);
-          }
-        } else {
+      // Handle all errors gracefully in development
+      console.warn('🔌 Switching to offline mode for quotes');
+      setError('Modo offline: Verifique a conexão com Supabase');
+      
+      // Try to load from localStorage as fallback
+      const localQuotes = localStorage.getItem('quotes_backup');
+      if (localQuotes) {
+        try {
+          const parsedQuotes = JSON.parse(localQuotes);
+          setQuotes(parsedQuotes);
+          console.log('📦 Loaded quotes from localStorage backup');
+        } catch {
           setQuotes([]);
         }
       } else {
-        const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar orçamentos';
-        setError(errorMessage);
         setQuotes([]);
       }
     } finally {
