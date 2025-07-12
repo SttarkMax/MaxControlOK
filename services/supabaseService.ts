@@ -942,7 +942,9 @@ export const supplierService = {
     }
   },
 
-  async createSupplierCredit(credit: Omit<SupplierCredit, 'id'>): Promise<SupplierCredit> {
+  async createSupplierCredit(credit:
+  )
+} Omit<SupplierCredit, 'id'>): Promise<SupplierCredit> {
     try {
       const { data, error } = await supabase
         .from('supplier_credits')
