@@ -93,11 +93,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             {isLoading ? 'Entrando...' : 'Entrar'}
           </Button>
         </form>
-        <div className="mt-4 text-center text-xs text-gray-400">
-          <p>Credenciais padrão:</p>
-          <p>Email: admin@maxcontrol.com</p>
-          <p>Senha: admin123</p>
-        </div>
       </div>
     </div>
   );
