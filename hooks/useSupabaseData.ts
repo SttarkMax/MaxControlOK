@@ -730,7 +730,6 @@ export const useUsers = () => {
           setUsers([]);
         }
       } else {
-        setUsers([]);
       }
     } finally {
       setLoading(false);
