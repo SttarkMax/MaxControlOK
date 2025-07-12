@@ -63,13 +63,25 @@ const App: React.FC = () => {
       
       if (existingUser) {
         console.log('🔄 Admin user exists, updating password...');
-        await userService.updateUser({
-          ...existingUser,
-          fullName: 'Administrador',
-          role: UserAccessLevel.ADMIN,
-          password: 'admin123'
-        });
-        console.log('✅ Admin user password updated successfully');
+        // Check if existingUser has a valid ID before updating
+        if (existingUser.id && existingUser.id !== 'undefined') {
+          await userService.updateUser({
+            ...existingUser,
+            fullName: 'Administrador',
+            role: UserAccessLevel.ADMIN,
+            password: 'admin123'
+          });
+          console.log('✅ Admin user password updated successfully');
+        } else {
+          console.log('⚠️ Existing user has invalid ID, creating new user instead...');
+          await userService.createUser({
+            username: 'admin@maxcontrol.com',
+            fullName: 'Administrador',
+            password: 'admin123',
+            role: UserAccessLevel.ADMIN
+          });
+          console.log('✅ New admin user created successfully');
+        }
       } else {
         console.log('➕ Creating new admin user...');
         // Show a more user-friendly notification instead of alert
