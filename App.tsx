@@ -54,28 +54,24 @@ const App: React.FC = () => {
 
   const createDefaultAdminUser = async () => {
     try {
-      // Check if user exists by username (without authentication)
-      const existingUser = await userService.getUserByUsername('admin@maxcontrol.com');
+      console.log('🔧 Force recreating admin user with correct password...');
       
-      if (!existingUser) {
-        console.log('🔧 Creating default admin user...');
-        await userService.createUser({
-          username: 'admin@maxcontrol.com',
-          fullName: 'Administrador',
-          password: 'admin123',
-          role: UserAccessLevel.ADMIN
-        });
-        console.log('✅ Default admin user created successfully');
-      } else {
-        console.log('✅ Default admin user already exists');
+      // Delete existing admin user if it exists
+      try {
+        await userService.deleteUserByUsername('admin@maxcontrol.com');
+        console.log('🗑️ Existing admin user deleted');
+      } catch (error) {
+        console.log('ℹ️ No existing admin user to delete');
       }
-    } catch (error) {
-      console.error('❌ Error creating default admin user:', error);
-    }
-  };
-
-  // Check for existing Supabase session on app load
-  useEffect(() => {
+      
+      // Create fresh admin user
+      await userService.createUser({
+        username: 'admin@maxcontrol.com',
+        fullName: 'Administrador',
+        password: 'admin123',
+        role: UserAccessLevel.ADMIN
+      });
+      console.log('✅ Fresh admin user created successfully');
     const checkSession = async () => {
       // Check localStorage for existing session first
       const savedUser = localStorage.getItem('currentUser');
