@@ -1184,16 +1184,36 @@ export const userService = {
 
   async authenticateUser(username: string, password: string): Promise<User | null> {
     try {
+      console.log('🔄 Authenticating user:', username);
+      
       const { data, error } = await supabase
         .from('app_users')
         .select('*')
         .eq('username', username)
         .single();
 
-      if (error || !data) return null;
+      if (error) {
+        console.error('❌ Database error during authentication:', error);
+        return null;
+      }
+      
+      if (!data) {
+        console.log('❌ User not found:', username);
+        return null;
+      }
+      
+      console.log('✅ User found in database:', data.username);
+      console.log('🔍 Password hash exists:', !!data.password_hash);
 
       const isValid = await bcrypt.compare(password, data.password_hash);
-      if (!isValid) return null;
+      console.log('🔐 Password validation result:', isValid);
+      
+      if (!isValid) {
+        console.log('❌ Password validation failed for user:', username);
+        return null;
+      }
+      
+      console.log('✅ Authentication successful for user:', username);
 
       return {
         id: data.id,
@@ -1203,6 +1223,7 @@ export const userService = {
         role: data.role as UserAccessLevel,
       };
     } catch (error) {
+      console.error('❌ Authentication error:', error);
       return null;
     }
   },
