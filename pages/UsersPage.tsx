@@ -9,7 +9,6 @@ import XMarkIcon from '../components/icons/XMarkIcon';
 import UserGroupIcon from '../components/icons/UserGroupIcon';
 import { userService } from '../services/supabaseService';
 import { UserAccessLevel } from '../types';
-import bcrypt from 'bcryptjs';
 
 interface User {
   id: string;
@@ -96,16 +95,15 @@ const UsersPage: React.FC = () => {
         };
 
         if (formData.password) {
-          updateData.password_hash = await bcrypt.hash(formData.password, 10);
+          updateData.password = formData.password;
         }
 
         await userService.updateUser(editingUser.id, updateData);
       } else {
-        const hashedPassword = await bcrypt.hash(formData.password, 10);
         await userService.createUser({
           username: formData.username,
           full_name: formData.full_name,
-          password_hash: hashedPassword,
+          password: formData.password,
           role: formData.role
         });
       }
