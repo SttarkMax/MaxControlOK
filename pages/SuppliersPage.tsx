@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { Supplier, Debt, SupplierCredit } from '../types';
-import { formatCurrency, formatDateForInput } from '../utils';
+import { formatCurrency, formatDateForInput, formatPhoneNumber } from '../utils';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
 import Textarea from '../components/common/Textarea';
