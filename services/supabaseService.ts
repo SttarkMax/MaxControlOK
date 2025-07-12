@@ -19,46 +19,57 @@ import {
 // Company Services
 export const companyService = {
   async getCompany(): Promise<CompanyInfo | null> {
-    try {
-      const { data, error } = await supabase
-        .from('companies')
-        .select('*')
-        .limit(1)
-        .single();
+    const { data, error } = await supabase
+      .from('companies')
+      .select('*')
+      .limit(1)
+      .single();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-        handleSupabaseError(error);
-      }
-
-      if (!data) {
-        return {
-          name: 'Sua Empresa',
-          logoUrlDarkBg: '',
-          logoUrlLightBg: '',
-          address: '',
-          phone: '',
-          email: '',
-          cnpj: '',
-          instagram: '',
-          website: '',
-        };
-      }
-
+    if (error && error.code === 'PGRST116') {
+      // No rows found - return default company info
       return {
-        name: data.name,
-        logoUrlDarkBg: data.logo_url_dark_bg || '',
-        logoUrlLightBg: data.logo_url_light_bg || '',
-        address: data.address || '',
-        phone: data.phone || '',
-        email: data.email || '',
-        cnpj: data.cnpj || '',
-        instagram: data.instagram || '',
-        website: data.website || '',
+        name: 'Sua Empresa',
+        logoUrlDarkBg: '',
+        logoUrlLightBg: '',
+        address: '',
+        phone: '',
+        email: '',
+        cnpj: '',
+        instagram: '',
+        website: '',
       };
-    } catch (error) {
+    }
+
+    if (error) {
       handleSupabaseError(error);
       return null;
     }
+
+    if (!data) {
+      return {
+        name: 'Sua Empresa',
+        logoUrlDarkBg: '',
+        logoUrlLightBg: '',
+        address: '',
+        phone: '',
+        email: '',
+        cnpj: '',
+        instagram: '',
+        website: '',
+      };
+    }
+
+    return {
+      name: data.name,
+      logoUrlDarkBg: data.logo_url_dark_bg || '',
+      logoUrlLightBg: data.logo_url_light_bg || '',
+      address: data.address || '',
+      phone: data.phone || '',
+      email: data.email || '',
+      cnpj: data.cnpj || '',
+      instagram: data.instagram || '',
+      website: data.website || '',
+    };
   },
 
   async saveCompany(company: CompanyInfo): Promise<void> {
