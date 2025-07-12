@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { supabase, handleSupabaseError } from '../lib/supabase';
+import { supabase, handleSupabaseError, isSupabaseConfigured } from '../lib/supabase';
 import { 
   CompanyInfo, 
   Category, 
@@ -9,13 +9,6 @@ import {
   Quote, 
   QuoteItem,
   Supplier,
-  Debt,
-  SupplierCredit,
-  AccountsPayableEntry,
-  User,
-  UserAccessLevel
-} from '../types';
-
 // Company Services
 export const companyService = {
   async getCompany(): Promise<CompanyInfo | null> {
