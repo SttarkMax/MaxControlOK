@@ -11,40 +11,46 @@ if (!supabaseUrl || !supabaseAnonKey) {
   });
 }
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: false
-  },
-  global: {
-    headers: {
-      'apikey': supabaseAnonKey
+// Create Supabase client with fallback for missing credentials
+export const supabase = createClient<Database>(
+  supabaseUrl || 'https://placeholder.supabase.co', 
+  supabaseAnonKey || 'placeholder-key', 
+  {
+    auth: {
+      persistSession: false
+    },
+    global: {
+      headers: {
+        'apikey': supabaseAnonKey || 'placeholder-key'
+      }
     }
   }
-});
+);
+
+// Check if Supabase is properly configured
+export const isSupabaseConfigured = () => {
+  return !!(supabaseUrl && supabaseAnonKey && 
+    supabaseUrl !== 'https://placeholder.supabase.co' && 
+    supabaseAnonKey !== 'placeholder-key');
+};
 
 // Helper function to handle Supabase errors
 export const handleSupabaseError = (error: any) => {
-  // Handle network errors gracefully with better logging
-  if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-    console.warn('🔌 Supabase Connection Issue:', {
-      message: 'Cannot connect to Supabase database',
-      possibleCauses: [
-        'Internet connection issue',
-        'Supabase project not accessible',
-        'CORS configuration issue',
-        'Invalid Supabase URL or API key'
-      ],
-      troubleshooting: [
-        'Check internet connection',
-        'Verify Supabase project is active',
-        'Check CORS settings include http://localhost:5173',
-        'Verify VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY'
-      ]
-    });
+  // Check if Supabase is configured first
+  if (!isSupabaseConfigured()) {
+    console.warn('⚠️ Supabase not configured - using offline mode');
+    throw new Error('Aplicação funcionando em modo offline. Configure o Supabase para funcionalidade completa.');
+  }
+
+  // Handle network errors gracefully
+  if (error instanceof TypeError && (
+    error.message.includes('Failed to fetch') || 
+    error.message.includes('fetch')
+  )) {
+    console.warn('🔌 Supabase Connection Issue - switching to offline mode');
     throw new Error('Conexão com o banco de dados falhou. Verifique sua conexão com a internet.');
   }
   
   console.error('Supabase error:', error);
-  
   throw new Error(error.message || 'Operação no banco de dados falhou');
 };

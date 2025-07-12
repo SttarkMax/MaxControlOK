@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { isSupabaseConfigured } from '../lib/supabase';
 import { 
   companyService,
   categoryService,
@@ -31,6 +32,24 @@ export const useCompany = () => {
   const loadCompany = async () => {
     try {
       setLoading(true);
+      
+      // Check if Supabase is configured
+      if (!isSupabaseConfigured()) {
+        setCompany({
+          name: 'Sua Empresa',
+          logoUrlDarkBg: '',
+          logoUrlLightBg: '',
+          address: '',
+          phone: '',
+          email: '',
+          cnpj: '',
+          instagram: '',
+          website: '',
+        });
+        setError('Aplicação funcionando em modo offline');
+        return;
+      }
+      
       const data = await companyService.getCompany();
       setCompany(data);
       setError(null);
@@ -86,6 +105,14 @@ export const useCategories = () => {
   const loadCategories = async () => {
     try {
       setLoading(true);
+      
+      // Check if Supabase is configured
+      if (!isSupabaseConfigured()) {
+        setCategories([]);
+        setError('Aplicação funcionando em modo offline');
+        return;
+      }
+      
       const data = await categoryService.getCategories();
       setCategories(data);
       setError(null);
@@ -160,6 +187,14 @@ export const useProducts = () => {
   const loadProducts = async () => {
     try {
       setLoading(true);
+      
+      // Check if Supabase is configured
+      if (!isSupabaseConfigured()) {
+        setProducts([]);
+        setError('Aplicação funcionando em modo offline');
+        return;
+      }
+      
       const data = await productService.getProducts();
       setProducts(data);
       setError(null);
@@ -234,6 +269,14 @@ export const useCustomers = () => {
   const loadCustomers = async () => {
     try {
       setLoading(true);
+      
+      // Check if Supabase is configured
+      if (!isSupabaseConfigured()) {
+        setCustomers([]);
+        setError('Aplicação funcionando em modo offline');
+        return;
+      }
+      
       const data = await customerService.getCustomers();
       setCustomers(data);
       setError(null);
@@ -308,6 +351,14 @@ export const useQuotes = () => {
   const loadQuotes = async () => {
     try {
       setLoading(true);
+      
+      // Check if Supabase is configured
+      if (!isSupabaseConfigured()) {
+        setQuotes([]);
+        setError('Aplicação funcionando em modo offline');
+        return;
+      }
+      
       const data = await quoteService.getQuotes();
       setQuotes(data);
       setError(null);
@@ -384,6 +435,16 @@ export const useSuppliers = () => {
   const loadData = async () => {
     try {
       setLoading(true);
+      
+      // Check if Supabase is configured
+      if (!isSupabaseConfigured()) {
+        setSuppliers([]);
+        setDebts([]);
+        setCredits([]);
+        setError('Aplicação funcionando em modo offline');
+        return;
+      }
+      
       const [suppliersData, debtsData, creditsData] = await Promise.all([
         supplierService.getSuppliers(),
         supplierService.getSupplierDebts(),
@@ -520,6 +581,14 @@ export const useAccountsPayable = () => {
   const loadEntries = async () => {
     try {
       setLoading(true);
+      
+      // Check if Supabase is configured
+      if (!isSupabaseConfigured()) {
+        setEntries([]);
+        setError('Aplicação funcionando em modo offline');
+        return;
+      }
+      
       const data = await accountsPayableService.getAccountsPayable();
       setEntries(data);
       setError(null);
@@ -606,6 +675,14 @@ export const useUsers = () => {
   const loadUsers = async () => {
     try {
       setLoading(true);
+      
+      // Check if Supabase is configured
+      if (!isSupabaseConfigured()) {
+        setUsers([]);
+        setError('Aplicação funcionando em modo offline');
+        return;
+      }
+      
       const data = await userService.getUsers();
       setUsers(data);
       setError(null);
