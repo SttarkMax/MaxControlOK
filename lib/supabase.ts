@@ -40,6 +40,7 @@ export const handleSupabaseError = (error: any) => {
   if (!isSupabaseConfigured()) {
     console.warn('⚠️ Supabase not configured - using offline mode');
     return; // Don't throw, just return to enable offline mode
+  }
   // Check for network-related errors and missing tables
   if (error?.message?.includes('Failed to fetch') || 
       error?.name === 'TypeError' ||
@@ -47,16 +48,15 @@ export const handleSupabaseError = (error: any) => {
       error?.code === 'ENOTFOUND' ||
       error?.code === 'ECONNREFUSED' ||
       error?.code === '42P01' || // PostgreSQL: relation does not exist
-      error?.message?.includes('does not exist')) {
-    error.message.includes('fetch') ||
-    error.message.includes('NetworkError') ||
-    error.message.includes('ERR_NETWORK') ||
-    error.code === 'NETWORK_ERROR' ||
-    error.code === 'ENOTFOUND' ||
-    error.code === 'ECONNREFUSED'
+      error?.message?.includes('does not exist') ||
+      error.message.includes('fetch') ||
+      error.message.includes('NetworkError') ||
+      error.message.includes('ERR_NETWORK') ||
+      error.code === 'NETWORK_ERROR' ||
+      error.code === 'ENOTFOUND' ||
+      error.code === 'ECONNREFUSED') {
     console.warn('5. Ensure database tables are created (run migrations)');
     console.warn('6. Check if Supabase project has the required schema');
-  ))) {
     console.warn('🔌 Supabase Connection Issue - switching to offline mode');
     return; // Don't throw, just return to enable offline mode
   }
