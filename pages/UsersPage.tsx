@@ -274,15 +274,15 @@ const UsersPage: React.FC = () => {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div className="fixed inset-0 bg-black bg-opacity-75 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border border-[#282828] w-96 shadow-lg rounded-md bg-[#1d1d1d]">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium text-gray-900">
+              <h3 className="text-lg font-medium text-white">
                 {editingUser ? 'Editar Usuário' : 'Adicionar Usuário'}
               </h3>
               <button
                 onClick={handleCloseModal}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 hover:text-white"
               >
                 <XMarkIcon className="w-6 h-6" />
               </button>
@@ -339,18 +339,18 @@ const UsersPage: React.FC = () => {
               </div>
 
               {errors.submit && (
-                <div className="text-red-600 text-sm">{errors.submit}</div>
+                <div className="text-red-400 text-sm">{errors.submit}</div>
               )}
 
               <div className="flex justify-end gap-3 pt-4">
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="secondary"
                   onClick={handleCloseModal}
                 >
                   Cancelar
                 </Button>
-                <Button type="submit">
+                <Button type="submit" variant="primary">
                   {editingUser ? 'Atualizar' : 'Criar'} Usuário
                 </Button>
               </div>
