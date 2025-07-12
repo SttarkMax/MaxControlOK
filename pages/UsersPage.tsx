@@ -28,7 +28,12 @@ const UsersPage: React.FC<UsersPageProps> = ({ loggedInUser }) => {
   
   // Debug: Log users data
   React.useEffect(() => {
-    console.log('🔍 Users data:', { users, loading, count: users.length });
+    console.log('🔍 UsersPage - Users data:', { 
+      users, 
+      loading, 
+      count: users.length,
+      usersList: users.map(u => ({ id: u.id, username: u.username, role: u.role }))
+    });
   }, [users, loading]);
   
   const [isModalOpen, setIsModalOpen] = useState(false);

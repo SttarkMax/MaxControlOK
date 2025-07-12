@@ -702,7 +702,6 @@ export const useUsers = () => {
           console.log('📦 No users in localStorage, setting empty array');
           setUsers([]);
         }
-        setUsers([]);
         setError('Aplicação funcionando em modo offline');
         return;
       }
@@ -729,7 +728,6 @@ export const useUsers = () => {
           console.log('📦 No localStorage fallback available');
           setUsers([]);
         }
-      } else {
       }
     } finally {
       setLoading(false);

@@ -1097,21 +1097,34 @@ export const accountsPayableService = {
 export const userService = {
   async getUsers(): Promise<User[]> {
     try {
+      console.log('🔄 userService.getUsers() called');
+      
+      if (!supabase) {
+        console.warn('⚠️ Supabase client not available');
+        throw new Error('Cliente Supabase não inicializado');
+      }
+      
       const { data, error } = await supabase
         .from('app_users')
         .select('*')
         .order('username');
 
+      console.log('📊 Supabase response:', { data, error, count: data?.length });
+
       if (error) handleSupabaseError(error);
       
-      return (data || []).map(user => ({
+      const mappedUsers = (data || []).map(user => ({
         id: user.id,
         username: user.username,
         fullName: user.full_name || '',
         password: '', // Never return password
         role: user.role as UserAccessLevel,
       }));
+      
+      console.log('✅ Mapped users:', mappedUsers);
+      return mappedUsers;
     } catch (error) {
+      console.error('❌ userService.getUsers() error:', error);
       handleSupabaseError(error);
       return [];
     }
