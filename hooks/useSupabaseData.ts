@@ -36,7 +36,23 @@ export const useCompany = () => {
       setError(null);
     } catch (err) {
       console.error('Error loading company:', err);
-      setError(err instanceof Error ? err.message : 'Erro ao carregar empresa');
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar empresa';
+      setError(errorMessage);
+      
+      // Set default company data on network error
+      if (errorMessage.includes('Conexão com o banco de dados falhou')) {
+        setCompany({
+          name: 'Sua Empresa',
+          logoUrlDarkBg: '',
+          logoUrlLightBg: '',
+          address: '',
+          phone: '',
+          email: '',
+          cnpj: '',
+          instagram: '',
+          website: '',
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -74,7 +90,13 @@ export const useCategories = () => {
       setCategories(data);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao carregar categorias');
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar categorias';
+      setError(errorMessage);
+      
+      // Set empty array on network error
+      if (errorMessage.includes('Conexão com o banco de dados falhou')) {
+        setCategories([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -142,7 +164,13 @@ export const useProducts = () => {
       setProducts(data);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao carregar produtos');
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar produtos';
+      setError(errorMessage);
+      
+      // Set empty array on network error
+      if (errorMessage.includes('Conexão com o banco de dados falhou')) {
+        setProducts([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -210,7 +238,13 @@ export const useCustomers = () => {
       setCustomers(data);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao carregar clientes');
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar clientes';
+      setError(errorMessage);
+      
+      // Set empty array on network error
+      if (errorMessage.includes('Conexão com o banco de dados falhou')) {
+        setCustomers([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -278,7 +312,13 @@ export const useQuotes = () => {
       setQuotes(data);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao carregar orçamentos');
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar orçamentos';
+      setError(errorMessage);
+      
+      // Set empty array on network error to prevent app crash
+      if (errorMessage.includes('Conexão com o banco de dados falhou')) {
+        setQuotes([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -354,7 +394,15 @@ export const useSuppliers = () => {
       setCredits(creditsData);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao carregar fornecedores');
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar fornecedores';
+      setError(errorMessage);
+      
+      // Set empty arrays on network error
+      if (errorMessage.includes('Conexão com o banco de dados falhou')) {
+        setSuppliers([]);
+        setDebts([]);
+        setCredits([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -476,7 +524,13 @@ export const useAccountsPayable = () => {
       setEntries(data);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao carregar contas a pagar');
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar contas a pagar';
+      setError(errorMessage);
+      
+      // Set empty array on network error
+      if (errorMessage.includes('Conexão com o banco de dados falhou')) {
+        setEntries([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -556,7 +610,13 @@ export const useUsers = () => {
       setUsers(data);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao carregar usuários');
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar usuários';
+      setError(errorMessage);
+      
+      // Set empty array on network error
+      if (errorMessage.includes('Conexão com o banco de dados falhou')) {
+        setUsers([]);
+      }
     } finally {
       setLoading(false);
     }
