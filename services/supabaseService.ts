@@ -1099,6 +1099,11 @@ export const userService = {
     try {
       console.log('🔄 userService.getUsers() called');
       
+      if (!isSupabaseConfigured()) {
+        console.warn('⚠️ Supabase not configured');
+        throw new Error('Supabase não configurado');
+      }
+      
       if (!supabase) {
         console.warn('⚠️ Supabase client not available');
         throw new Error('Cliente Supabase não inicializado');
@@ -1133,6 +1138,17 @@ export const userService = {
   async createUser(user: Omit<User, 'id'> & { password: string }): Promise<User> {
     try {
       console.log('🔄 Creating user:', user.username);
+      
+      if (!isSupabaseConfigured()) {
+        console.warn('⚠️ Supabase not configured');
+        throw new Error('Supabase não configurado');
+      }
+      
+      if (!supabase) {
+        console.warn('⚠️ Supabase client not available');
+        throw new Error('Cliente Supabase não inicializado');
+      }
+      
       const hashedPassword = await bcrypt.hash(user.password, 10);
       console.log('🔐 Password hashed successfully');
       
@@ -1171,6 +1187,17 @@ export const userService = {
   async updateUser(user: User & { password?: string }): Promise<void> {
     try {
       console.log('🔄 Updating user:', user.username);
+      
+      if (!isSupabaseConfigured()) {
+        console.warn('⚠️ Supabase not configured');
+        throw new Error('Supabase não configurado');
+      }
+      
+      if (!supabase) {
+        console.warn('⚠️ Supabase client not available');
+        throw new Error('Cliente Supabase não inicializado');
+      }
+      
       const updateData: any = {
         username: user.username,
         full_name: user.fullName,
@@ -1202,6 +1229,14 @@ export const userService = {
 
   async deleteUser(id: string): Promise<void> {
     try {
+      if (!isSupabaseConfigured()) {
+        throw new Error('Supabase não configurado');
+      }
+      
+      if (!supabase) {
+        throw new Error('Cliente Supabase não inicializado');
+      }
+      
       const { error } = await supabase
         .from('app_users')
         .delete()
@@ -1216,6 +1251,16 @@ export const userService = {
   async authenticateUser(username: string, password: string): Promise<User | null> {
     try {
       console.log('🔄 Authenticating user:', username);
+      
+      if (!isSupabaseConfigured()) {
+        console.warn('⚠️ Supabase not configured');
+        return null;
+      }
+      
+      if (!supabase) {
+        console.warn('⚠️ Supabase client not available');
+        return null;
+      }
       
       const { data, error } = await supabase
         .from('app_users')
@@ -1267,6 +1312,14 @@ export const userService = {
 
   async getUserByUsername(username: string): Promise<User | null> {
     try {
+      if (!isSupabaseConfigured()) {
+        return null;
+      }
+      
+      if (!supabase) {
+        return null;
+      }
+      
       const { data, error } = await supabase
         .from('app_users')
         .select('*')
@@ -1294,6 +1347,14 @@ export const userService = {
 
   async deleteUserByUsername(username: string): Promise<void> {
     try {
+      if (!isSupabaseConfigured()) {
+        throw new Error('Supabase não configurado');
+      }
+      
+      if (!supabase) {
+        throw new Error('Cliente Supabase não inicializado');
+      }
+      
       const { error } = await supabase
         .from('app_users')
         .delete()

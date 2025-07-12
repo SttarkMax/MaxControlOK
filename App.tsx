@@ -58,36 +58,43 @@ const App: React.FC = () => {
     try {
       console.log('🔧 Ensuring admin user exists with correct password...');
       
+      // Skip if Supabase is not configured
+      if (!isSupabaseConfigured()) {
+        console.log('⚠️ Supabase not configured - skipping admin user creation');
+        return;
+      }
+      
       // Check if admin user already exists
       const existingUser = await userService.getUserByUsername('admin@maxcontrol.com');
       
       if (existingUser) {
-        console.log('🔄 Admin user exists, checking password hash...');
-        // Re-create user with proper password hash if needed
+        console.log('🔄 Admin user exists, updating with proper password hash...');
+        // Update existing user instead of deleting and recreating
         try {
-          await userService.deleteUserByUsername('admin@maxcontrol.com');
-          console.log('🗑️ Removed existing admin user to recreate with proper hash');
+          await userService.updateUser({
+            id: existingUser.id,
+            username: 'admin@maxcontrol.com',
+            fullName: 'Administrador',
+            password: 'admin123',
+            role: UserAccessLevel.ADMIN
+          });
+          console.log('✅ Admin user updated with proper password hash');
         } catch (error) {
-          console.log('⚠️ Could not remove existing user, continuing...');
+          console.log('⚠️ Could not update existing user:', error);
         }
-        
-        // Create new admin user with proper password hash
-        await userService.createUser({
-          username: 'admin@maxcontrol.com',
-          fullName: 'Administrador',
-          password: 'admin123',
-          role: UserAccessLevel.ADMIN
-        });
-        console.log('✅ Admin user recreated with proper password hash');
       } else {
         console.log('➕ Creating new admin user...');
-        await userService.createUser({
-          username: 'admin@maxcontrol.com',
-          fullName: 'Administrador',
-          password: 'admin123',
-          role: UserAccessLevel.ADMIN
-        });
-        console.log('✅ New admin user created successfully');
+        try {
+          await userService.createUser({
+            username: 'admin@maxcontrol.com',
+            fullName: 'Administrador',
+            password: 'admin123',
+            role: UserAccessLevel.ADMIN
+          });
+          console.log('✅ New admin user created successfully');
+        } catch (error) {
+          console.log('⚠️ Could not create admin user:', error);
+        }
       }
     } catch (error) {
       console.error('❌ Error managing default admin user:', error);
