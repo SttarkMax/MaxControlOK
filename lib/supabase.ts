@@ -4,6 +4,21 @@ import { Database } from './database.types';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
+// Check if Supabase is properly configured
+export const isSupabaseConfigured = () => {
+  const hasValidUrl = supabaseUrl && 
+    supabaseUrl !== 'https://placeholder.supabase.co' && 
+    supabaseUrl !== 'https://your-project-ref.supabase.co' &&
+    supabaseUrl.includes('.supabase.co');
+  
+  const hasValidKey = supabaseAnonKey && 
+    supabaseAnonKey !== 'placeholder-key' && 
+    supabaseAnonKey !== 'your-anon-key-here' &&
+    supabaseAnonKey.length > 50;
+    
+  return !!(hasValidUrl && hasValidKey);
+};
+
 // Log configuration status
 console.log('🔧 Supabase Configuration Status:', {
   url: supabaseUrl ? '✅ Configured' : '❌ Missing VITE_SUPABASE_URL',
@@ -26,21 +41,6 @@ export const supabase = createClient<Database>(
     }
   }
 );
-
-// Check if Supabase is properly configured
-export const isSupabaseConfigured = () => {
-  const hasValidUrl = supabaseUrl && 
-    supabaseUrl !== 'https://placeholder.supabase.co' && 
-    supabaseUrl !== 'https://your-project-ref.supabase.co' &&
-    supabaseUrl.includes('.supabase.co');
-  
-  const hasValidKey = supabaseAnonKey && 
-    supabaseAnonKey !== 'placeholder-key' && 
-    supabaseAnonKey !== 'your-anon-key-here' &&
-    supabaseAnonKey.length > 50;
-    
-  return !!(hasValidUrl && hasValidKey);
-};
 
 // Helper function to handle Supabase errors
 export const handleSupabaseError = (error: any) => {
