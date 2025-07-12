@@ -1204,10 +1204,20 @@ export const userService = {
       
       console.log('✅ User found in database:', data.username);
       console.log('🔍 Password hash exists:', !!data.password_hash);
+     console.log('🔍 Password hash length:', data.password_hash?.length);
+     console.log('🔍 Password hash starts with:', data.password_hash?.substring(0, 10));
+     console.log('🔍 Input password:', password);
+     console.log('🔍 Input password length:', password.length);
 
       const isValid = await bcrypt.compare(password, data.password_hash);
       console.log('🔐 Password validation result:', isValid);
       
+     // Test with a fresh hash to see if bcrypt is working
+     console.log('🧪 Testing bcrypt functionality...');
+     const testHash = await bcrypt.hash(password, 10);
+     console.log('🧪 Fresh test hash:', testHash);
+     const testValidation = await bcrypt.compare(password, testHash);
+     console.log('🧪 Fresh hash validation:', testValidation);
       if (!isValid) {
         console.log('❌ Password validation failed for user:', username);
         return null;
