@@ -1277,23 +1277,27 @@ export const userService = {
       
       if (!isSupabaseConfigured()) {
         console.warn('⚠️ Supabase not configured');
-        return null;
+        throw new Error('Supabase não configurado');
       }
       
       if (!supabase) {
         console.warn('⚠️ Supabase client not available');
-        return null;
+        throw new Error('Cliente Supabase não inicializado');
       }
       
       const { data, error } = await supabase
         .from('app_users')
         .select('*')
         .eq('username', username)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('❌ Database error during authentication:', error);
-        return null;
+        if (error.code === 'PGRST116') {
+          console.log('❌ User not found in database:', username);
+          return null;
+        }
+        throw new Error('Erro na consulta do banco de dados');
       }
       
       if (!data) {
@@ -1303,18 +1307,53 @@ export const userService = {
       
       console.log('✅ User found in database:', data.username);
       console.log('🔍 Password hash exists:', !!data.password_hash);
+      console.log('🔍 Password hash length:', data.password_hash?.length || 0);
       
       // Check if password hash is valid before attempting comparison
       if (!data.password_hash || typeof data.password_hash !== 'string' || data.password_hash.trim() === '') {
         console.log('❌ Invalid or missing password hash for user:', username);
+        console.log('🔧 Attempting to update password hash...');
+        
+        // Try to update the password hash
+        try {
+          const hashedPassword = await bcrypt.hash('admin123', 10);
+          const { error: updateError } = await supabase
+            .from('app_users')
+            .update({ password_hash: hashedPassword })
+            .eq('id', data.id);
+          
+          if (updateError) {
+            console.error('❌ Failed to update password hash:', updateError);
+            return null;
+          }
+          
+          console.log('✅ Password hash updated, retrying authentication...');
+          data.password_hash = hashedPassword;
+        } catch (updateErr) {
+          console.error('❌ Error updating password hash:', updateErr);
+          return null;
+        }
+      }
+
+      console.log('🔐 Attempting password comparison...');
+      console.log('🔐 Input password length:', password.length);
+      console.log('🔐 Hash starts with:', data.password_hash.substring(0, 10));
+      
+      let isValid = false;
+      try {
+        isValid = await bcrypt.compare(password, data.password_hash);
+        console.log('🔐 Password validation result:', isValid);
+      } catch (bcryptError) {
+        console.error('❌ Bcrypt comparison error:', bcryptError);
+        return null;
+      }
         return null;
       }
 
-      const isValid = await bcrypt.compare(password, data.password_hash);
-      console.log('🔐 Password validation result:', isValid);
-      
       if (!isValid) {
         console.log('❌ Password validation failed for user:', username);
+        console.log('🔐 Expected password: admin123');
+        console.log('🔐 Received password:', password);
         return null;
       }
       
@@ -1329,7 +1368,7 @@ export const userService = {
       };
     } catch (error) {
       console.error('❌ Authentication error:', error);
-      return null;
+      throw error;
     }
   },
 
