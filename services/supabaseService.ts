@@ -942,9 +942,7 @@ export const supplierService = {
     }
   },
 
-  async createSupplierCredit(credit:
-  )
-} Omit<SupplierCredit, 'id'>): Promise<SupplierCredit> {
+  async createSupplierCredit(credit: Omit<SupplierCredit, 'id'>): Promise<SupplierCredit> {
     try {
       const { data, error } = await supabase
         .from('supplier_credits')
@@ -1347,8 +1345,6 @@ export const userService = {
         console.log('🔐 Password validation result:', isValid);
       } catch (bcryptError) {
         console.error('❌ Bcrypt comparison error:', bcryptError);
-        return null;
-      }
         return null;
       }
 
