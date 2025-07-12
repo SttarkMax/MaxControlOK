@@ -23,7 +23,7 @@ export const companyService = {
       .from('companies')
       .select('*')
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (error && error.code === 'PGRST116') {
       // No rows found - return default company info
