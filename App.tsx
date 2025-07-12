@@ -42,10 +42,12 @@ const App: React.FC = () => {
           // Create default admin user if it doesn't exist
           createDefaultAdminUser();
         } else {
-          console.error('❌ App: Supabase connection failed - check configuration');
+          console.error('❌ App: Supabase connection failed - check CORS settings');
+          alert('Erro de conexão: Verifique se http://localhost:5173 está nas configurações CORS do Supabase');
         }
       }).catch(err => {
-        console.error('❌ App: Initial Supabase connection test failed:', err);
+        console.error('❌ App: Initial Supabase connection test failed - CORS issue:', err);
+        alert('Erro de CORS: Adicione http://localhost:5173 às configurações CORS do Supabase');
       });
     } else {
       console.error('❌ App: Supabase not configured - check environment variables');
