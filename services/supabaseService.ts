@@ -1207,6 +1207,28 @@ export const userService = {
     }
   },
 
+  async getUserByUsername(username: string): Promise<User | null> {
+    try {
+      const { data, error } = await supabase
+        .from('app_users')
+        .select('*')
+        .eq('username', username)
+        .single();
+
+      if (error || !data) return null;
+
+      return {
+        id: data.id,
+        username: data.username,
+        fullName: data.full_name || '',
+        password: '', // Never return password
+        role: data.role as UserAccessLevel,
+      };
+    } catch (error) {
+      return null;
+    }
+  },
+
   async getUserByEmail(email: string) {
     // This method is not used in the current implementation
     return null;

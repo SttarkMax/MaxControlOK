@@ -54,8 +54,8 @@ const App: React.FC = () => {
 
   const createDefaultAdminUser = async () => {
     try {
-      // Try to authenticate with default credentials to check if user exists
-      const existingUser = await userService.authenticateUser('admin@maxcontrol.com', 'admin123');
+      // Check if user exists by username (without authentication)
+      const existingUser = await userService.getUserByUsername('admin@maxcontrol.com');
       
       if (!existingUser) {
         console.log('🔧 Creating default admin user...');
