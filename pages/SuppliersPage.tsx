@@ -174,7 +174,14 @@ const SuppliersPage: React.FC = () => {
 // Supplier Form Modal
 const SupplierFormModal: React.FC<{ supplier: Supplier | null; onSave: (supplier: Supplier) => void; onClose: () => void; }> = ({ supplier, onSave, onClose }) => {
     const [formState, setFormState] = useState(supplier || initialSupplierState);
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setFormState({ ...formState, [e.target.name]: e.target.value });
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
+        if (name === 'phone') {
+            setFormState({ ...formState, [name]: formatPhoneNumber(value) });
+        } else {
+            setFormState({ ...formState, [name]: value });
+        }
+    };
     const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); onSave(formState); };
     
     return (

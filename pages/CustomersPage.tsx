@@ -61,7 +61,11 @@ const CustomersPage: React.FC<CustomersPageProps> = ({ openGlobalViewDetailsModa
 
   const handleCustomerInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setCurrentCustomer(prev => ({ ...prev, [name]: value }));
+    if (name === 'phone') {
+      setCurrentCustomer(prev => ({ ...prev, [name]: formatPhoneNumber(value) }));
+    } else {
+      setCurrentCustomer(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleNewDownPaymentInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {

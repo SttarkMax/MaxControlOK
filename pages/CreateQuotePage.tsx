@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Quote, QuoteItem, Product, Customer, PricingModel, CompanyInfo, LoggedInUser } from '../types';
 import { CARD_SURCHARGE_PERCENTAGE } from '../constants';
 import { formatCurrency, formatDateForInput } from '../utils';
+import { formatPhoneNumber } from '../utils';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
 import Select from '../components/common/Select';
@@ -636,7 +637,7 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
               <Input
                 label="Contato do Cliente"
                 value={currentQuote.clientContact || ''}
-                onChange={(e) => setCurrentQuote(prev => ({ ...prev, clientContact: e.target.value }))}
+                onChange={(e) => setCurrentQuote(prev => ({ ...prev, clientContact: formatPhoneNumber(e.target.value) }))}
               />
             </div>
           </div>

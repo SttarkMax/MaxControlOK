@@ -52,3 +52,26 @@ export const formatDateForInput = (date: Date): string => {
   const day = date.getDate().toString().padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
+
+// Helper to format phone number to (XX) XXXXX-XXXX
+export const formatPhoneNumber = (value: string): string => {
+  // Remove all non-numeric characters
+  const numbers = value.replace(/\D/g, '');
+  
+  // Limit to 11 digits (DDD + 9 digits)
+  const limitedNumbers = numbers.slice(0, 11);
+  
+  // Apply formatting based on length
+  if (limitedNumbers.length <= 2) {
+    return limitedNumbers;
+  } else if (limitedNumbers.length <= 7) {
+    return `(${limitedNumbers.slice(0, 2)}) ${limitedNumbers.slice(2)}`;
+  } else {
+    return `(${limitedNumbers.slice(0, 2)}) ${limitedNumbers.slice(2, 7)}-${limitedNumbers.slice(7)}`;
+  }
+};
+
+// Helper to remove phone formatting and return only numbers
+export const unformatPhoneNumber = (value: string): string => {
+  return value.replace(/\D/g, '');
+};

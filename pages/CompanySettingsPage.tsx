@@ -44,7 +44,12 @@ const CompanySettingsPage: React.FC = () => {
   }, [company, loading, companyInfo]);
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (!companyInfo) return;
-    setCompanyInfo({ ...companyInfo, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    if (name === 'phone') {
+      setCompanyInfo({ ...companyInfo, [name]: formatPhoneNumber(value) });
+    } else {
+      setCompanyInfo({ ...companyInfo, [name]: value });
+    }
     setIsSaved(false);
   };
 
