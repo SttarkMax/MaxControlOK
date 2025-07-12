@@ -19,13 +19,29 @@ import {
 // Company Services
 export const companyService = {
   async getCompany(): Promise<CompanyInfo | null> {
+    // Check if Supabase is configured first
+    if (!isSupabaseConfigured()) {
+      return {
+        name: 'Sua Empresa',
+        logoUrlDarkBg: '',
+        logoUrlLightBg: '',
+        address: '',
+        phone: '',
+        email: '',
+        cnpj: '',
+        instagram: '',
+        website: '',
+      };
+    }
+
+    try {
     const { data, error } = await supabase
       .from('companies')
       .select('*')
       .limit(1)
       .maybeSingle();
 
-    if (error && error.code === 'PGRST116') {
+    if (error && (error.code === 'PGRST116' || error.code === '42P01')) {
       // No rows found - return default company info
       return {
         name: 'Sua Empresa',
@@ -42,7 +58,17 @@ export const companyService = {
 
     if (error) {
       handleSupabaseError(error);
-      return null;
+      return {
+        name: 'Sua Empresa',
+        logoUrlDarkBg: '',
+        logoUrlLightBg: '',
+        address: '',
+        phone: '',
+        email: '',
+        cnpj: '',
+        instagram: '',
+        website: '',
+      };
     }
 
     if (!data) {
@@ -70,6 +96,21 @@ export const companyService = {
       instagram: data.instagram || '',
       website: data.website || '',
     };
+    } catch (error) {
+      console.warn('🔌 Company service - switching to offline mode');
+      handleSupabaseError(error);
+      return {
+        name: 'Sua Empresa',
+        logoUrlDarkBg: '',
+        logoUrlLightBg: '',
+        address: '',
+        phone: '',
+        email: '',
+        cnpj: '',
+        instagram: '',
+        website: '',
+      };
+    }
   },
 
   async saveCompany(company: CompanyInfo): Promise<void> {
