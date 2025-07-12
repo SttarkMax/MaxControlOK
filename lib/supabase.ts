@@ -137,10 +137,6 @@ export const handleSupabaseError = (error: any) => {
   // Check for CORS errors specifically
   if (error?.message?.includes('Failed to fetch') || 
       error?.name === 'TypeError' && error?.message?.includes('fetch')) {
-  if (error?.message?.includes('Failed to fetch') || 
-      error?.name === 'TypeError' || 
-      error?.message?.includes('CORS') ||
-      error?.code === 'NETWORK_ERROR') {
     throw new Error('Erro de CORS: Adicione http://localhost:5173 às configurações CORS do Supabase');
   }
   
