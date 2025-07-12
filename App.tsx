@@ -84,7 +84,7 @@ const App: React.FC = () => {
   };
 
   useEffect(() => {
-    const checkSession = async () => {
+    const checkSession = () => {
       // Check localStorage for existing session first
       const savedUser = localStorage.getItem('currentUser');
       if (savedUser) {
@@ -99,9 +99,7 @@ const App: React.FC = () => {
       }
     };
     
-    (async () => {
-      await checkSession();
-    })();
+    checkSession();
   }, []);
 
   useEffect(() => {
