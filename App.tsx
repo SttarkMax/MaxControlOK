@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { supabase, testSupabaseConnection, isSupabaseConfigured } from './lib/supabase';
 import Header from './components/Header';
@@ -27,6 +27,7 @@ const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [currentUser, setCurrentUser] = useState<LoggedInUser | null>(null);
   const { company: companyDetails } = useCompany();
+  const adminUserCreated = useRef(false);
   
   const [selectedQuoteForGlobalView, setSelectedQuoteForGlobalView] = useState<Quote | null>(null);
   const [isViewDetailsModalOpenForGlobal, setIsViewDetailsModalOpenForGlobal] = useState(false);
@@ -34,13 +35,18 @@ const App: React.FC = () => {
 
   // Test Supabase connection on app load
   useEffect(() => {
+    if (adminUserCreated.current) return;
+    
     console.log('🚀 App: Starting Supabase connection test...');
     if (isSupabaseConfigured()) {
       testSupabaseConnection().then(success => {
         if (success) {
           console.log('✅ App: Supabase connection successful - all systems ready');
           // Create default admin user if it doesn't exist
-          createDefaultAdminUser();
+          if (!adminUserCreated.current) {
+            adminUserCreated.current = true;
+            createDefaultAdminUser();
+          }
         } else {
           console.error('❌ App: Supabase connection failed - check CORS settings');
           alert('Erro de conexão: Verifique se http://localhost:5173 está nas configurações CORS do Supabase');
