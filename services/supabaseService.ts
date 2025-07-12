@@ -1180,6 +1180,7 @@ export const userService = {
           if (fetchError) {
             console.error('❌ Error fetching existing user:', fetchError);
             handleSupabaseError(error); // Re-throw original error
+            return; // This line will never be reached, but added for clarity
           }
           
           if (existingUser) {
@@ -1194,7 +1195,10 @@ export const userService = {
           }
         }
         
-        handleSupabaseError(error);
+        // Only throw error if it's not a handled duplicate key case
+        if (error.code !== '23505') {
+          handleSupabaseError(error);
+        }
       }
       
       console.log('✅ User created successfully:', data.username);
