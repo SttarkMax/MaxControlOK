@@ -46,6 +46,10 @@ const UsersPage: React.FC = () => {
     try {
       setLoading(true);
       const data = await userService.getUsers();
+      console.log('🔍 Debug users data:', data);
+      if (data.length > 0) {
+        console.log('🔍 First user created_at:', data[0].created_at, typeof data[0].created_at);
+      }
       setUsers(data);
     } catch (error) {
       console.error('Error loading users:', error);
