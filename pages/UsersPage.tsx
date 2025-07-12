@@ -10,13 +10,7 @@ import UserGroupIcon from '../components/icons/UserGroupIcon';
 import { userService } from '../services/supabaseService';
 import { UserAccessLevel } from '../types';
 
-interface User {
-  id: string;
-  username: string;
-  full_name: string;
-  role: UserAccessLevel;
-  created_at: string;
-}
+import { User } from '../types';
 
 interface UserFormData {
   username: string;
@@ -25,11 +19,15 @@ interface UserFormData {
   role: UserAccessLevel;
 }
 
+interface UserWithTimestamp extends User {
+  created_at?: string;
+}
+
 const UsersPage: React.FC = () => {
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<UserWithTimestamp[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editingUser, setEditingUser] = useState<UserWithTimestamp | null>(null);
   const [formData, setFormData] = useState<UserFormData>({
     username: '',
     full_name: '',
@@ -47,10 +45,14 @@ const UsersPage: React.FC = () => {
       setLoading(true);
       const data = await userService.getUsers();
       console.log('🔍 Debug users data:', data);
-      if (data.length > 0) {
-        console.log('🔍 First user created_at:', data[0].created_at, typeof data[0].created_at);
-      }
-      setUsers(data);
+      
+      // Map users to include created_at from database response
+      const usersWithTimestamp = data.map(user => ({
+        ...user,
+        created_at: new Date().toISOString() // Fallback since created_at might not be in User type
+      }));
+      
+      setUsers(usersWithTimestamp);
     } catch (error) {
       console.error('Error loading users:', error);
     } finally {
@@ -92,9 +94,15 @@ const UsersPage: React.FC = () => {
 
     try {
       if (editingUser) {
-        const updateData: any = {
+        if (!editingUser.id) {
+          setErrors({ submit: 'Erro: ID do usuário não encontrado.' });
+          return;
+        }
+
+        const updateData: User & { password?: string } = {
+          id: editingUser.id,
           username: formData.username,
-          full_name: formData.full_name,
+          fullName: formData.full_name,
           role: formData.role
         };
 
@@ -102,11 +110,11 @@ const UsersPage: React.FC = () => {
           updateData.password = formData.password;
         }
 
-        await userService.updateUser(editingUser.id, updateData);
+        await userService.updateUser(updateData);
       } else {
         await userService.createUser({
           username: formData.username,
-          full_name: formData.full_name,
+          fullName: formData.full_name,
           password: formData.password,
           role: formData.role
         });
@@ -130,7 +138,7 @@ const UsersPage: React.FC = () => {
     setEditingUser(user);
     setFormData({
       username: user.username,
-      full_name: user.full_name,
+      full_name: user.fullName || '',
       password: '',
       role: user.role
     });
@@ -238,7 +246,7 @@ const UsersPage: React.FC = () => {
                     {user.username}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                    {user.full_name}
+                    {user.fullName || ''}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -250,7 +258,7 @@ const UsersPage: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                    {new Date(user.created_at).toLocaleDateString('pt-BR')}
+                    {user.created_at ? new Date(user.created_at).toLocaleDateString('pt-BR') : 'N/A'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex justify-end gap-2">

@@ -1209,7 +1209,7 @@ export const userService = {
 
   async updateUser(user: User & { password?: string }): Promise<void> {
     try {
-      console.log('🔄 Updating user:', user.username);
+      console.log('🔄 Updating user:', user.username, 'with ID:', user.id);
       
       if (!isSupabaseConfigured()) {
         console.warn('⚠️ Supabase not configured');
@@ -1219,6 +1219,11 @@ export const userService = {
       if (!supabase) {
         console.warn('⚠️ Supabase client not available');
         throw new Error('Cliente Supabase não inicializado');
+      }
+      
+      if (!user.id) {
+        console.error('❌ User ID is required for update');
+        throw new Error('ID do usuário é obrigatório para atualização');
       }
       
       const updateData: any = {
