@@ -184,7 +184,7 @@ const UsersPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Gerenciamento de Usuários</h1>
+        <h1 className="text-2xl font-bold text-white">Gerenciamento de Usuários</h1>
         <Button onClick={() => setShowModal(true)} className="flex items-center gap-2">
           <PlusIcon className="w-4 h-4" />
           Adicionar Usuário
