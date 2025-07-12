@@ -93,7 +93,28 @@ const App: React.FC = () => {
           });
           console.log('✅ New admin user created successfully');
         } catch (error) {
-          console.log('⚠️ Could not create admin user:', error);
+          // Check if this is a duplicate key error (race condition)
+          if (error instanceof Error && error.message.includes('duplicate key value violates unique constraint')) {
+            console.log('🔄 Race condition detected - admin user was created concurrently, updating existing user...');
+            try {
+              // Fetch the existing user and update it
+              const existingUser = await userService.getUserByUsername('admin@maxcontrol.com');
+              if (existingUser) {
+                await userService.updateUser({
+                  id: existingUser.id,
+                  username: 'admin@maxcontrol.com',
+                  fullName: 'Administrador',
+                  password: 'admin123',
+                  role: UserAccessLevel.ADMIN
+                });
+                console.log('✅ Admin user updated after race condition');
+              }
+            } catch (updateError) {
+              console.log('⚠️ Could not update admin user after race condition:', updateError);
+            }
+          } else {
+            console.log('⚠️ Could not create admin user:', error);
+          }
         }
       }
     } catch (error) {
