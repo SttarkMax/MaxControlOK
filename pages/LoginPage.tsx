@@ -23,10 +23,14 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     setError('');
 
     try {
+      console.log('🔄 Login attempt for:', email);
+      console.log('🔄 Password provided:', password ? 'Yes' : 'No');
+      
       // Authenticate with Supabase
       const user = await userService.authenticateUser(email, password);
       
       if (user) {
+        console.log('✅ Login successful for user:', user.username);
         // Store user session
         localStorage.setItem('currentUser', JSON.stringify({
           id: user.id,
@@ -36,11 +40,18 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         }));
         onLogin(user.username);
       } else {
+        console.log('❌ Login failed - user is null');
         throw new Error('Email ou senha incorretos');
       }
     } catch (error: any) {
       console.error('Login error:', error);
-      setError(error.message || 'Erro ao fazer login');
+      if (error.message === 'Supabase não configurado' || error.message === 'Cliente Supabase não inicializado') {
+        setError('Erro de configuração do sistema. Verifique a conexão com o banco de dados.');
+      } else if (error.message === 'Erro na consulta do banco de dados') {
+        setError('Erro ao consultar banco de dados. Tente novamente.');
+      } else {
+        setError('Email ou senha incorretos');
+      }
     } finally {
       setIsLoading(false);
     }
