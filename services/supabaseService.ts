@@ -1263,5 +1263,18 @@ export const userService = {
   async getUserByEmail(email: string) {
     // This method is not used in the current implementation
     return null;
-  }
+  },
+
+  async deleteUserByUsername(username: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('app_users')
+        .delete()
+        .eq('username', username);
+
+      if (error) handleSupabaseError(error);
+    } catch (error) {
+      handleSupabaseError(error);
+    }
+  },
 };
