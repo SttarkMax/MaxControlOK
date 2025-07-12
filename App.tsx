@@ -21,7 +21,7 @@ import ViewQuoteDetailsModal from './components/ViewQuoteDetailsModal';
 import { UserAccessLevel, CompanyInfo, Quote, User, LoggedInUser } from './types'; 
 import { DEFAULT_USER_ACCESS_LEVEL, USERS_STORAGE_KEY } from './constants';
 import { useCompany } from './hooks/useSupabaseData';
-import { userService } from './services/supabaseService';
+import { userService, UserAlreadyExistsError } from './services/supabaseService';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -94,7 +94,7 @@ const App: React.FC = () => {
           console.log('✅ New admin user created successfully');
         } catch (error) {
           // Check if this is a duplicate key error (race condition)
-          if (error instanceof Error && error.message.includes('duplicate key value violates unique constraint')) {
+          if (error instanceof UserAlreadyExistsError) {
             console.log('🔄 Race condition detected - admin user was created concurrently, updating existing user...');
             try {
               // Fetch the existing user and update it
@@ -111,6 +111,24 @@ const App: React.FC = () => {
               }
             } catch (updateError) {
               console.log('⚠️ Could not update admin user after race condition:', updateError);
+            }
+          } else if (error instanceof Error && error.message.includes('duplicate key value violates unique constraint')) {
+            // Fallback for other duplicate key scenarios
+            console.log('🔄 Duplicate key detected - admin user exists, updating existing user...');
+            try {
+              const existingUser = await userService.getUserByUsername('admin@maxcontrol.com');
+              if (existingUser) {
+                await userService.updateUser({
+                  id: existingUser.id,
+                  username: 'admin@maxcontrol.com',
+                  fullName: 'Administrador',
+                  password: 'admin123',
+                  role: UserAccessLevel.ADMIN
+                });
+                console.log('✅ Admin user updated after duplicate key detection');
+              }
+            } catch (updateError) {
+              console.log('⚠️ Could not update admin user after duplicate key detection:', updateError);
             }
           } else {
             console.log('⚠️ Could not create admin user:', error);

@@ -16,6 +16,14 @@ import {
   UserAccessLevel
 } from '../types';
 
+// Custom error for user already exists scenario
+export class UserAlreadyExistsError extends Error {
+  constructor(username: string) {
+    super(`User with username '${username}' already exists`);
+    this.name = 'UserAlreadyExistsError';
+  }
+}
+
 // Test connection on service load
 if (isSupabaseConfigured()) {
   testSupabaseConnection().then(success => {
@@ -1165,6 +1173,11 @@ export const userService = {
 
       if (error) {
         console.error('❌ Database error creating user:', error);
+        
+        // Check for duplicate key constraint violation on username
+        if (error.code === '23505' && error.message.includes('app_users_username_key')) {
+          throw new UserAlreadyExistsError(user.username);
+        }
         
         handleSupabaseError(error);
       }
