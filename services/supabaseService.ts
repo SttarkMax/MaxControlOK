@@ -874,6 +874,10 @@ export const supplierService = {
 
   async createSupplierDebt(debt: Omit<Debt, 'id'>): Promise<Debt> {
     try {
+      if (!supabase) {
+        throw new Error('Cliente Supabase não inicializado');
+      }
+      
       const { data, error } = await supabase
         .from('supplier_debts')
         .insert([{
@@ -886,6 +890,10 @@ export const supplierService = {
         .single();
 
       if (error) handleSupabaseError(error);
+      
+      if (!data) {
+        throw new Error('Nenhum dado retornado após inserção');
+      }
       
       return {
         id: data.id,
