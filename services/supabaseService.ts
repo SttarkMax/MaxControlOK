@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { supabase, handleSupabaseError, isSupabaseConfigured } from '../lib/supabase';
+import { supabase, handleSupabaseError, isSupabaseConfigured, testSupabaseConnection } from '../lib/supabase';
 import { 
   CompanyInfo, 
   Category, 
@@ -16,11 +16,21 @@ import {
   UserAccessLevel
 } from '../types';
 
+// Test connection on service load
+if (isSupabaseConfigured()) {
+  testSupabaseConnection().then(success => {
+    if (!success) {
+      console.warn('⚠️ Supabase connection test failed - some features may not work');
+    }
+  });
+}
+
 // Company Services
 export const companyService = {
   async getCompany(): Promise<CompanyInfo | null> {
     // Check if Supabase is configured first
     if (!isSupabaseConfigured()) {
+      console.warn('⚠️ Supabase not configured - returning default company');
       return {
         name: 'Sua Empresa',
         logoUrlDarkBg: '',
@@ -32,6 +42,10 @@ export const companyService = {
         instagram: '',
         website: '',
       };
+    }
+
+    if (!supabase) {
+      throw new Error('Cliente Supabase não inicializado');
     }
 
     try {

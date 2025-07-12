@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { supabase } from './lib/supabase';
+import { supabase, testSupabaseConnection, isSupabaseConfigured } from './lib/supabase';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import LoginPage from './pages/LoginPage';
@@ -30,6 +30,17 @@ const App: React.FC = () => {
   const [selectedQuoteForGlobalView, setSelectedQuoteForGlobalView] = useState<Quote | null>(null);
   const [isViewDetailsModalOpenForGlobal, setIsViewDetailsModalOpenForGlobal] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Test Supabase connection on app load
+  useEffect(() => {
+    if (isSupabaseConfigured()) {
+      testSupabaseConnection().catch(err => {
+        console.warn('⚠️ Initial Supabase connection test failed:', err);
+      });
+    } else {
+      console.warn('⚠️ Supabase not configured - running in offline mode');
+    }
+  }, []);
 
   // Check for existing Supabase session on app load
   useEffect(() => {
