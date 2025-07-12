@@ -61,64 +61,38 @@ const App: React.FC = () => {
   }, []);
 
   const createDefaultAdminUser = async () => {
+    if (adminUserCreated.current) {
+      return;
+    }
+    
+    adminUserCreated.current = true;
+    
     try {
-      console.log('🔧 Ensuring admin user exists with correct password...');
+      console.log('🔄 Checking for existing admin user...');
       
-      // Skip if Supabase is not configured
-      if (!isSupabaseConfigured()) {
-        console.log('⚠️ Supabase not configured - skipping admin user creation');
-        return;
-      }
-      
-      // Check if admin user already exists
+      // Check if user already exists first
       const existingUser = await userService.getUserByUsername('admin@maxcontrol.com');
       
       if (existingUser) {
-        console.log('🔄 Admin user exists, ensuring password hash is set...');
-        // Always update existing user to ensure password hash is properly set
+        console.log('✅ Admin user already exists, updating password...');
         await userService.updateUser({
-          id: existingUser.id,
-          username: 'admin@maxcontrol.com',
-          fullName: 'Administrador',
-          password: 'admin123',
-          role: UserAccessLevel.ADMIN
+          ...existingUser,
+          password: 'admin123'
         });
-        console.log('✅ Admin user updated with proper password hash');
-        return; // Exit early after successful update
-      } else {
-        console.log('➕ Creating new admin user...');
-        await userService.createUser({
-          username: 'admin@maxcontrol.com',
-          fullName: 'Administrador',
-          password: 'admin123',
-          role: UserAccessLevel.ADMIN
-        });
-        console.log('✅ New admin user created successfully');
-        return; // Exit early after successful creation
+        console.log('✅ Admin user password updated successfully');
+        return;
       }
+      
+      console.log('📝 Creating new admin user...');
+      await userService.createUser({
+        username: 'admin@maxcontrol.com',
+        fullName: 'Administrador',
+        password: 'admin123',
+        role: 'admin'
+      });
+      console.log('✅ Default admin user created successfully');
     } catch (error) {
-      // Handle race condition where user was created between check and creation
-      if (error instanceof UserAlreadyExistsError || 
-          (error instanceof Error && error.message.includes('duplicate key value violates unique constraint'))) {
-        console.log('🔄 Race condition detected - admin user was created concurrently, updating existing user...');
-        try {
-          const existingUser = await userService.getUserByUsername('admin@maxcontrol.com');
-          if (existingUser) {
-            await userService.updateUser({
-              id: existingUser.id,
-              username: 'admin@maxcontrol.com',
-              fullName: 'Administrador',
-              password: 'admin123',
-              role: UserAccessLevel.ADMIN
-            });
-            console.log('✅ Admin user updated after race condition');
-          }
-        } catch (updateError) {
-          console.log('⚠️ Could not update admin user after race condition:', updateError);
-        }
-      } else {
-        console.error('❌ Error managing default admin user:', error);
-      }
+      console.error('❌ Error with admin user setup:', error);
     }
   };
 
