@@ -86,7 +86,7 @@ const App: React.FC = () => {
     } else {
       // Fallback for simulated users not in UsersPage list, or first-time admin.
       // The role is now determined automatically instead of being selected.
-      const defaultRole = username === 'Admin User' ? UserAccessLevel.ADMIN : DEFAULT_USER_ACCESS_LEVEL;
+      const defaultRole = username.toLowerCase() === 'admin' || username === 'Admin User' ? UserAccessLevel.ADMIN : DEFAULT_USER_ACCESS_LEVEL;
       userToSet = {
         id: username, // Use username as ID for simulated/unmanaged users
         username: username,
