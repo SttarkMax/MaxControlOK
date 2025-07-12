@@ -40,9 +40,28 @@ export const useCompany = () => {
       setError(null);
     } catch (err) {
       console.error('❌ useCompany: Error loading company:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar empresa';
-      setError(errorMessage);
-      setCompany(null);
+      
+      // Handle CORS errors gracefully
+      if (err instanceof Error && err.message.includes('CORS')) {
+        console.warn('🔌 CORS error detected - using default company data');
+        setError('Modo offline: Configure CORS no Supabase');
+        // Use default company data
+        setCompany({
+          name: 'Sua Empresa',
+          logoUrlDarkBg: '',
+          logoUrlLightBg: '',
+          address: '',
+          phone: '',
+          email: '',
+          cnpj: '',
+          instagram: '',
+          website: '',
+        });
+      } else {
+        const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar empresa';
+        setError(errorMessage);
+        setCompany(null);
+      }
     } finally {
       setLoading(false);
     }

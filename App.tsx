@@ -72,7 +72,8 @@ const App: React.FC = () => {
         console.log('✅ Admin user password updated successfully');
       } else {
         console.log('➕ Creating new admin user...');
-        await userService.createUser({
+        // Show a more user-friendly notification instead of alert
+        console.warn('🔌 Running in offline mode - some features may be limited');
           username: 'admin@maxcontrol.com',
           fullName: 'Administrador',
           password: 'admin123',
@@ -167,7 +168,7 @@ const App: React.FC = () => {
       <HashRouter>
         <Routes>
           <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
+      console.warn('🔌 CORS issue detected - running in offline mode');
         </Routes>
       </HashRouter>
     );
