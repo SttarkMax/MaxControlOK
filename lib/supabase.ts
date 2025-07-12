@@ -24,13 +24,27 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
 
 // Helper function to handle Supabase errors
 export const handleSupabaseError = (error: any) => {
-  console.error('Supabase error:', error);
-  
-  // Handle network errors gracefully
+  // Handle network errors gracefully with better logging
   if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-    console.warn('Network connection to Supabase failed. Using fallback behavior.');
+    console.warn('🔌 Supabase Connection Issue:', {
+      message: 'Cannot connect to Supabase database',
+      possibleCauses: [
+        'Internet connection issue',
+        'Supabase project not accessible',
+        'CORS configuration issue',
+        'Invalid Supabase URL or API key'
+      ],
+      troubleshooting: [
+        'Check internet connection',
+        'Verify Supabase project is active',
+        'Check CORS settings include http://localhost:5173',
+        'Verify VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY'
+      ]
+    });
     throw new Error('Conexão com o banco de dados falhou. Verifique sua conexão com a internet.');
   }
+  
+  console.error('Supabase error:', error);
   
   throw new Error(error.message || 'Operação no banco de dados falhou');
 };

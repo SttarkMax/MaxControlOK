@@ -453,14 +453,20 @@ export const quoteService = {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (quotesError) handleSupabaseError(quotesError);
+      if (quotesError) {
+        console.error('Error fetching quotes:', quotesError);
+        handleSupabaseError(quotesError);
+      }
 
       const { data: itemsData, error: itemsError } = await supabase
         .from('quote_items')
         .select('*')
         .order('created_at');
 
-      if (itemsError) handleSupabaseError(itemsError);
+      if (itemsError) {
+        console.error('Error fetching quote items:', itemsError);
+        handleSupabaseError(itemsError);
+      }
 
       return (quotesData || []).map(quote => {
         const quoteItems = (itemsData || [])
