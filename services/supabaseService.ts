@@ -20,7 +20,7 @@ import {
 if (isSupabaseConfigured()) {
   testSupabaseConnection().then(success => {
     if (!success) {
-      console.warn('⚠️ Supabase connection test failed - some features may not work');
+      console.warn('⚠️ Supabase connection test failed - trying development mode');
     }
   });
 }

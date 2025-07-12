@@ -48,10 +48,22 @@ export const supabase = isSupabaseConfigured()
       global: {
         headers: {
           'apikey': supabaseAnonKey,
-          'Authorization': `Bearer ${supabaseAnonKey}`,
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization, apikey'
+          'Authorization': `Bearer ${supabaseAnonKey}`
+        },
+        fetch: (url, options = {}) => {
+          // Add CORS headers for development
+          const headers = {
+            ...options.headers,
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization, apikey, x-client-info'
+          };
+          
+          return fetch(url, {
+            ...options,
+            headers,
+            mode: 'cors'
+          });
         }
       }
     })
