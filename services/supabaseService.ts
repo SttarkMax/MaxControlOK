@@ -1165,6 +1165,35 @@ export const userService = {
 
       if (error) {
         console.error('❌ Database error creating user:', error);
+        
+        // Handle unique constraint violation (user already exists)
+        if (error.code === '23505') {
+          console.log('ℹ️ User already exists, retrieving existing user:', user.username);
+          
+          // Try to get the existing user
+          const { data: existingUser, error: fetchError } = await supabase
+            .from('app_users')
+            .select('*')
+            .eq('username', user.username)
+            .single();
+          
+          if (fetchError) {
+            console.error('❌ Error fetching existing user:', fetchError);
+            handleSupabaseError(error); // Re-throw original error
+          }
+          
+          if (existingUser) {
+            console.log('✅ Retrieved existing user:', existingUser.username);
+            return {
+              id: existingUser.id,
+              username: existingUser.username,
+              fullName: existingUser.full_name || '',
+              password: '', // Never return password
+              role: existingUser.role as UserAccessLevel,
+            };
+          }
+        }
+        
         handleSupabaseError(error);
       }
       
