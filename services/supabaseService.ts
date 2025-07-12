@@ -1,4 +1,4 @@
-import bcrypt from 'bcryptjs/dist/bcrypt';
+import bcrypt from 'bcryptjs';
 import { supabase, handleSupabaseError, isSupabaseConfigured, testSupabaseConnection } from '../lib/supabase';
 import { 
   CompanyInfo, 
