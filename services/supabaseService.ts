@@ -497,14 +497,24 @@ export const customerService = {
 export const quoteService = {
   async getQuotes(): Promise<Quote[]> {
     try {
+      // Check if Supabase is configured first
+      if (!isSupabaseConfigured()) {
+        return [];
+      }
+
       const { data: quotesData, error: quotesError } = await supabase
         .from('quotes')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (quotesError) {
-        console.error('Error fetching quotes:', quotesError);
+        // Handle missing table gracefully
+        if (quotesError.code === '42P01') {
+          console.warn('🔌 Quotes table does not exist - switching to offline mode');
+          return [];
+        }
         handleSupabaseError(quotesError);
+        return [];
       }
 
       const { data: itemsData, error: itemsError } = await supabase
@@ -513,8 +523,13 @@ export const quoteService = {
         .order('created_at');
 
       if (itemsError) {
-        console.error('Error fetching quote items:', itemsError);
+        // Handle missing table gracefully
+        if (itemsError.code === '42P01') {
+          console.warn('🔌 Quote items table does not exist - switching to offline mode');
+          return [];
+        }
         handleSupabaseError(itemsError);
+        return [];
       }
 
       return (quotesData || []).map(quote => {
@@ -559,6 +574,7 @@ export const quoteService = {
         };
       });
     } catch (error) {
+      console.warn('🔌 Quote service - switching to offline mode');
       handleSupabaseError(error);
       return [];
     }

@@ -56,10 +56,18 @@ export const useCompany = () => {
     } catch (err) {
       console.error('Error loading company:', err);
       const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar empresa';
-      setError(errorMessage);
+      
+      // Check for missing table error
+      if (errorMessage.includes('does not exist') || (err as any)?.code === '42P01') {
+        setError('Banco de dados não configurado - funcionando em modo offline');
+      } else {
+        setError(errorMessage);
+      }
       
       // Set default company data on network error
-      if (errorMessage.includes('Conexão com o banco de dados falhou')) {
+      if (errorMessage.includes('Conexão com o banco de dados falhou') || 
+          errorMessage.includes('does not exist') || 
+          (err as any)?.code === '42P01') {
         setCompany({
           name: 'Sua Empresa',
           logoUrlDarkBg: '',
@@ -360,10 +368,18 @@ export const useQuotes = () => {
       setError(null);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar orçamentos';
-      setError(errorMessage);
+      
+      // Check for missing table error
+      if (errorMessage.includes('does not exist') || (err as any)?.code === '42P01') {
+        setError('Banco de dados não configurado - funcionando em modo offline');
+      } else {
+        setError(errorMessage);
+      }
       
       // Set empty array on network error to prevent app crash
-      if (errorMessage.includes('Conexão com o banco de dados falhou')) {
+      if (errorMessage.includes('Conexão com o banco de dados falhou') || 
+          errorMessage.includes('does not exist') || 
+          (err as any)?.code === '42P01') {
         setQuotes([]);
       }
     } finally {
