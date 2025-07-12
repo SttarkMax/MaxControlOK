@@ -65,7 +65,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            placeholder="admin@example.com"
+            placeholder="usuario@exemplo.com"
           />
           <Input
             label="Senha"

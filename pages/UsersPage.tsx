@@ -13,7 +13,7 @@ import { useUsers } from '../hooks/useSupabaseData';
 
 const initialUserState: User = {
   id: '',
-  username: '',
+  username: '', // This will store the email
   fullName: '',
   password: '', 
   role: UserAccessLevel.SALES,
@@ -74,9 +74,17 @@ const UsersPage: React.FC<UsersPageProps> = ({ loggedInUser }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUserForm.username.trim()) {
-        alert("O nome de usuário não pode ser vazio.");
+        alert("O email não pode ser vazio.");
         return;
     }
+    
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(currentUserForm.username)) {
+        alert("Por favor, insira um email válido.");
+        return;
+    }
+    
     if (!currentUserForm.fullName?.trim()) {
         alert("O nome completo não pode ser vazio.");
         return;
@@ -86,7 +94,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ loggedInUser }) => {
         return;
     }
     if (users.some(u => u.username.toLowerCase() === currentUserForm.username.toLowerCase() && u.id !== currentUserForm.id)) {
-        alert("Este nome de usuário já existe.");
+        alert("Este email já está cadastrado.");
         return;
     }
     
@@ -222,7 +230,7 @@ const UsersPage: React.FC<UsersPageProps> = ({ loggedInUser }) => {
             <thead className="bg-[#282828]">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Nome Completo</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Nome de Usuário</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Email</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Nível de Acesso</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Ações</th>
               </tr>
@@ -276,11 +284,13 @@ const UsersPage: React.FC<UsersPageProps> = ({ loggedInUser }) => {
                 required 
               />
               <Input 
-                label="Nome de Usuário" 
+                label="Email" 
                 name="username" 
+                type="email"
                 value={currentUserForm.username} 
                 onChange={handleInputChange} 
                 required 
+                placeholder="usuario@exemplo.com"
               />
               <Input 
                 label={isEditing ? "Nova Senha (deixe em branco para não alterar)" : "Senha"}
