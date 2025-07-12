@@ -732,7 +732,6 @@ export const useUsers = () => {
       } else {
         setUsers([]);
       }
-      }
     } finally {
       setLoading(false);
       console.log('🏁 loadUsers completed');
