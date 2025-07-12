@@ -116,7 +116,13 @@ const UsersPage: React.FC = () => {
       handleCloseModal();
     } catch (error) {
       console.error('Error saving user:', error);
-      setErrors({ submit: 'Erro ao salvar usuário. Verifique se o email já não está em uso.' });
+      
+      // Check if it's a duplicate username error
+      if (error instanceof Error && error.message.includes("already exists")) {
+        setErrors({ submit: 'Este email já está em uso por outro usuário.' });
+      } else {
+        setErrors({ submit: 'Erro ao salvar usuário. Tente novamente.' });
+      }
     }
   };
 

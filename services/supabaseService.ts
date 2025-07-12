@@ -1240,12 +1240,24 @@ export const userService = {
 
       if (error) {
         console.error('❌ Database error updating user:', error);
+        
+        // Check for duplicate key constraint violation on username
+        if (error.code === '23505' && error.message.includes('app_users_username_key')) {
+          throw new UserAlreadyExistsError(user.username);
+        }
+        
         handleSupabaseError(error);
       }
       
       console.log('✅ User updated successfully:', user.username);
     } catch (error) {
       console.error('❌ updateUser service error:', error);
+      
+      // If it's our custom UserAlreadyExistsError, re-throw it directly
+      if (error instanceof UserAlreadyExistsError) {
+        throw error;
+      }
+      
       handleSupabaseError(error);
     }
   },
