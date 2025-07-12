@@ -40,10 +40,18 @@ export const supabase = isSupabaseConfigured()
         persistSession: false,
         autoRefreshToken: false
       },
+      realtime: {
+        params: {
+          eventsPerSecond: 2
+        }
+      },
       global: {
         headers: {
           'apikey': supabaseAnonKey,
-          'Authorization': `Bearer ${supabaseAnonKey}`
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, apikey'
         }
       }
     })
