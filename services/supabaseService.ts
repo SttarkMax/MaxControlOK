@@ -1193,6 +1193,13 @@ export const userService = {
       };
     } catch (error) {
       console.error('❌ createUser service error:', error);
+      
+      // If it's our custom UserAlreadyExistsError, re-throw it directly
+      if (error instanceof UserAlreadyExistsError) {
+        throw error;
+      }
+      
+      // For other errors, use the generic handler
       handleSupabaseError(error);
       throw error;
     }
