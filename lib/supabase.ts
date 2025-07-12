@@ -1,15 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 import { Database } from './database.types';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase environment variables:', {
-    url: supabaseUrl ? 'Present' : 'Missing',
-    key: supabaseAnonKey ? 'Present' : 'Missing'
-  });
-}
+// Log configuration status
+console.log('🔧 Supabase Configuration Status:', {
+  url: supabaseUrl ? '✅ Configured' : '❌ Missing VITE_SUPABASE_URL',
+  key: supabaseAnonKey ? '✅ Configured' : '❌ Missing VITE_SUPABASE_ANON_KEY',
+  status: isSupabaseConfigured() ? '🟢 Ready' : '🔴 Needs Setup'
+});
 
 // Create Supabase client with fallback for missing credentials
 export const supabase = createClient<Database>(
@@ -29,9 +29,17 @@ export const supabase = createClient<Database>(
 
 // Check if Supabase is properly configured
 export const isSupabaseConfigured = () => {
-  return !!(supabaseUrl && supabaseAnonKey && 
+  const hasValidUrl = supabaseUrl && 
     supabaseUrl !== 'https://placeholder.supabase.co' && 
-    supabaseAnonKey !== 'placeholder-key');
+    supabaseUrl !== 'https://your-project-ref.supabase.co' &&
+    supabaseUrl.includes('.supabase.co');
+  
+  const hasValidKey = supabaseAnonKey && 
+    supabaseAnonKey !== 'placeholder-key' && 
+    supabaseAnonKey !== 'your-anon-key-here' &&
+    supabaseAnonKey.length > 50;
+    
+  return !!(hasValidUrl && hasValidKey);
 };
 
 // Helper function to handle Supabase errors
