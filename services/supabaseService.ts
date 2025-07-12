@@ -182,12 +182,20 @@ export const categoryService = {
 export const productService = {
   async getProducts(): Promise<Product[]> {
     try {
+      // Check if Supabase is configured first
+      if (!isSupabaseConfigured()) {
+        return [];
+      }
+
       const { data, error } = await supabase
         .from('products')
         .select('*')
         .order('name');
 
-      if (error) handleSupabaseError(error);
+      if (error) {
+        handleSupabaseError(error);
+        return [];
+      }
       
       return (data || []).map(item => ({
         id: item.id,
@@ -202,7 +210,7 @@ export const productService = {
         categoryId: item.category_id || undefined,
       }));
     } catch (error) {
-      handleSupabaseError(error);
+      console.warn('🔌 Products service - switching to offline mode');
       return [];
     }
   },

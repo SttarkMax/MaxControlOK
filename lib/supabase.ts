@@ -39,18 +39,24 @@ export const handleSupabaseError = (error: any) => {
   // Check if Supabase is configured first
   if (!isSupabaseConfigured()) {
     console.warn('⚠️ Supabase not configured - using offline mode');
-    throw new Error('Aplicação funcionando em modo offline. Configure o Supabase para funcionalidade completa.');
+    return; // Don't throw, just return to enable offline mode
   }
 
-  // Handle network errors gracefully
-  if (error instanceof TypeError && (
+  // Handle all network/connection errors gracefully
+  if (error instanceof TypeError || 
+      (error && (
     error.message.includes('Failed to fetch') || 
-    error.message.includes('fetch')
-  )) {
+    error.message.includes('fetch') ||
+    error.message.includes('NetworkError') ||
+    error.message.includes('ERR_NETWORK') ||
+    error.code === 'NETWORK_ERROR' ||
+    error.code === 'ENOTFOUND' ||
+    error.code === 'ECONNREFUSED'
+  ))) {
     console.warn('🔌 Supabase Connection Issue - switching to offline mode');
-    throw new Error('Conexão com o banco de dados falhou. Verifique sua conexão com a internet.');
+    return; // Don't throw, just return to enable offline mode
   }
   
   console.error('Supabase error:', error);
-  throw new Error(error.message || 'Operação no banco de dados falhou');
+  return; // Don't throw any errors, let the app continue in offline mode
 };

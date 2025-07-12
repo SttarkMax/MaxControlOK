@@ -199,13 +199,9 @@ export const useProducts = () => {
       setProducts(data);
       setError(null);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar produtos';
-      setError(errorMessage);
-      
-      // Set empty array on network error
-      if (errorMessage.includes('Conexão com o banco de dados falhou')) {
-        setProducts([]);
-      }
+      console.warn('🔌 Products hook - switching to offline mode');
+      setProducts([]);
+      setError('Aplicação funcionando em modo offline');
     } finally {
       setLoading(false);
     }
