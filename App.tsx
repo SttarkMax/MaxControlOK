@@ -62,7 +62,23 @@ const App: React.FC = () => {
       const existingUser = await userService.getUserByUsername('admin@maxcontrol.com');
       
       if (existingUser) {
-        console.log('✅ Admin user already exists, no action needed');
+        console.log('🔄 Admin user exists, checking password hash...');
+        // Re-create user with proper password hash if needed
+        try {
+          await userService.deleteUserByUsername('admin@maxcontrol.com');
+          console.log('🗑️ Removed existing admin user to recreate with proper hash');
+        } catch (error) {
+          console.log('⚠️ Could not remove existing user, continuing...');
+        }
+        
+        // Create new admin user with proper password hash
+        await userService.createUser({
+          username: 'admin@maxcontrol.com',
+          fullName: 'Administrador',
+          password: 'admin123',
+          role: UserAccessLevel.ADMIN
+        });
+        console.log('✅ Admin user recreated with proper password hash');
       } else {
         console.log('➕ Creating new admin user...');
         await userService.createUser({
