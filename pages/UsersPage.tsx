@@ -25,6 +25,12 @@ interface UsersPageProps {
 
 const UsersPage: React.FC<UsersPageProps> = ({ loggedInUser }) => {
   const { users, loading, createUser, updateUser, deleteUser } = useUsers();
+  
+  // Debug: Log users data
+  React.useEffect(() => {
+    console.log('🔍 Users data:', { users, loading, count: users.length });
+  }, [users, loading]);
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentUserForm, setCurrentUserForm] = useState<User>(initialUserState);
   const [isEditing, setIsEditing] = useState(false);
@@ -151,6 +157,13 @@ const UsersPage: React.FC<UsersPageProps> = ({ loggedInUser }) => {
     );
   }
 
+  // Debug: Show current state
+  console.log('🔍 Rendering UsersPage:', { 
+    usersCount: users.length, 
+    loading, 
+    users: users.map(u => ({ id: u.id, username: u.username, role: u.role }))
+  });
+
   return (
     <div className="p-6 text-gray-300">
       <div className="flex justify-between items-center mb-6">
@@ -170,8 +183,19 @@ const UsersPage: React.FC<UsersPageProps> = ({ loggedInUser }) => {
       {users.length === 0 ? (
         <div className="text-center py-10 bg-[#282828] shadow-xl rounded-lg">
           <UserGroupIcon className="mx-auto h-12 w-12 text-gray-500" />
-          <h3 className="mt-2 text-sm font-medium text-white">Nenhum usuário cadastrado</h3>
-          <p className="mt-1 text-sm text-gray-400">Comece adicionando um novo usuário ao sistema.</p>
+          <h3 className="mt-2 text-sm font-medium text-white">
+            {loading ? 'Carregando usuários...' : 'Nenhum usuário cadastrado'}
+          </h3>
+          <p className="mt-1 text-sm text-gray-400">
+            {loading ? 'Aguarde...' : 'Comece adicionando um novo usuário ao sistema.'}
+          </p>
+          {!loading && (
+            <div className="mt-4 p-3 bg-blue-900/30 border border-blue-500/50 rounded-md">
+              <p className="text-xs text-blue-300">
+                <strong>Debug Info:</strong> Users array length: {users.length}
+              </p>
+            </div>
+          )}
           <div className="mt-6">
             <Button onClick={openModalForNew} variant="primary" iconLeft={<PlusIcon className="w-4 h-4"/>}>
               Adicionar Usuário
@@ -180,6 +204,15 @@ const UsersPage: React.FC<UsersPageProps> = ({ loggedInUser }) => {
         </div>
       ) : (
         <div className="bg-[#282828] shadow-xl rounded-lg overflow-x-auto">
+          <div className="p-4 bg-green-900/30 border-b border-green-500/50">
+            <p className="text-xs text-green-300">
+              <strong>✅ Usuários carregados:</strong> {users.length} usuário(s) encontrado(s)
+            </p>
+            <details className="mt-2">
+              <summary className="text-xs text-green-400 cursor-pointer">Ver detalhes dos usuários</summary>
+              <pre className="text-xs mt-2 text-green-200">{JSON.stringify(users, null, 2)}</pre>
+            </details>
+          </div>
           <table className="min-w-full divide-y divide-[#282828]">
             <thead className="bg-[#282828]">
               <tr>

@@ -687,37 +687,74 @@ export const useUsers = () => {
   const loadUsers = async () => {
     try {
       setLoading(true);
+      console.log('🔍 Loading users - Supabase configured:', isSupabaseConfigured());
       
       // Check if Supabase is configured
       if (!isSupabaseConfigured()) {
+        console.warn('⚠️ Supabase not configured - checking localStorage for users');
+        // Try to load from localStorage as fallback
+        const localUsers = localStorage.getItem('appUsers');
+        if (localUsers) {
+          const parsedUsers = JSON.parse(localUsers);
+          console.log('📦 Found users in localStorage:', parsedUsers);
+          setUsers(parsedUsers);
+        } else {
+          console.log('📦 No users in localStorage, setting empty array');
+          setUsers([]);
+        }
         setUsers([]);
         setError('Aplicação funcionando em modo offline');
         return;
       }
       
+      console.log('🔄 Fetching users from Supabase...');
       const data = await userService.getUsers();
+      console.log('✅ Users fetched from Supabase:', data);
       setUsers(data);
       setError(null);
     } catch (err) {
+      console.error('❌ Error loading users:', err);
       const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar usuários';
       setError(errorMessage);
       
       // Set empty array on network error
       if (errorMessage.includes('Conexão com o banco de dados falhou')) {
+        console.log('🔌 Network error - trying localStorage fallback');
+        const localUsers = localStorage.getItem('appUsers');
+        if (localUsers) {
+          const parsedUsers = JSON.parse(localUsers);
+          console.log('📦 Using localStorage users as fallback:', parsedUsers);
+          setUsers(parsedUsers);
+        } else {
+          console.log('📦 No localStorage fallback available');
+          setUsers([]);
+        }
+      } else {
         setUsers([]);
+      }
       }
     } finally {
       setLoading(false);
+      console.log('🏁 loadUsers completed');
     }
   };
 
   const createUser = async (user: Omit<User, 'id'> & { password: string }) => {
     try {
+      console.log('🔄 Creating user:', user.username);
       const newUser = await userService.createUser(user);
+      console.log('✅ User created:', newUser);
       setUsers(prev => [...prev, newUser]);
+      
+      // Also save to localStorage as backup
+      const updatedUsers = [...users, newUser];
+      localStorage.setItem('appUsers', JSON.stringify(updatedUsers));
+      console.log('📦 Users saved to localStorage');
+      
       setError(null);
       return newUser;
     } catch (err) {
+      console.error('❌ Error creating user:', err);
       setError(err instanceof Error ? err.message : 'Erro ao criar usuário');
       throw err;
     }
@@ -725,10 +762,18 @@ export const useUsers = () => {
 
   const updateUser = async (user: User & { password?: string }) => {
     try {
+      console.log('🔄 Updating user:', user.username);
       await userService.updateUser(user);
       setUsers(prev => prev.map(u => u.id === user.id ? { ...user, password: '' } : u));
+      
+      // Also update localStorage
+      const updatedUsers = users.map(u => u.id === user.id ? { ...user, password: '' } : u);
+      localStorage.setItem('appUsers', JSON.stringify(updatedUsers));
+      console.log('📦 Users updated in localStorage');
+      
       setError(null);
     } catch (err) {
+      console.error('❌ Error updating user:', err);
       setError(err instanceof Error ? err.message : 'Erro ao atualizar usuário');
       throw err;
     }
@@ -736,16 +781,25 @@ export const useUsers = () => {
 
   const deleteUser = async (id: string) => {
     try {
+      console.log('🔄 Deleting user:', id);
       await userService.deleteUser(id);
       setUsers(prev => prev.filter(u => u.id !== id));
+      
+      // Also update localStorage
+      const updatedUsers = users.filter(u => u.id !== id);
+      localStorage.setItem('appUsers', JSON.stringify(updatedUsers));
+      console.log('📦 User deleted from localStorage');
+      
       setError(null);
     } catch (err) {
+      console.error('❌ Error deleting user:', err);
       setError(err instanceof Error ? err.message : 'Erro ao excluir usuário');
       throw err;
     }
   };
 
   useEffect(() => {
+    console.log('🚀 useUsers hook initializing...');
     loadUsers();
   }, []);
 
