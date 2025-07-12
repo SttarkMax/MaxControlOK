@@ -433,35 +433,22 @@ export const productService = {
 // Customer Services
 export const customerService = {
   async getCustomers(): Promise<Customer[]> {
-    console.log('🔄 Loading customers from Supabase...');
-    
-    if (!isSupabaseConfigured() || !supabase) {
-      console.error('❌ Supabase not available for customers');
-      throw new Error('Supabase não configurado');
-    }
-
     try {
       const { data: customersData, error: customersError } = await supabase
         .from('customers')
         .select('*')
         .order('name');
 
-      if (customersError) {
-        console.error('❌ Customers error:', customersError);
-        handleSupabaseError(customersError);
-      }
+      if (customersError) handleSupabaseError(customersError);
 
       const { data: downPaymentsData, error: downPaymentsError } = await supabase
         .from('customer_down_payments')
         .select('*')
         .order('date');
 
-      if (downPaymentsError) {
-        console.error('❌ Down payments error:', downPaymentsError);
-        handleSupabaseError(downPaymentsError);
-      }
+      if (downPaymentsError) handleSupabaseError(downPaymentsError);
 
-      const customers = (customersData || []).map(customer => {
+      return (customersData || []).map(customer => {
         const customerDownPayments = (downPaymentsData || [])
           .filter(dp => dp.customer_id === customer.id)
           .map(dp => ({
@@ -484,13 +471,9 @@ export const customerService = {
           downPayments: customerDownPayments,
         };
       });
-      
-      console.log(`✅ Customers loaded: ${customers.length} items`);
-      return customers;
     } catch (error) {
-      console.error('❌ Customers service error:', error);
       handleSupabaseError(error);
-      throw error;
+      return [];
     }
   },
 
@@ -611,18 +594,10 @@ export const customerService = {
 // Quote Services
 export const quoteService = {
   async getQuotes(): Promise<Quote[]> {
-    console.log('🔄 Loading quotes from Supabase...');
-    
     try {
       // Check if Supabase is configured first
       if (!isSupabaseConfigured()) {
-        console.error('❌ Supabase not configured for quotes');
-        throw new Error('Supabase não configurado');
-      }
-
-      if (!supabase) {
-        console.error('❌ Supabase client not available for quotes');
-        throw new Error('Cliente Supabase não inicializado');
+        return [];
       }
 
       const { data: quotesData, error: quotesError } = await supabase
@@ -631,8 +606,13 @@ export const quoteService = {
         .order('created_at', { ascending: false });
 
       if (quotesError) {
-        console.error('❌ Quotes error:', quotesError);
+        // Handle missing table gracefully
+        if (quotesError.code === '42P01') {
+          console.warn('🔌 Quotes table does not exist - switching to offline mode');
+          return [];
+        }
         handleSupabaseError(quotesError);
+        return [];
       }
 
       const { data: itemsData, error: itemsError } = await supabase
@@ -641,11 +621,16 @@ export const quoteService = {
         .order('created_at');
 
       if (itemsError) {
-        console.error('❌ Quote items error:', itemsError);
+        // Handle missing table gracefully
+        if (itemsError.code === '42P01') {
+          console.warn('🔌 Quote items table does not exist - switching to offline mode');
+          return [];
+        }
         handleSupabaseError(itemsError);
+        return [];
       }
 
-      const quotes = (quotesData || []).map(quote => {
+      return (quotesData || []).map(quote => {
         const quoteItems = (itemsData || [])
           .filter(item => item.quote_id === quote.id)
           .map(item => ({
@@ -686,13 +671,10 @@ export const quoteService = {
           createdAt: quote.created_at,
         };
       });
-      
-      console.log(`✅ Quotes loaded: ${quotes.length} items`);
-      return quotes;
     } catch (error) {
-      console.error('❌ Quotes service error:', error);
+      console.warn('🔌 Quote service - switching to offline mode');
       handleSupabaseError(error);
-      throw error;
+      return [];
     }
   },
 
@@ -933,8 +915,7 @@ export const supplierService = {
         .eq('id', supplier.id);
 
       if (error) handleSupabaseError(error);
-    } catch (error
-}) {
+    } catch (error) {
       handleSupabaseError(error);
     }
   },
@@ -964,7 +945,8 @@ export const supplierService = {
       return (data || []).map(debt => ({
         id: debt.id,
         supplierId: debt.supplier_id,
-        description: debt.description || '',
+        descr
+}iption: debt.description || '',
         totalAmount: Number(debt.total_amount),
         dateAdded: debt.date_added,
       }));
