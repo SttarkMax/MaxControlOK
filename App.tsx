@@ -79,6 +79,7 @@ const App: React.FC = () => {
             role: UserAccessLevel.ADMIN
           });
           console.log('✅ Admin user updated with proper password hash');
+          return; // Exit early after successful update
         } catch (error) {
           console.log('⚠️ Could not update existing user:', error);
         }
@@ -92,6 +93,7 @@ const App: React.FC = () => {
             role: UserAccessLevel.ADMIN
           });
           console.log('✅ New admin user created successfully');
+          return; // Exit early after successful creation
         } catch (error) {
           // Check if this is a duplicate key error (race condition)
           if (error instanceof UserAlreadyExistsError) {
@@ -108,6 +110,7 @@ const App: React.FC = () => {
                   role: UserAccessLevel.ADMIN
                 });
                 console.log('✅ Admin user updated after race condition');
+                return; // Exit early after successful update
               }
             } catch (updateError) {
               console.log('⚠️ Could not update admin user after race condition:', updateError);
@@ -126,6 +129,7 @@ const App: React.FC = () => {
                   role: UserAccessLevel.ADMIN
                 });
                 console.log('✅ Admin user updated after duplicate key detection');
+                return; // Exit early after successful update
               }
             } catch (updateError) {
               console.log('⚠️ Could not update admin user after duplicate key detection:', updateError);

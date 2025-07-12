@@ -1179,7 +1179,9 @@ export const userService = {
           throw new UserAlreadyExistsError(user.username);
         }
         
+        // For other errors, handle them normally
         handleSupabaseError(error);
+        throw error;
       }
       
       console.log('✅ User created successfully:', data.username);
