@@ -1384,9 +1384,14 @@ export const userService = {
         .from('app_users')
         .select('*')
         .eq('username', username)
-        .single();
+        .maybeSingle();
 
-      if (error || !data || !data.id || typeof data.id !== 'string' || data.id.trim() === '') {
+      if (error) {
+        console.error('❌ Error fetching user by username:', error);
+        return null;
+      }
+      
+      if (!data || !data.id || typeof data.id !== 'string' || data.id.trim() === '') {
         return null;
       }
 
@@ -1398,6 +1403,7 @@ export const userService = {
         role: data.role as UserAccessLevel,
       };
     } catch (error) {
+      console.error('❌ Exception in getUserByUsername:', error);
       return null;
     }
   },
