@@ -9,6 +9,13 @@ import {
   Quote, 
   QuoteItem,
   Supplier,
+  Debt,
+  SupplierCredit,
+  AccountsPayableEntry,
+  User,
+  UserAccessLevel
+} from '../types';
+
 // Company Services
 export const companyService = {
   async getCompany(): Promise<CompanyInfo | null> {
