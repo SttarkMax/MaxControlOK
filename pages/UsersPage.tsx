@@ -322,11 +322,12 @@ const UsersPage: React.FC = () => {
                   value={formData.role}
                   onChange={(e) => setFormData({ ...formData, role: e.target.value as UserAccessLevel })}
                   error={errors.role}
+                  options={[
+                    { value: UserAccessLevel.SALES, label: 'Vendas' },
+                    { value: UserAccessLevel.ADMIN, label: 'Administrador' }
+                  ]}
                   required
-                >
-                  <option value={UserAccessLevel.SALES}>Vendas</option>
-                  <option value={UserAccessLevel.ADMIN}>Administrador</option>
-                </Select>
+                />
               </div>
 
               {errors.submit && (
