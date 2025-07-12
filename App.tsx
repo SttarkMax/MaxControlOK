@@ -83,35 +83,6 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLogin = (username: string) => {
-    // User data is already set in localStorage by LoginPage
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
-      const userToSet: LoggedInUser = JSON.parse(savedUser);
-      setCurrentUser(userToSet);
-      setIsAuthenticated(true);
-    }
-  };
-      try {
-        await userService.deleteUserByUsername('admin@maxcontrol.com');
-        console.log('🗑️ Existing admin user deleted');
-      } catch (error) {
-        console.log('ℹ️ No existing admin user to delete');
-      }
-      
-      // Create fresh admin user
-      await userService.createUser({
-        username: 'admin@maxcontrol.com',
-        fullName: 'Administrador',
-        password: 'admin123',
-        role: UserAccessLevel.ADMIN
-      });
-      console.log('✅ Fresh admin user created successfully');
-    } catch (error) {
-      console.error('❌ Error creating default admin user:', error);
-    }
-  };
-
   useEffect(() => {
     const checkSession = async () => {
       // Check localStorage for existing session first
@@ -151,7 +122,6 @@ const App: React.FC = () => {
     };
   }, []);
 
-
   const handleLogin = (username: string) => {
     // User data is already set in localStorage by LoginPage
     const savedUser = localStorage.getItem('currentUser');
@@ -159,7 +129,6 @@ const App: React.FC = () => {
       const userToSet: LoggedInUser = JSON.parse(savedUser);
       setCurrentUser(userToSet);
       setIsAuthenticated(true);
-      navigate('/');
     }
   };
 
@@ -173,6 +142,7 @@ const App: React.FC = () => {
     setSelectedQuoteForGlobalView(quote);
     setIsViewDetailsModalOpenForGlobal(true);
   };
+
   const handleCloseViewDetailsForGlobal = () => {
     setIsViewDetailsModalOpenForGlobal(false);
     setSelectedQuoteForGlobalView(null);
@@ -191,7 +161,6 @@ const App: React.FC = () => {
     }
     return <>{children}</>;
   };
-
 
   if (!isAuthenticated || !currentUser) {
     return (
