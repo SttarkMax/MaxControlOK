@@ -438,7 +438,7 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
         ? `${item.quantity.toFixed(2)} m²`
         : `${item.quantity} un`,
       formatCurrency(item.unitPrice * (1 + CARD_SURCHARGE_PERCENTAGE / 100)),
-      formatCurrency(item.totalPrice)
+      formatCurrency(item.totalPrice * (1 + CARD_SURCHARGE_PERCENTAGE / 100))
     ]);
 
     autoTable(doc, {
