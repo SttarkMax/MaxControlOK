@@ -1326,7 +1326,9 @@ export const userService = {
         .eq('username', username)
         .single();
 
-      if (error || !data) return null;
+      if (error || !data || !data.id || typeof data.id !== 'string' || data.id.trim() === '') {
+        return null;
+      }
 
       return {
         id: data.id,
