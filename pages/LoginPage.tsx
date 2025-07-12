@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
 import { userService } from '../services/supabaseService';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
@@ -12,10 +11,9 @@ interface LoginPageProps {
 }
 
 const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
-  const [email, setEmail] = useState('admin@example.com');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('admin@maxcontrol.com');
+  const [password, setPassword] = useState('admin123');
   const [isLoading, setIsLoading] = useState(false);
-  const [showInstructions, setShowInstructions] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
@@ -25,12 +23,20 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     setError('');
 
     try {
-      // Simple demo authentication
-      if (email === 'admin@example.com' && password === 'password123') {
-        onLogin('admin');
-        navigate('/');
+      // Authenticate with Supabase
+      const user = await userService.authenticateUser(email, password);
+      
+      if (user) {
+        // Store user session
+        localStorage.setItem('currentUser', JSON.stringify({
+          id: user.id,
+          username: user.username,
+          fullName: user.fullName,
+          role: user.role
+        }));
+        onLogin(user.username);
       } else {
-        throw new Error('Credenciais inválidas. Use admin@example.com / password123');
+        throw new Error('Email ou senha incorretos');
       }
     } catch (error: any) {
       console.error('Login error:', error);
@@ -89,8 +95,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         </form>
         <div className="mt-4 text-center text-xs text-gray-400">
           <p>Credenciais padrão:</p>
-          <p>Email: admin@example.com</p>
-          <p>Senha: password123</p>
+          <p>Email: admin@maxcontrol.com</p>
+          <p>Senha: admin123</p>
         </div>
       </div>
     </div>

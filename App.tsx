@@ -89,40 +89,17 @@ const App: React.FC = () => {
 
 
   const handleLogin = (username: string) => {
-    const storedUsers: User[] = JSON.parse(localStorage.getItem(USERS_STORAGE_KEY) || '[]');
-    const foundUser = storedUsers.find(u => u.username.toLowerCase() === username.toLowerCase());
-
-    let userToSet: LoggedInUser;
-
-    if (foundUser) {
-      userToSet = {
-        id: foundUser.id,
-        username: foundUser.username,
-        fullName: foundUser.fullName || foundUser.username, 
-        role: foundUser.role,
-      };
-    } else {
-      // Fallback for simulated users not in UsersPage list, or first-time admin.
-      // The role is now determined automatically instead of being selected.
-      const defaultRole = username.toLowerCase() === 'admin' || username === 'Admin User' ? UserAccessLevel.ADMIN : DEFAULT_USER_ACCESS_LEVEL;
-      userToSet = {
-        id: username, // Use username as ID for simulated/unmanaged users
-        username: username,
-        fullName: username, // Default fullName to username
-        role: defaultRole,
-      };
+    // User data is already set in localStorage by LoginPage
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+      const userToSet: LoggedInUser = JSON.parse(savedUser);
+      setCurrentUser(userToSet);
+      setIsAuthenticated(true);
+      navigate('/');
     }
-    
-    setCurrentUser(userToSet);
-    setIsAuthenticated(true);
-    localStorage.setItem('currentUser', JSON.stringify(userToSet));
   };
 
   const handleLogout = async () => {
-    // Sign out from Supabase if authenticated
-    if (supabase) {
-      await supabase.auth.signOut();
-    }
     setCurrentUser(null);
     setIsAuthenticated(false);
     localStorage.removeItem('currentUser');
