@@ -886,13 +886,33 @@ export const supplierService = {
           total_amount: debt.totalAmount,
           date_added: debt.dateAdded,
         }])
-        .select()
+        .select('*')
         .single();
 
       if (error) handleSupabaseError(error);
       
-      if (!data) {
-        throw new Error('Nenhum dado retornado após inserção');
+      if (!data || !data.id) {
+        console.warn('⚠️ Data not returned from insert, attempting to fetch...');
+        // Try to fetch the most recent debt for this supplier as fallback
+        const { data: fallbackData, error: fetchError } = await supabase
+          .from('supplier_debts')
+          .select('*')
+          .eq('supplier_id', debt.supplierId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        
+        if (fetchError || !fallbackData) {
+          throw new Error('Erro ao criar dívida - verifique as permissões RLS no Supabase');
+        }
+        
+        return {
+          id: fallbackData.id,
+          supplierId: fallbackData.supplier_id,
+          description: fallbackData.description || '',
+          totalAmount: Number(fallbackData.total_amount),
+          dateAdded: fallbackData.date_added,
+        };
       }
       
       return {
@@ -964,13 +984,33 @@ export const supplierService = {
           date: credit.date,
           description: credit.description,
         }])
-        .select()
+        .select('*')
         .single();
 
       if (error) handleSupabaseError(error);
       
-      if (!data) {
-        throw new Error('Nenhum dado retornado após inserção. Verifique as políticas RLS (Row Level Security) para a tabela supplier_credits no Supabase - o papel anon pode precisar de permissões SELECT além de INSERT.');
+      if (!data || !data.id) {
+        console.warn('⚠️ Data not returned from insert, attempting to fetch...');
+        // Try to fetch the most recent credit for this supplier as fallback
+        const { data: fallbackData, error: fetchError } = await supabase
+          .from('supplier_credits')
+          .select('*')
+          .eq('supplier_id', credit.supplierId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        
+        if (fetchError || !fallbackData) {
+          throw new Error('Erro ao criar pagamento - verifique as permissões RLS no Supabase');
+        }
+        
+        return {
+          id: fallbackData.id,
+          supplierId: fallbackData.supplier_id,
+          amount: Number(fallbackData.amount),
+          date: fallbackData.date,
+          description: fallbackData.description || '',
+        };
       }
       
       return {
