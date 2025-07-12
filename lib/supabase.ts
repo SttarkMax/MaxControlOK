@@ -55,9 +55,12 @@ export const supabase = isSupabaseConfigured()
             'Content-Type': 'application/json'
           };
           
+          // For development, add mode: 'cors' to handle CORS issues
           return fetch(url, {
             ...options,
-            headers
+            headers,
+            mode: 'cors',
+            credentials: 'omit'
           });
         }
       }
