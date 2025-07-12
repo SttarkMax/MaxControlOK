@@ -28,20 +28,62 @@ if (isSupabaseConfigured()) {
 // Company Services
 export const companyService = {
   async getCompany(): Promise<CompanyInfo | null> {
+    console.log('🔄 Loading company data from Supabase...');
+    
     // Check if Supabase is configured first
     if (!isSupabaseConfigured()) {
-      console.warn('⚠️ Supabase not configured - returning default company');
+      console.error('❌ Supabase not configured - cannot load company data');
+      throw new Error('Supabase não configurado');
+    }
+
+    if (!supabase) {
+      console.error('❌ Supabase client not available');
+      throw new Error('Cliente Supabase não inicializado');
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('companies')
+        .select('*')
+        .limit(1)
+        .maybeSingle();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('❌ Company data error:', error);
+        handleSupabaseError(error);
+      }
+
+      if (!data) {
+        console.log('📝 No company data found - returning default');
+        return {
+          name: 'Sua Empresa',
+          logoUrlDarkBg: '',
+          logoUrlLightBg: '',
+          address: '',
+          phone: '',
+          email: '',
+          cnpj: '',
+          instagram: '',
+          website: '',
+        };
+      }
+
+      console.log('✅ Company data loaded successfully:', data.name);
       return {
-        name: 'Sua Empresa',
-        logoUrlDarkBg: '',
-        logoUrlLightBg: '',
-        address: '',
-        phone: '',
-        email: '',
-        cnpj: '',
-        instagram: '',
-        website: '',
+        name: data.name,
+        logoUrlDarkBg: data.logo_url_dark_bg || '',
+        logoUrlLightBg: data.logo_url_light_bg || '',
+        address: data.address || '',
+        phone: data.phone || '',
+        email: data.email || '',
+        cnpj: data.cnpj || '',
+        instagram: data.instagram || '',
+        website: data.website || '',
       };
+    } catch (error) {
+      console.error('❌ Company service error:', error);
+      handleSupabaseError(error);
+      throw error;
     }
 
     if (!supabase) {
@@ -171,17 +213,30 @@ export const companyService = {
 // Category Services
 export const categoryService = {
   async getCategories(): Promise<Category[]> {
+    console.log('🔄 Loading categories from Supabase...');
+    
+    if (!isSupabaseConfigured() || !supabase) {
+      console.error('❌ Supabase not available for categories');
+      throw new Error('Supabase não configurado');
+    }
+
     try {
       const { data, error } = await supabase
         .from('categories')
         .select('*')
         .order('name');
 
-      if (error) handleSupabaseError(error);
+      if (error) {
+        console.error('❌ Categories error:', error);
+        handleSupabaseError(error);
+      }
+      
+      console.log(`✅ Categories loaded: ${data?.length || 0} items`);
       return data || [];
     } catch (error) {
+      console.error('❌ Categories service error:', error);
       handleSupabaseError(error);
-      return [];
+      throw error;
     }
   },
 
@@ -236,10 +291,18 @@ export const categoryService = {
 // Product Services
 export const productService = {
   async getProducts(): Promise<Product[]> {
+    console.log('🔄 Loading products from Supabase...');
+    
     try {
       // Check if Supabase is configured first
       if (!isSupabaseConfigured()) {
-        return [];
+        console.error('❌ Supabase not configured for products');
+        throw new Error('Supabase não configurado');
+      }
+
+      if (!supabase) {
+        console.error('❌ Supabase client not available for products');
+        throw new Error('Cliente Supabase não inicializado');
       }
 
       const { data, error } = await supabase
@@ -248,10 +311,31 @@ export const productService = {
         .order('name');
 
       if (error) {
+        console.error('❌ Products error:', error);
         handleSupabaseError(error);
-        return [];
       }
       
+      const products = (data || []).map(item => ({
+        id: item.id,
+        name: item.name,
+        description: item.description || '',
+        pricingModel: item.pricing_model as any,
+        basePrice: Number(item.base_price),
+        unit: item.unit || 'un',
+        customCashPrice: item.custom_cash_price ? Number(item.custom_cash_price) : undefined,
+        customCardPrice: item.custom_card_price ? Number(item.custom_card_price) : undefined,
+        supplierCost: item.supplier_cost ? Number(item.supplier_cost) : undefined,
+        categoryId: item.category_id || undefined,
+      }));
+      
+      console.log(`✅ Products loaded: ${products.length} items`);
+      return products;
+    } catch (error) {
+      console.error('❌ Products service error:', error);
+      handleSupabaseError(error);
+      throw error;
+    }
+  },
       return (data || []).map(item => ({
         id: item.id,
         name: item.name,
@@ -349,22 +433,35 @@ export const productService = {
 // Customer Services
 export const customerService = {
   async getCustomers(): Promise<Customer[]> {
+    console.log('🔄 Loading customers from Supabase...');
+    
+    if (!isSupabaseConfigured() || !supabase) {
+      console.error('❌ Supabase not available for customers');
+      throw new Error('Supabase não configurado');
+    }
+
     try {
       const { data: customersData, error: customersError } = await supabase
         .from('customers')
         .select('*')
         .order('name');
 
-      if (customersError) handleSupabaseError(customersError);
+      if (customersError) {
+        console.error('❌ Customers error:', customersError);
+        handleSupabaseError(customersError);
+      }
 
       const { data: downPaymentsData, error: downPaymentsError } = await supabase
         .from('customer_down_payments')
         .select('*')
         .order('date');
 
-      if (downPaymentsError) handleSupabaseError(downPaymentsError);
+      if (downPaymentsError) {
+        console.error('❌ Down payments error:', downPaymentsError);
+        handleSupabaseError(downPaymentsError);
+      }
 
-      return (customersData || []).map(customer => {
+      const customers = (customersData || []).map(customer => {
         const customerDownPayments = (downPaymentsData || [])
           .filter(dp => dp.customer_id === customer.id)
           .map(dp => ({
@@ -387,9 +484,13 @@ export const customerService = {
           downPayments: customerDownPayments,
         };
       });
+      
+      console.log(`✅ Customers loaded: ${customers.length} items`);
+      return customers;
     } catch (error) {
+      console.error('❌ Customers service error:', error);
       handleSupabaseError(error);
-      return [];
+      throw error;
     }
   },
 
@@ -510,10 +611,18 @@ export const customerService = {
 // Quote Services
 export const quoteService = {
   async getQuotes(): Promise<Quote[]> {
+    console.log('🔄 Loading quotes from Supabase...');
+    
     try {
       // Check if Supabase is configured first
       if (!isSupabaseConfigured()) {
-        return [];
+        console.error('❌ Supabase not configured for quotes');
+        throw new Error('Supabase não configurado');
+      }
+
+      if (!supabase) {
+        console.error('❌ Supabase client not available for quotes');
+        throw new Error('Cliente Supabase não inicializado');
       }
 
       const { data: quotesData, error: quotesError } = await supabase
@@ -522,13 +631,8 @@ export const quoteService = {
         .order('created_at', { ascending: false });
 
       if (quotesError) {
-        // Handle missing table gracefully
-        if (quotesError.code === '42P01') {
-          console.warn('🔌 Quotes table does not exist - switching to offline mode');
-          return [];
-        }
+        console.error('❌ Quotes error:', quotesError);
         handleSupabaseError(quotesError);
-        return [];
       }
 
       const { data: itemsData, error: itemsError } = await supabase
@@ -537,16 +641,11 @@ export const quoteService = {
         .order('created_at');
 
       if (itemsError) {
-        // Handle missing table gracefully
-        if (itemsError.code === '42P01') {
-          console.warn('🔌 Quote items table does not exist - switching to offline mode');
-          return [];
-        }
+        console.error('❌ Quote items error:', itemsError);
         handleSupabaseError(itemsError);
-        return [];
       }
 
-      return (quotesData || []).map(quote => {
+      const quotes = (quotesData || []).map(quote => {
         const quoteItems = (itemsData || [])
           .filter(item => item.quote_id === quote.id)
           .map(item => ({
@@ -587,10 +686,13 @@ export const quoteService = {
           createdAt: quote.created_at,
         };
       });
+      
+      console.log(`✅ Quotes loaded: ${quotes.length} items`);
+      return quotes;
     } catch (error) {
-      console.warn('🔌 Quote service - switching to offline mode');
+      console.error('❌ Quotes service error:', error);
       handleSupabaseError(error);
-      return [];
+      throw error;
     }
   },
 
@@ -760,15 +862,25 @@ export const quoteService = {
 // Supplier Services
 export const supplierService = {
   async getSuppliers(): Promise<Supplier[]> {
+    console.log('🔄 Loading suppliers from Supabase...');
+    
+    if (!isSupabaseConfigured() || !supabase) {
+      console.error('❌ Supabase not available for suppliers');
+      throw new Error('Supabase não configurado');
+    }
+
     try {
       const { data, error } = await supabase
         .from('suppliers')
         .select('*')
         .order('name');
 
-      if (error) handleSupabaseError(error);
+      if (error) {
+        console.error('❌ Suppliers error:', error);
+        handleSupabaseError(error);
+      }
       
-      return (data || []).map(supplier => ({
+      const suppliers = (data || []).map(supplier => ({
         id: supplier.id,
         name: supplier.name,
         cnpj: supplier.cnpj || '',
@@ -777,9 +889,13 @@ export const supplierService = {
         address: supplier.address || '',
         notes: supplier.notes || '',
       }));
+      
+      console.log(`✅ Suppliers loaded: ${suppliers.length} items`);
+      return suppliers;
     } catch (error) {
+      console.error('❌ Suppliers service error:', error);
       handleSupabaseError(error);
-      return [];
+      throw error;
     }
   },
 
@@ -850,24 +966,38 @@ export const supplierService = {
   },
 
   async getSupplierDebts(): Promise<Debt[]> {
+    console.log('🔄 Loading supplier debts from Supabase...');
+    
+    if (!isSupabaseConfigured() || !supabase) {
+      console.error('❌ Supabase not available for supplier debts');
+      throw new Error('Supabase não configurado');
+    }
+
     try {
       const { data, error } = await supabase
         .from('supplier_debts')
         .select('*')
         .order('date_added', { ascending: false });
 
-      if (error) handleSupabaseError(error);
+      if (error) {
+        console.error('❌ Supplier debts error:', error);
+        handleSupabaseError(error);
+      }
       
-      return (data || []).map(debt => ({
+      const debts = (data || []).map(debt => ({
         id: debt.id,
         supplierId: debt.supplier_id,
         description: debt.description || '',
         totalAmount: Number(debt.total_amount),
         dateAdded: debt.date_added,
       }));
+      
+      console.log(`✅ Supplier debts loaded: ${debts.length} items`);
+      return debts;
     } catch (error) {
+      console.error('❌ Supplier debts service error:', error);
       handleSupabaseError(error);
-      return [];
+      throw error;
     }
   },
 
@@ -913,24 +1043,38 @@ export const supplierService = {
   },
 
   async getSupplierCredits(): Promise<SupplierCredit[]> {
+    console.log('🔄 Loading supplier credits from Supabase...');
+    
+    if (!isSupabaseConfigured() || !supabase) {
+      console.error('❌ Supabase not available for supplier credits');
+      throw new Error('Supabase não configurado');
+    }
+
     try {
       const { data, error } = await supabase
         .from('supplier_credits')
         .select('*')
         .order('date', { ascending: false });
 
-      if (error) handleSupabaseError(error);
+      if (error) {
+        console.error('❌ Supplier credits error:', error);
+        handleSupabaseError(error);
+      }
       
-      return (data || []).map(credit => ({
+      const credits = (data || []).map(credit => ({
         id: credit.id,
         supplierId: credit.supplier_id,
         amount: Number(credit.amount),
         date: credit.date,
         description: credit.description || '',
       }));
+      
+      console.log(`✅ Supplier credits loaded: ${credits.length} items`);
+      return credits;
     } catch (error) {
+      console.error('❌ Supplier credits service error:', error);
       handleSupabaseError(error);
-      return [];
+      throw error;
     }
   },
 
@@ -979,15 +1123,25 @@ export const supplierService = {
 // Accounts Payable Services
 export const accountsPayableService = {
   async getAccountsPayable(): Promise<AccountsPayableEntry[]> {
+    console.log('🔄 Loading accounts payable from Supabase...');
+    
+    if (!isSupabaseConfigured() || !supabase) {
+      console.error('❌ Supabase not available for accounts payable');
+      throw new Error('Supabase não configurado');
+    }
+
     try {
       const { data, error } = await supabase
         .from('accounts_payable')
         .select('*')
         .order('due_date');
 
-      if (error) handleSupabaseError(error);
+      if (error) {
+        console.error('❌ Accounts payable error:', error);
+        handleSupabaseError(error);
+      }
       
-      return (data || []).map(entry => ({
+      const entries = (data || []).map(entry => ({
         id: entry.id,
         name: entry.name,
         amount: Number(entry.amount),
@@ -999,9 +1153,13 @@ export const accountsPayableService = {
         installmentNumberOfSeries: entry.installment_number_of_series || undefined,
         createdAt: entry.created_at,
       }));
+      
+      console.log(`✅ Accounts payable loaded: ${entries.length} items`);
+      return entries;
     } catch (error) {
+      console.error('❌ Accounts payable service error:', error);
       handleSupabaseError(error);
-      return [];
+      throw error;
     }
   },
 

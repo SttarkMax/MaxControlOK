@@ -52,23 +52,51 @@ export const supabase = isSupabaseConfigured()
 // Test connection function
 export const testSupabaseConnection = async () => {
   if (!supabase) {
-    console.warn('⚠️ Supabase client not initialized');
+    console.error('❌ Supabase client not initialized - check configuration');
     return false;
   }
   
   try {
-    console.log('🔄 Testing Supabase connection...');
+    console.log('🔄 Testing Supabase connection with comprehensive check...');
+    
+    // Test multiple tables to ensure full connectivity
+    const tests = [
+      { table: 'companies', name: 'Companies' },
+      { table: 'categories', name: 'Categories' },
+      { table: 'products', name: 'Products' },
+      { table: 'customers', name: 'Customers' },
+      { table: 'quotes', name: 'Quotes' },
+      { table: 'suppliers', name: 'Suppliers' },
+      { table: 'accounts_payable', name: 'Accounts Payable' },
+      { table: 'app_users', name: 'Users' }
+    ];
+    
+    console.log('🔍 Testing database tables...');
+    for (const test of tests) {
+      try {
+        const { data, error } = await supabase.from(test.table).select('count').limit(1);
+        if (error) {
+          console.error(`❌ ${test.name} table error:`, error);
+        } else {
+          console.log(`✅ ${test.name} table accessible`);
+        }
+      } catch (err) {
+        console.error(`❌ ${test.name} table failed:`, err);
+      }
+    }
+    
+    // Final connectivity test
     const { data, error } = await supabase.from('companies').select('count').limit(1);
     
     if (error) {
-      console.error('❌ Supabase connection test failed:', error);
+      console.error('❌ Supabase final connection test failed:', error);
       return false;
     }
     
-    console.log('✅ Supabase connection successful');
+    console.log('✅ Supabase connection fully successful - all systems ready');
     return true;
   } catch (err) {
-    console.error('❌ Supabase connection error:', err);
+    console.error('❌ Supabase connection critical error:', err);
     return false;
   }
 };

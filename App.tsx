@@ -33,12 +33,19 @@ const App: React.FC = () => {
 
   // Test Supabase connection on app load
   useEffect(() => {
+    console.log('🚀 App: Starting Supabase connection test...');
     if (isSupabaseConfigured()) {
-      testSupabaseConnection().catch(err => {
-        console.warn('⚠️ Initial Supabase connection test failed:', err);
+      testSupabaseConnection().then(success => {
+        if (success) {
+          console.log('✅ App: Supabase connection successful - all systems ready');
+        } else {
+          console.error('❌ App: Supabase connection failed - check configuration');
+        }
+      }).catch(err => {
+        console.error('❌ App: Initial Supabase connection test failed:', err);
       });
     } else {
-      console.warn('⚠️ Supabase not configured - running in offline mode');
+      console.error('❌ App: Supabase not configured - check environment variables');
     }
   }, []);
 

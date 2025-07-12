@@ -210,7 +210,12 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ userName, userRole, openG
     return (
       <div className="p-6 text-white flex items-center justify-center">
         <Spinner size="lg" />
-        <span className="ml-3">Carregando dados do painel...</span>
+        <div className="ml-3">
+          <span>Carregando dados do painel...</span>
+          <div className="text-xs text-gray-400 mt-1">
+            Conectando ao Supabase e carregando todas as informações...
+          </div>
+        </div>
       </div>
     );
   }

@@ -32,54 +32,17 @@ export const useCompany = () => {
   const loadCompany = async () => {
     try {
       setLoading(true);
-      
-      // Check if Supabase is configured
-      if (!isSupabaseConfigured()) {
-        setCompany({
-          name: 'Sua Empresa',
-          logoUrlDarkBg: '',
-          logoUrlLightBg: '',
-          address: '',
-          phone: '',
-          email: '',
-          cnpj: '',
-          instagram: '',
-          website: '',
-        });
-        setError('Aplicação funcionando em modo offline');
-        return;
-      }
+      console.log('🔄 useCompany: Loading company data...');
       
       const data = await companyService.getCompany();
+      console.log('✅ useCompany: Company data loaded:', data?.name);
       setCompany(data);
       setError(null);
     } catch (err) {
-      console.error('Error loading company:', err);
+      console.error('❌ useCompany: Error loading company:', err);
       const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar empresa';
-      
-      // Check for missing table error
-      if (errorMessage.includes('does not exist') || (err as any)?.code === '42P01') {
-        setError('Banco de dados não configurado - funcionando em modo offline');
-      } else {
-        setError(errorMessage);
-      }
-      
-      // Set default company data on network error
-      if (errorMessage.includes('Conexão com o banco de dados falhou') || 
-          errorMessage.includes('does not exist') || 
-          (err as any)?.code === '42P01') {
-        setCompany({
-          name: 'Sua Empresa',
-          logoUrlDarkBg: '',
-          logoUrlLightBg: '',
-          address: '',
-          phone: '',
-          email: '',
-          cnpj: '',
-          instagram: '',
-          website: '',
-        });
-      }
+      setError(errorMessage);
+      setCompany(null);
     } finally {
       setLoading(false);
     }
@@ -113,25 +76,17 @@ export const useCategories = () => {
   const loadCategories = async () => {
     try {
       setLoading(true);
-      
-      // Check if Supabase is configured
-      if (!isSupabaseConfigured()) {
-        setCategories([]);
-        setError('Aplicação funcionando em modo offline');
-        return;
-      }
+      console.log('🔄 useCategories: Loading categories...');
       
       const data = await categoryService.getCategories();
+      console.log(`✅ useCategories: ${data.length} categories loaded`);
       setCategories(data);
       setError(null);
     } catch (err) {
+      console.error('❌ useCategories: Error loading categories:', err);
       const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar categorias';
       setError(errorMessage);
-      
-      // Set empty array on network error
-      if (errorMessage.includes('Conexão com o banco de dados falhou')) {
-        setCategories([]);
-      }
+      setCategories([]);
     } finally {
       setLoading(false);
     }
@@ -195,21 +150,17 @@ export const useProducts = () => {
   const loadProducts = async () => {
     try {
       setLoading(true);
-      
-      // Check if Supabase is configured
-      if (!isSupabaseConfigured()) {
-        setProducts([]);
-        setError('Aplicação funcionando em modo offline');
-        return;
-      }
+      console.log('🔄 useProducts: Loading products...');
       
       const data = await productService.getProducts();
+      console.log(`✅ useProducts: ${data.length} products loaded`);
       setProducts(data);
       setError(null);
     } catch (err) {
-      console.warn('🔌 Products hook - switching to offline mode');
+      console.error('❌ useProducts: Error loading products:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar produtos';
+      setError(errorMessage);
       setProducts([]);
-      setError('Aplicação funcionando em modo offline');
     } finally {
       setLoading(false);
     }
@@ -273,25 +224,17 @@ export const useCustomers = () => {
   const loadCustomers = async () => {
     try {
       setLoading(true);
-      
-      // Check if Supabase is configured
-      if (!isSupabaseConfigured()) {
-        setCustomers([]);
-        setError('Aplicação funcionando em modo offline');
-        return;
-      }
+      console.log('🔄 useCustomers: Loading customers...');
       
       const data = await customerService.getCustomers();
+      console.log(`✅ useCustomers: ${data.length} customers loaded`);
       setCustomers(data);
       setError(null);
     } catch (err) {
+      console.error('❌ useCustomers: Error loading customers:', err);
       const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar clientes';
       setError(errorMessage);
-      
-      // Set empty array on network error
-      if (errorMessage.includes('Conexão com o banco de dados falhou')) {
-        setCustomers([]);
-      }
+      setCustomers([]);
     } finally {
       setLoading(false);
     }
@@ -355,33 +298,17 @@ export const useQuotes = () => {
   const loadQuotes = async () => {
     try {
       setLoading(true);
-      
-      // Check if Supabase is configured
-      if (!isSupabaseConfigured()) {
-        setQuotes([]);
-        setError('Aplicação funcionando em modo offline');
-        return;
-      }
+      console.log('🔄 useQuotes: Loading quotes...');
       
       const data = await quoteService.getQuotes();
+      console.log(`✅ useQuotes: ${data.length} quotes loaded`);
       setQuotes(data);
       setError(null);
     } catch (err) {
+      console.error('❌ useQuotes: Error loading quotes:', err);
       const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar orçamentos';
-      
-      // Check for missing table error
-      if (errorMessage.includes('does not exist') || (err as any)?.code === '42P01') {
-        setError('Banco de dados não configurado - funcionando em modo offline');
-      } else {
-        setError(errorMessage);
-      }
-      
-      // Set empty array on network error to prevent app crash
-      if (errorMessage.includes('Conexão com o banco de dados falhou') || 
-          errorMessage.includes('does not exist') || 
-          (err as any)?.code === '42P01') {
-        setQuotes([]);
-      }
+      setError(errorMessage);
+      setQuotes([]);
     } finally {
       setLoading(false);
     }
@@ -447,35 +374,26 @@ export const useSuppliers = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      
-      // Check if Supabase is configured
-      if (!isSupabaseConfigured()) {
-        setSuppliers([]);
-        setDebts([]);
-        setCredits([]);
-        setError('Aplicação funcionando em modo offline');
-        return;
-      }
+      console.log('🔄 useSuppliers: Loading suppliers data...');
       
       const [suppliersData, debtsData, creditsData] = await Promise.all([
         supplierService.getSuppliers(),
         supplierService.getSupplierDebts(),
         supplierService.getSupplierCredits(),
       ]);
+      
+      console.log(`✅ useSuppliers: ${suppliersData.length} suppliers, ${debtsData.length} debts, ${creditsData.length} credits loaded`);
       setSuppliers(suppliersData);
       setDebts(debtsData);
       setCredits(creditsData);
       setError(null);
     } catch (err) {
+      console.error('❌ useSuppliers: Error loading suppliers data:', err);
       const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar fornecedores';
       setError(errorMessage);
-      
-      // Set empty arrays on network error
-      if (errorMessage.includes('Conexão com o banco de dados falhou')) {
-        setSuppliers([]);
-        setDebts([]);
-        setCredits([]);
-      }
+      setSuppliers([]);
+      setDebts([]);
+      setCredits([]);
     } finally {
       setLoading(false);
     }
@@ -593,25 +511,17 @@ export const useAccountsPayable = () => {
   const loadEntries = async () => {
     try {
       setLoading(true);
-      
-      // Check if Supabase is configured
-      if (!isSupabaseConfigured()) {
-        setEntries([]);
-        setError('Aplicação funcionando em modo offline');
-        return;
-      }
+      console.log('🔄 useAccountsPayable: Loading accounts payable...');
       
       const data = await accountsPayableService.getAccountsPayable();
+      console.log(`✅ useAccountsPayable: ${data.length} entries loaded`);
       setEntries(data);
       setError(null);
     } catch (err) {
+      console.error('❌ useAccountsPayable: Error loading accounts payable:', err);
       const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar contas a pagar';
       setError(errorMessage);
-      
-      // Set empty array on network error
-      if (errorMessage.includes('Conexão com o banco de dados falhou')) {
-        setEntries([]);
-      }
+      setEntries([]);
     } finally {
       setLoading(false);
     }
@@ -687,51 +597,36 @@ export const useUsers = () => {
   const loadUsers = async () => {
     try {
       setLoading(true);
-      console.log('🔍 Loading users - Supabase configured:', isSupabaseConfigured());
+      console.log('🔄 useUsers: Loading users...');
       
-      // Check if Supabase is configured
-      if (!isSupabaseConfigured()) {
-        console.warn('⚠️ Supabase not configured - checking localStorage for users');
-        // Try to load from localStorage as fallback
-        const localUsers = localStorage.getItem('appUsers');
-        if (localUsers) {
-          const parsedUsers = JSON.parse(localUsers);
-          console.log('📦 Found users in localStorage:', parsedUsers);
-          setUsers(parsedUsers);
-        } else {
-          console.log('📦 No users in localStorage, setting empty array');
-          setUsers([]);
-        }
-        setError('Aplicação funcionando em modo offline');
-        return;
-      }
-      
-      console.log('🔄 Fetching users from Supabase...');
       const data = await userService.getUsers();
-      console.log('✅ Users fetched from Supabase:', data);
+      console.log(`✅ useUsers: ${data.length} users loaded from Supabase`);
       setUsers(data);
+      
+      // Also save to localStorage as backup
+      localStorage.setItem('appUsers', JSON.stringify(data));
+      console.log('📦 useUsers: Users saved to localStorage as backup');
+      
       setError(null);
     } catch (err) {
-      console.error('❌ Error loading users:', err);
+      console.error('❌ useUsers: Error loading users:', err);
       const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar usuários';
       setError(errorMessage);
       
-      // Set empty array on network error
-      if (errorMessage.includes('Conexão com o banco de dados falhou')) {
-        console.log('🔌 Network error - trying localStorage fallback');
-        const localUsers = localStorage.getItem('appUsers');
-        if (localUsers) {
-          const parsedUsers = JSON.parse(localUsers);
-          console.log('📦 Using localStorage users as fallback:', parsedUsers);
-          setUsers(parsedUsers);
-        } else {
-          console.log('📦 No localStorage fallback available');
-          setUsers([]);
-        }
+      // Try localStorage fallback
+      console.log('🔌 useUsers: Trying localStorage fallback...');
+      const localUsers = localStorage.getItem('appUsers');
+      if (localUsers) {
+        const parsedUsers = JSON.parse(localUsers);
+        console.log('📦 useUsers: Using localStorage users as fallback:', parsedUsers);
+        setUsers(parsedUsers);
+      } else {
+        console.log('📦 useUsers: No localStorage fallback available');
+        setUsers([]);
       }
     } finally {
       setLoading(false);
-      console.log('🏁 loadUsers completed');
+      console.log('🏁 useUsers: loadUsers completed');
     }
   };
 
