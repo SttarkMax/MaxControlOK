@@ -5,7 +5,7 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 // Check if Supabase is properly configured
-export const isSupabaseConfigured = () => {
+export function isSupabaseConfigured() {
   const hasValidUrl = supabaseUrl && 
     supabaseUrl !== 'https://placeholder.supabase.co' && 
     supabaseUrl !== 'https://your-project-ref.supabase.co' &&
@@ -17,7 +17,7 @@ export const isSupabaseConfigured = () => {
     supabaseAnonKey.length > 50;
     
   return !!(hasValidUrl && hasValidKey);
-};
+}
 
 // Log configuration status
 console.log('🔧 Supabase Configuration Status:', {
