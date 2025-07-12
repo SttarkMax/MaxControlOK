@@ -21,6 +21,7 @@ import ViewQuoteDetailsModal from './components/ViewQuoteDetailsModal';
 import { UserAccessLevel, CompanyInfo, Quote, User, LoggedInUser } from './types'; 
 import { DEFAULT_USER_ACCESS_LEVEL, USERS_STORAGE_KEY } from './constants';
 import { useCompany } from './hooks/useSupabaseData';
+import { userService } from './services/supabaseService';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -38,6 +39,8 @@ const App: React.FC = () => {
       testSupabaseConnection().then(success => {
         if (success) {
           console.log('✅ App: Supabase connection successful - all systems ready');
+          // Create default admin user if it doesn't exist
+          createDefaultAdminUser();
         } else {
           console.error('❌ App: Supabase connection failed - check configuration');
         }
@@ -48,6 +51,28 @@ const App: React.FC = () => {
       console.error('❌ App: Supabase not configured - check environment variables');
     }
   }, []);
+
+  const createDefaultAdminUser = async () => {
+    try {
+      // Try to authenticate with default credentials to check if user exists
+      const existingUser = await userService.authenticateUser('admin@maxcontrol.com', 'admin123');
+      
+      if (!existingUser) {
+        console.log('🔧 Creating default admin user...');
+        await userService.createUser({
+          username: 'admin@maxcontrol.com',
+          fullName: 'Administrador',
+          password: 'admin123',
+          role: UserAccessLevel.ADMIN
+        });
+        console.log('✅ Default admin user created successfully');
+      } else {
+        console.log('✅ Default admin user already exists');
+      }
+    } catch (error) {
+      console.error('❌ Error creating default admin user:', error);
+    }
+  };
 
   // Check for existing Supabase session on app load
   useEffect(() => {
