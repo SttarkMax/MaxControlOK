@@ -19,7 +19,7 @@ interface SidebarProps {
 }
 
 const allNavItems: NavItem[] = [
-  { name: 'Painel', path: '/', icon: BuildingOfficeIcon, allowedRoles: [UserAccessLevel.ADMIN, UserAccessLevel.SALES, UserAccessLevel.VIEWER] },
+  { name: 'Painel', path: '/', icon: BuildingOfficeIcon, allowedRoles: [UserAccessLevel.ADMIN, UserAccessLevel.SALES] },
   { name: 'Clientes', path: '/customers', icon: UserGroupIcon, allowedRoles: [UserAccessLevel.ADMIN, UserAccessLevel.SALES] },
   { name: 'Produtos', path: '/products', icon: SquaresPlusIcon, allowedRoles: [UserAccessLevel.ADMIN, UserAccessLevel.SALES] },
   { name: 'Categorias', path: '/categories', icon: TagIcon, allowedRoles: [UserAccessLevel.ADMIN, UserAccessLevel.SALES] }, 

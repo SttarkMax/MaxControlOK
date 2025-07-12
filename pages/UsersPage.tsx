@@ -145,13 +145,12 @@ const UsersPage: React.FC<UsersPageProps> = ({ loggedInUser }) => {
   const roleOptions = [
     { value: UserAccessLevel.ADMIN, label: 'Administrador' },
     { value: UserAccessLevel.SALES, label: 'Vendas' },
-    { value: UserAccessLevel.VIEWER, label: 'Visualização' },
   ];
 
   const getRoleLabelAndStyle = (roleValue: UserAccessLevel): { label: string, style: string } => {
     const roleInfo = roleOptions.find(opt => opt.value === roleValue);
     const label = roleInfo?.label || roleValue;
-    let style = 'text-gray-300'; // Default for Viewer and any other case
+    let style = 'text-gray-300'; // Default for any other case
 
     if (roleValue === UserAccessLevel.ADMIN) {
       style = 'text-yellow-400 font-semibold';

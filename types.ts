@@ -8,7 +8,6 @@ export enum PricingModel {
 export enum UserAccessLevel {
   ADMIN = 'admin',
   SALES = 'sales',
-  VIEWER = 'viewer',
 }
 
 export interface CompanyInfo {

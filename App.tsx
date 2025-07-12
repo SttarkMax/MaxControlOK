@@ -206,7 +206,7 @@ const App: React.FC = () => {
               <Route 
                 path="/quotes/all" 
                 element={
-                  <ProtectedRoute requiredRole={[UserAccessLevel.ADMIN, UserAccessLevel.SALES, UserAccessLevel.VIEWER]}>
+                  <ProtectedRoute requiredRole={[UserAccessLevel.ADMIN, UserAccessLevel.SALES]}>
                     <AllQuotesPage openGlobalViewDetailsModal={handleOpenViewDetailsForGlobal} />
                   </ProtectedRoute>
                 } 
