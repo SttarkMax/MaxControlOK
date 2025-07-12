@@ -952,6 +952,10 @@ export const supplierService = {
 
   async createSupplierCredit(credit: Omit<SupplierCredit, 'id'>): Promise<SupplierCredit> {
     try {
+      if (!isSupabaseConfigured() || !supabase) {
+        throw new Error('Supabase não configurado');
+      }
+      
       const { data, error } = await supabase
         .from('supplier_credits')
         .insert([{
@@ -964,6 +968,10 @@ export const supplierService = {
         .single();
 
       if (error) handleSupabaseError(error);
+      
+      if (!data) {
+        throw new Error('Nenhum dado retornado após inserção. Verifique as políticas RLS (Row Level Security) para a tabela supplier_credits no Supabase - o papel anon pode precisar de permissões SELECT além de INSERT.');
+      }
       
       return {
         id: data.id,
