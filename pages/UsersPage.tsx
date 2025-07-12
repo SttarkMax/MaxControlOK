@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
-import { Select } from '../components/common/Select';
+import Select from '../components/common/Select';
 import PlusIcon from '../components/icons/PlusIcon';
 import PencilIcon from '../components/icons/PencilIcon';
 import TrashIcon from '../components/icons/TrashIcon';
