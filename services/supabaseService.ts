@@ -1117,7 +1117,9 @@ export const userService = {
 
   async createUser(user: Omit<User, 'id'> & { password: string }): Promise<User> {
     try {
+      console.log('🔄 Creating user:', user.username);
       const hashedPassword = await bcrypt.hash(user.password, 10);
+      console.log('🔐 Password hashed successfully');
       
       const { data, error } = await supabase
         .from('app_users')
@@ -1130,7 +1132,12 @@ export const userService = {
         .select()
         .single();
 
-      if (error) handleSupabaseError(error);
+      if (error) {
+        console.error('❌ Database error creating user:', error);
+        handleSupabaseError(error);
+      }
+      
+      console.log('✅ User created successfully:', data.username);
       
       return {
         id: data.id,
@@ -1140,6 +1147,7 @@ export const userService = {
         role: data.role as UserAccessLevel,
       };
     } catch (error) {
+      console.error('❌ createUser service error:', error);
       handleSupabaseError(error);
       throw error;
     }
@@ -1147,6 +1155,7 @@ export const userService = {
 
   async updateUser(user: User & { password?: string }): Promise<void> {
     try {
+      console.log('🔄 Updating user:', user.username);
       const updateData: any = {
         username: user.username,
         full_name: user.fullName,
@@ -1155,6 +1164,7 @@ export const userService = {
       };
 
       if (user.password) {
+        console.log('🔐 Updating password for user:', user.username);
         updateData.password_hash = await bcrypt.hash(user.password, 10);
       }
 
@@ -1163,8 +1173,14 @@ export const userService = {
         .update(updateData)
         .eq('id', user.id);
 
-      if (error) handleSupabaseError(error);
+      if (error) {
+        console.error('❌ Database error updating user:', error);
+        handleSupabaseError(error);
+      }
+      
+      console.log('✅ User updated successfully:', user.username);
     } catch (error) {
+      console.error('❌ updateUser service error:', error);
       handleSupabaseError(error);
     }
   },

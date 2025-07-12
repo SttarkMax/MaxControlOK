@@ -54,9 +54,44 @@ const App: React.FC = () => {
 
   const createDefaultAdminUser = async () => {
     try {
-      console.log('🔧 Force recreating admin user with correct password...');
+      console.log('🔧 Ensuring admin user exists with correct password...');
       
-      // Delete existing admin user if it exists
+      // Check if admin user already exists
+      const existingUser = await userService.getUserByUsername('admin@maxcontrol.com');
+      
+      if (existingUser) {
+        console.log('🔄 Admin user exists, updating password...');
+        await userService.updateUser({
+          ...existingUser,
+          fullName: 'Administrador',
+          role: UserAccessLevel.ADMIN,
+          password: 'admin123'
+        });
+        console.log('✅ Admin user password updated successfully');
+      } else {
+        console.log('➕ Creating new admin user...');
+        await userService.createUser({
+          username: 'admin@maxcontrol.com',
+          fullName: 'Administrador',
+          password: 'admin123',
+          role: UserAccessLevel.ADMIN
+        });
+        console.log('✅ New admin user created successfully');
+      }
+    } catch (error) {
+      console.error('❌ Error managing default admin user:', error);
+    }
+  };
+
+  const handleLogin = (username: string) => {
+    // User data is already set in localStorage by LoginPage
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+      const userToSet: LoggedInUser = JSON.parse(savedUser);
+      setCurrentUser(userToSet);
+      setIsAuthenticated(true);
+    }
+  };
       try {
         await userService.deleteUserByUsername('admin@maxcontrol.com');
         console.log('🗑️ Existing admin user deleted');
@@ -93,7 +128,9 @@ const App: React.FC = () => {
       }
     };
     
-    checkSession();
+    (async () => {
+      await checkSession();
+    })();
   }, []);
 
   useEffect(() => {
