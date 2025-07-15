@@ -430,6 +430,10 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
       doc.text(`Contato: ${currentQuote.clientContact}`, margin, yPos + 5);
       yPos += 5;
     }
+    if (currentQuote.salespersonFullName) {
+      doc.text(`Vendedor: ${currentQuote.salespersonFullName}`, margin, yPos + 5);
+      yPos += 5;
+    }
     yPos += 15;
 
     // Items table
