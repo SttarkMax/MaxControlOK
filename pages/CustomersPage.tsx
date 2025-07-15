@@ -43,6 +43,8 @@ const CustomersPage: React.FC<CustomersPageProps> = ({ openGlobalViewDetailsModa
   const { customers, loading: customersLoading, createCustomer, updateCustomer, deleteCustomer } = useCustomers();
   const { quotes, loading: quotesLoading } = useQuotes();
   
+  const [searchTerm, setSearchTerm] = useState('');
+  
   const [isEditModalOpen, setIsEditModalOpen] = useState(false); 
   const [currentCustomer, setCurrentCustomer] = useState<Customer>(initialCustomerState);
   const [isEditing, setIsEditing] = useState(false);
@@ -202,6 +204,10 @@ const CustomersPage: React.FC<CustomersPageProps> = ({ openGlobalViewDetailsModa
     return downPayments.reduce((total, dp) => total + dp.amount, 0);
   };
 
+  const filteredCustomers = customers.filter(customer =>
+    customer.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   if (customersLoading || quotesLoading) {
     return (
       <div className="p-6 text-white flex items-center justify-center">
@@ -223,6 +229,18 @@ const CustomersPage: React.FC<CustomersPageProps> = ({ openGlobalViewDetailsModa
         </Button>
       </div>
 
+      <div className="mb-6">
+        <Input
+          id="customerSearch"
+          type="text"
+          placeholder="Pesquisar por nome ou razão social..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-md"
+          label="Pesquisar Cliente"
+        />
+      </div>
+
       {customers.length === 0 ? (
         <div className="text-center py-10 bg-[#1d1d1d] shadow-xl rounded-lg">
           <UserGroupIcon className="mx-auto h-12 w-12 text-gray-500" />
@@ -233,6 +251,14 @@ const CustomersPage: React.FC<CustomersPageProps> = ({ openGlobalViewDetailsModa
               Adicionar Cliente
             </Button>
           </div>
+        </div>
+      ) : filteredCustomers.length === 0 ? (
+        <div className="text-center py-10 bg-[#1d1d1d] shadow-xl rounded-lg">
+          <UserGroupIcon className="mx-auto h-12 w-12 text-gray-500" />
+          <h3 className="mt-2 text-sm font-medium text-white">Nenhum cliente encontrado</h3>
+          <p className="mt-1 text-sm text-gray-400">
+            Nenhum cliente encontrado com o termo "{searchTerm}". Tente uma busca diferente.
+          </p>
         </div>
       ) : (
         <div className="bg-gray-800 shadow-xl rounded-lg overflow-x-auto">
@@ -249,7 +275,7 @@ const CustomersPage: React.FC<CustomersPageProps> = ({ openGlobalViewDetailsModa
               </tr>
             </thead>
             <tbody className="bg-[#1F1F1F] divide-y divide-[#282828]">
-              {customers.map(customer => {
+              {filteredCustomers.map(customer => {
                 const totalSinal = calculateTotalDownPayment(customer.downPayments);
                 const hasSinal = totalSinal > 0;
                 return (
