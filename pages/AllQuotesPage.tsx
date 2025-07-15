@@ -1,23 +1,44 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Quote } from '../types';
+import { Quote, UserAccessLevel } from '../types';
 import Button from '../components/common/Button';
 import Spinner from '../components/common/Spinner';
 import DocumentTextIcon from '../components/icons/DocumentTextIcon';
 import PlusIcon from '../components/icons/PlusIcon';
+import TrashIcon from '../components/icons/TrashIcon';
 import { translateQuoteStatus, formatCurrency } from '../utils';
 import { useQuotes } from '../hooks/useSupabaseData';
 
 interface AllQuotesPageProps {
   openGlobalViewDetailsModal: (quote: Quote) => void;
+  currentUserRole?: UserAccessLevel;
 }
 
-const AllQuotesPage: React.FC<AllQuotesPageProps> = ({ openGlobalViewDetailsModal }) => {
-  const { quotes: allQuotes, loading } = useQuotes();
+const AllQuotesPage: React.FC<AllQuotesPageProps> = ({ openGlobalViewDetailsModal, currentUserRole }) => {
+  const { quotes: allQuotes, loading, deleteQuote } = useQuotes();
   const navigate = useNavigate();
 
   const sortedQuotes = [...allQuotes].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  const handleDeleteQuote = async (quote: Quote) => {
+    if (currentUserRole !== UserAccessLevel.ADMIN) {
+      alert('Apenas administradores podem excluir orçamentos.');
+      return;
+    }
+
+    const confirmMessage = `Tem certeza que deseja excluir o orçamento ${quote.quoteNumber}?\n\nEsta ação não pode ser desfeita.`;
+    
+    if (window.confirm(confirmMessage)) {
+      try {
+        await deleteQuote(quote.id);
+        alert('Orçamento excluído com sucesso!');
+      } catch (error) {
+        console.error('Erro ao excluir orçamento:', error);
+        alert('Erro ao excluir orçamento. Tente novamente.');
+      }
+    }
+  };
 
   const getStatusColorClass = (status: Quote['status']): string => {
     switch (status) {
@@ -79,7 +100,9 @@ const AllQuotesPage: React.FC<AllQuotesPageProps> = ({ openGlobalViewDetailsModa
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Vendedor</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-400 uppercase tracking-wider">Valor (À Vista)</th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider">Ações</th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider">
+                  Ações
+                </th>
               </tr>
             </thead>
             <tbody className="bg-[#282828] divide-y divide-[#282828]">
@@ -95,14 +118,27 @@ const AllQuotesPage: React.FC<AllQuotesPageProps> = ({ openGlobalViewDetailsModa
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300 text-right">{formatCurrency(quote.totalCash)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
-                    <Button 
-                      onClick={() => openGlobalViewDetailsModal(quote)}
-                      variant="outline" 
-                      size="sm"
-                    >
-                      Ver Detalhes
-                    </Button>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-center space-x-2">
+                    <div className="flex items-center justify-center gap-2">
+                      <Button 
+                        onClick={() => openGlobalViewDetailsModal(quote)}
+                        variant="outline" 
+                        size="sm"
+                      >
+                        Ver Detalhes
+                      </Button>
+                      {currentUserRole === UserAccessLevel.ADMIN && (
+                        <Button 
+                          onClick={() => handleDeleteQuote(quote)}
+                          variant="danger" 
+                          size="sm"
+                          iconLeft={<TrashIcon className="w-4 h-4" />}
+                          title="Excluir Orçamento"
+                        >
+                          Excluir
+                        </Button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
