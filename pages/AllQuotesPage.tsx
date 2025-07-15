@@ -119,11 +119,12 @@ const AllQuotesPage: React.FC<AllQuotesPageProps> = ({ openGlobalViewDetailsModa
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300 text-right">{formatCurrency(quote.totalCash)}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-center space-x-2">
-                    <div className="flex items-center justify-center gap-2">
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
                       <Button 
                         onClick={() => openGlobalViewDetailsModal(quote)}
                         variant="outline" 
                         size="sm"
+                        className="w-full sm:w-auto"
                       >
                         Ver Detalhes
                       </Button>
@@ -134,8 +135,10 @@ const AllQuotesPage: React.FC<AllQuotesPageProps> = ({ openGlobalViewDetailsModa
                           size="sm"
                           iconLeft={<TrashIcon className="w-4 h-4" />}
                           title="Excluir Orçamento"
+                          className="w-full sm:w-auto"
                         >
-                          Excluir
+                          <span className="sm:hidden">Excluir Orçamento</span>
+                          <span className="hidden sm:inline">Excluir</span>
                         </Button>
                       )}
                     </div>
