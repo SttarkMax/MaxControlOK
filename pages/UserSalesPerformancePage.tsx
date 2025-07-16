@@ -81,8 +81,6 @@ const UserSalesPerformancePage: React.FC<UserSalesPerformancePageProps> = ({ cur
   const salesDataPerUser = useMemo(() => {
     console.log('👥 Processing users:', allUsers.map(u => ({ id: u.id, username: u.username, fullName: u.fullName })));
     console.log('📅 Selected period:', { year: selectedYear, month: selectedMonth });
-    
-    return allUsers.map(user => {
       const userSales = allAcceptedQuotes.filter(quote => {
         const quoteDate = new Date(quote.createdAt);
         const matchesUser = quote.salespersonUsername === user.username;
@@ -105,6 +103,8 @@ const UserSalesPerformancePage: React.FC<UserSalesPerformancePageProps> = ({ cur
         return matchesUser && matchesYear && matchesMonth;
       });
       
+      console.log(`📊 User ${user.username} sales:`, userSales.map(q => ({ number: q.quoteNumber, value: q.totalCash })));
+
       console.log(`📊 User ${user.username} sales:`, userSales.map(q => ({ number: q.quoteNumber, value: q.totalCash })));
 
       const daysInSelectedMonth = getDaysInMonth(selectedYear, selectedMonth);
