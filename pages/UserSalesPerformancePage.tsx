@@ -233,53 +233,55 @@ const UserSalesPerformancePage: React.FC<UserSalesPerformancePageProps> = ({ cur
                 Vendas em {monthOptions.find(m => m.value === selectedMonth)?.label} de {selectedYear}
               </p>
               {data.hasSales ? (
-                <div className="h-72 md:h-96 relative">
-                  {data.hasSales && (
-                    <p className="text-sm text-green-400 mt-1">
-                      {data.userSales.length} orçamento(s) aceito(s) • Total: {formatCurrency(data.totalSales)}
-                    </p>
-                  )}
-                  <Bar 
-                    options={{
-                      ...chartBaseOptions,
-                      plugins: {
-                        ...chartBaseOptions.plugins,
-                        title: {
-                          display: false, // Title is part of the section header
-                        },
-                      }
-                    }} 
-                    data={data.chartData} 
-                  />
-                </div>
-                {data.hasSales && (
-                  <div className="text-right">
-                    <p className="text-sm text-gray-400 mb-2">Orçamentos Aceitos:</p>
-                    <div className="space-y-1 max-h-32 overflow-y-auto">
-                      {data.userSales.slice(0, 5).map(quote => (
-                        <div key={quote.id} className="flex items-center justify-between bg-[#282828] p-2 rounded text-xs">
-                          <span className="text-yellow-400">{quote.quoteNumber}</span>
-                          <span className="text-gray-300">{formatCurrency(quote.totalCash)}</span>
-                          {openGlobalViewDetailsModal && (
-                            <Button 
-                              onClick={() => openGlobalViewDetailsModal(quote)}
-                              variant="outline" 
-                              size="xs"
-                              className="ml-2"
-                            >
-                              Ver
-                            </Button>
-                          )}
-                        </div>
-                      ))}
-                      {data.userSales.length > 5 && (
-                        <p className="text-xs text-gray-500 text-center">
-                          +{data.userSales.length - 5} orçamento(s) adicional(is)
-                        </p>
-                      )}
-                    </div>
+                <>
+                  <div className="h-72 md:h-96 relative">
+                    {data.hasSales && (
+                      <p className="text-sm text-green-400 mt-1">
+                        {data.userSales.length} orçamento(s) aceito(s) • Total: {formatCurrency(data.totalSales)}
+                      </p>
+                    )}
+                    <Bar 
+                      options={{
+                        ...chartBaseOptions,
+                        plugins: {
+                          ...chartBaseOptions.plugins,
+                          title: {
+                            display: false, // Title is part of the section header
+                          },
+                        }
+                      }} 
+                      data={data.chartData} 
+                    />
                   </div>
-                )}
+                  {data.hasSales && (
+                    <div className="text-right">
+                      <p className="text-sm text-gray-400 mb-2">Orçamentos Aceitos:</p>
+                      <div className="space-y-1 max-h-32 overflow-y-auto">
+                        {data.userSales.slice(0, 5).map(quote => (
+                          <div key={quote.id} className="flex items-center justify-between bg-[#282828] p-2 rounded text-xs">
+                            <span className="text-yellow-400">{quote.quoteNumber}</span>
+                            <span className="text-gray-300">{formatCurrency(quote.totalCash)}</span>
+                            {openGlobalViewDetailsModal && (
+                              <Button 
+                                onClick={() => openGlobalViewDetailsModal(quote)}
+                                variant="outline" 
+                                size="xs"
+                                className="ml-2"
+                              >
+                                Ver
+                              </Button>
+                            )}
+                          </div>
+                        ))}
+                        {data.userSales.length > 5 && (
+                          <p className="text-xs text-gray-500 text-center">
+                            +{data.userSales.length - 5} orçamento(s) adicional(is)
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </>
               ) : (
                 <p className="text-gray-500 text-center py-10">Nenhuma venda encontrada para este usuário no período selecionado.</p>
               )}
