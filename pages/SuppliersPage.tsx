@@ -217,29 +217,43 @@ type Transaction = {
 // Supplier Details Modal
 const SupplierDetailsModal: React.FC<{ 
     supplier: Supplier; 
-    debts: Debt[]; 
-    payments: SupplierCredit[]; 
+    debts: Debt[];
+    payments: SupplierCredit[];
     onCreateDebt: (debt: Omit<Debt, 'id'>) => Promise<Debt>;
     onDeleteDebt: (id: string) => Promise<void>;
     onCreateCredit: (credit: Omit<SupplierCredit, 'id'>) => Promise<SupplierCredit>;
     onDeleteCredit: (id: string) => Promise<void>;
     onClose: () => void; 
-}> = ({ supplier, debts, payments, onCreateDebt, onDeleteDebt, onCreateCredit, onDeleteCredit, onClose }) => {
+}> = ({ supplier, debts: initialDebts, payments: initialPayments, onCreateDebt, onDeleteDebt, onCreateCredit, onDeleteCredit, onClose }) => {
     const chartRef = useRef<ChartJS<'pie'>>(null);
+    
+    // Local state for instant updates
+    const [localDebts, setLocalDebts] = useState<Debt[]>(initialDebts);
+    const [localPayments, setLocalPayments] = useState<SupplierCredit[]>(initialPayments);
+    
     const [debtForm, setDebtForm] = useState(initialDebtFormState);
     const [paymentForm, setPaymentForm] = useState(initialPaymentFormState);
 
+    // Update local state when props change
+    useEffect(() => {
+        setLocalDebts(initialDebts);
+    }, [initialDebts]);
+
+    useEffect(() => {
+        setLocalPayments(initialPayments);
+    }, [initialPayments]);
+
     const supplierStats = useMemo(() => {
-        const totalDebtAmount = debts.reduce((sum, d) => sum + d.totalAmount, 0);
-        const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+        const totalDebtAmount = localDebts.reduce((sum, d) => sum + d.totalAmount, 0);
+        const totalPaid = localPayments.reduce((sum, p) => sum + p.amount, 0);
         const balance = totalDebtAmount - totalPaid;
         return { totalDebtAmount, totalPaid, balance };
-    }, [debts, payments]);
+    }, [localDebts, localPayments]);
 
     const unifiedTransactions = useMemo(() => {
         const allTransactions: Transaction[] = [
-            ...debts.map(d => ({ id: d.id, date: d.dateAdded, description: d.description, debit: d.totalAmount, credit: 0, type: 'debt' as const })),
-            ...payments.map(p => ({ id: p.id, date: p.date, description: p.description, debit: 0, credit: p.amount, type: 'payment' as const }))
+            ...localDebts.map(d => ({ id: d.id, date: d.dateAdded, description: d.description, debit: d.totalAmount, credit: 0, type: 'debt' as const })),
+            ...localPayments.map(p => ({ id: p.id, date: p.date, description: p.description, debit: 0, credit: p.amount, type: 'payment' as const }))
         ];
         allTransactions.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
         
@@ -248,7 +262,7 @@ const SupplierDetailsModal: React.FC<{
             runningBalance += tx.debit - tx.credit;
             return { ...tx, balance: runningBalance };
         });
-    }, [debts, payments]);
+    }, [localDebts, localPayments]);
 
     const pieChartData: ChartData<'pie'> = useMemo(() => {
         return {
@@ -263,6 +277,8 @@ const SupplierDetailsModal: React.FC<{
         if (debtForm.totalAmount <= 0) { alert("O valor da dívida deve ser positivo."); return; }
         try {
             const newDebt = await onCreateDebt({ supplierId: supplier.id, ...debtForm });
+            // Update local state immediately
+            setLocalDebts(prev => [...prev, newDebt]);
             setDebtForm(initialDebtFormState);
         } catch (error) {
             console.error('Erro ao adicionar dívida:', error);
@@ -274,6 +290,8 @@ const SupplierDetailsModal: React.FC<{
         if (paymentForm.amount <= 0) { alert("O valor do pagamento deve ser positivo."); return; }
         try {
             const newCredit = await onCreateCredit({ supplierId: supplier.id, ...paymentForm });
+            // Update local state immediately
+            setLocalPayments(prev => [...prev, newCredit]);
             setPaymentForm(initialPaymentFormState);
         } catch (error) {
             console.error('Erro ao adicionar pagamento:', error);
@@ -286,6 +304,8 @@ const SupplierDetailsModal: React.FC<{
             if (window.confirm("Tem certeza que deseja excluir esta dívida?")) {
                 try {
                     await onDeleteDebt(tx.id);
+                    // Update local state immediately
+                    setLocalDebts(prev => prev.filter(d => d.id !== tx.id));
                 } catch (error) {
                     console.error('Erro ao excluir dívida:', error);
                     alert('Erro ao excluir dívida. Tente novamente.');
@@ -295,6 +315,8 @@ const SupplierDetailsModal: React.FC<{
             if (window.confirm("Tem certeza que deseja excluir este pagamento?")) {
                 try {
                     await onDeleteCredit(tx.id);
+                    // Update local state immediately
+                    setLocalPayments(prev => prev.filter(p => p.id !== tx.id));
                 } catch (error) {
                     console.error('Erro ao excluir pagamento:', error);
                     alert('Erro ao excluir pagamento. Tente novamente.');
