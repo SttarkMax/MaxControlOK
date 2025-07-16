@@ -81,6 +81,7 @@ const UserSalesPerformancePage: React.FC<UserSalesPerformancePageProps> = ({ cur
   const salesDataPerUser = useMemo(() => {
     console.log('👥 Processing users:', allUsers.map(u => ({ id: u.id, username: u.username, fullName: u.fullName })));
     console.log('📅 Selected period:', { year: selectedYear, month: selectedMonth });
+    return allUsers.map(user => {
       const userSales = allAcceptedQuotes.filter(quote => {
         const quoteDate = new Date(quote.createdAt);
         const matchesUser = quote.salespersonUsername === user.username;
