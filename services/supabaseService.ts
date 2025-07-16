@@ -81,7 +81,7 @@ export const companyService = {
     } catch (error) {
       console.error('❌ Company service error:', error);
       handleSupabaseError(error);
-      throw error;
+      return null;
     }
   },
 
@@ -152,7 +152,7 @@ export const categoryService = {
     } catch (error) {
       console.error('❌ Categories service error:', error);
       handleSupabaseError(error);
-      throw error;
+      return [];
     }
   },
 
@@ -577,6 +577,7 @@ export const quoteService = {
     } catch (error) {
       console.warn('🔌 Quote service - switching to offline mode');
       console.error('Quote service error:', error);
+      handleSupabaseError(error);
       return []; // Return empty array instead of throwing
     }
   },
@@ -950,7 +951,7 @@ export const supplierService = {
       }));
     } catch (error) {
       handleSupabaseError(error);
-      throw error;
+      return [];
     }
   },
 
@@ -1049,7 +1050,7 @@ export const supplierService = {
       }));
     } catch (error) {
       handleSupabaseError(error);
-      throw error;
+      return [];
     }
   },
 
