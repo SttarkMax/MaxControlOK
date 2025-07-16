@@ -45,7 +45,10 @@ const UserSalesPerformancePage: React.FC<UserSalesPerformancePageProps> = ({ cur
   const [availableYears, setAvailableYears] = useState<number[]>([]);
 
   const allAcceptedQuotes = useMemo(() => {
-    return allQuotes.filter(q => q.status === 'accepted' || q.status === 'converted_to_order');
+    console.log('🔍 All quotes:', allQuotes.map(q => ({ id: q.id, number: q.quoteNumber, status: q.status, salesperson: q.salespersonUsername })));
+    const accepted = allQuotes.filter(q => q.status === 'accepted' || q.status === 'converted_to_order');
+    console.log('✅ Accepted quotes:', accepted.map(q => ({ id: q.id, number: q.quoteNumber, status: q.status, salesperson: q.salespersonUsername })));
+    return accepted;
   }, [allQuotes]);
 
   React.useEffect(() => {
@@ -76,7 +79,34 @@ const UserSalesPerformancePage: React.FC<UserSalesPerformancePageProps> = ({ cur
   };
 
   const salesDataPerUser = useMemo(() => {
+    console.log('👥 Processing users:', allUsers.map(u => ({ id: u.id, username: u.username, fullName: u.fullName })));
+    console.log('📅 Selected period:', { year: selectedYear, month: selectedMonth });
+    
     return allUsers.map(user => {
+      const userSales = allAcceptedQuotes.filter(quote => {
+        const quoteDate = new Date(quote.createdAt);
+        const matchesUser = quote.salespersonUsername === user.username;
+        const matchesYear = quoteDate.getFullYear() === selectedYear;
+        const matchesMonth = (quoteDate.getMonth() + 1) === selectedMonth;
+        
+        console.log(`🔍 Quote ${quote.quoteNumber}:`, {
+          salesperson: quote.salespersonUsername,
+          user: user.username,
+          matchesUser,
+          quoteYear: quoteDate.getFullYear(),
+          selectedYear,
+          matchesYear,
+          quoteMonth: quoteDate.getMonth() + 1,
+          selectedMonth,
+          matchesMonth,
+          finalMatch: matchesUser && matchesYear && matchesMonth
+        });
+        
+        return matchesUser && matchesYear && matchesMonth;
+      });
+      
+      console.log(`📊 User ${user.username} sales:`, userSales.map(q => ({ number: q.quoteNumber, value: q.totalCash })));
+      
       const userSales = allAcceptedQuotes.filter(quote => {
         const quoteDate = new Date(quote.createdAt);
         return quote.salespersonUsername === user.username &&
@@ -95,6 +125,12 @@ const UserSalesPerformancePage: React.FC<UserSalesPerformancePageProps> = ({ cur
       
       const hasSales = dailySales.some(sale => sale > 0);
       const totalSales = dailySales.reduce((a, b) => a + b, 0);
+
+      console.log(`📈 User ${user.username} summary:`, {
+        salesCount: userSales.length,
+        totalSales,
+        hasSales
+      });
 
       return {
         userId: user.id,
@@ -283,7 +319,15 @@ const UserSalesPerformancePage: React.FC<UserSalesPerformancePageProps> = ({ cur
                   )}
                 </>
               ) : (
-                <p className="text-gray-500 text-center py-10">Nenhuma venda encontrada para este usuário no período selecionado.</p>
+                <div className="text-center py-10">
+                  <p className="text-gray-500 mb-2">Nenhuma venda encontrada para este usuário no período selecionado.</p>
+                  <p className="text-xs text-gray-600">
+                    Período: {monthOptions.find(m => m.value === selectedMonth)?.label} de {selectedYear}
+                  </p>
+                  <p className="text-xs text-gray-600">
+                    Usuário: {data.userName} ({allUsers.find(u => u.id === data.userId)?.username})
+                  </p>
+                </div>
               )}
               
               {/* Lista completa de orçamentos aceitos */}
