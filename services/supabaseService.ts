@@ -265,6 +265,32 @@ export const productService = {
 
   async createProduct(product: Omit<Product, 'id'>): Promise<Product> {
     try {
+      console.log('🔄 Creating product:', product.name);
+      
+      // Check if Supabase is configured first
+      if (!isSupabaseConfigured()) {
+        console.error('❌ Supabase not configured for product creation');
+        throw new Error('Supabase não configurado - verifique as variáveis de ambiente');
+      }
+
+      if (!supabase) {
+        console.error('❌ Supabase client not available for product creation');
+        throw new Error('Cliente Supabase não inicializado - verifique a configuração');
+      }
+
+      // Validate required fields
+      if (!product.name || !product.name.trim()) {
+        throw new Error('Nome do produto é obrigatório');
+      }
+
+      if (!product.pricingModel) {
+        throw new Error('Modelo de precificação é obrigatório');
+      }
+
+      if (product.basePrice < 0) {
+        throw new Error('Preço base deve ser maior ou igual a zero');
+      }
+
       const { data, error } = await supabase
         .from('products')
         .insert([{
@@ -281,7 +307,17 @@ export const productService = {
         .select()
         .single();
 
-      if (error) handleSupabaseError(error);
+      if (error) {
+        console.error('❌ Database error creating product:', error);
+        handleSupabaseError(error);
+      }
+      
+      if (!data) {
+        console.error('❌ No data returned from product creation');
+        throw new Error('Erro ao criar produto - dados não retornados do banco');
+      }
+
+      console.log('✅ Product created successfully:', data.name);
       
       return {
         id: data.id,
@@ -296,6 +332,7 @@ export const productService = {
         categoryId: data.category_id || undefined,
       };
     } catch (error) {
+      console.error('❌ Product creation error:', error);
       handleSupabaseError(error);
       throw error;
     }
@@ -303,6 +340,20 @@ export const productService = {
 
   async updateProduct(product: Product): Promise<void> {
     try {
+      console.log('🔄 Updating product:', product.name);
+      
+      if (!isSupabaseConfigured()) {
+        throw new Error('Supabase não configurado');
+      }
+
+      if (!supabase) {
+        throw new Error('Cliente Supabase não inicializado');
+      }
+
+      if (!product.id) {
+        throw new Error('ID do produto é obrigatório para atualização');
+      }
+
       const { error } = await supabase
         .from('products')
         .update({
@@ -319,21 +370,41 @@ export const productService = {
         })
         .eq('id', product.id);
 
-      if (error) handleSupabaseError(error);
+      if (error) {
+        console.error('❌ Database error updating product:', error);
+        handleSupabaseError(error);
+      }
+      
+      console.log('✅ Product updated successfully:', product.name);
     } catch (error) {
+      console.error('❌ Product update error:', error);
       handleSupabaseError(error);
     }
   },
 
   async deleteProduct(id: string): Promise<void> {
     try {
+      if (!isSupabaseConfigured()) {
+        throw new Error('Supabase não configurado');
+      }
+
+      if (!supabase) {
+        throw new Error('Cliente Supabase não inicializado');
+      }
+
       const { error } = await supabase
         .from('products')
         .delete()
         .eq('id', id);
 
-      if (error) handleSupabaseError(error);
+      if (error) {
+        console.error('❌ Database error deleting product:', error);
+        handleSupabaseError(error);
+      }
+      
+      console.log('✅ Product deleted successfully');
     } catch (error) {
+      console.error('❌ Product deletion error:', error);
       handleSupabaseError(error);
     }
   }

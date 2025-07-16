@@ -147,7 +147,7 @@ export const handleSupabaseError = (error: any) => {
   
   // Check for null data errors
   if (error?.message?.includes('Cannot read properties of null')) {
-    throw new Error('Erro de conexão: Verifique se o Supabase está configurado corretamente');
+    throw new Error('Erro de conexão: Cliente Supabase não inicializado. Verifique as variáveis VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY');
   }
   
   // Check for network-related errors and missing tables
@@ -165,7 +165,7 @@ export const handleSupabaseError = (error: any) => {
       error.code === 'ENOTFOUND' ||
       error.code === 'ECONNREFUSED') {
     console.warn('🔌 Supabase Connection Issue - switching to offline mode');
-    throw new Error('Conexão com o banco de dados falhou');
+    throw new Error('Conexão com o banco de dados falhou. Verifique: 1) Se o Supabase está configurado, 2) Se as URLs CORS estão corretas, 3) Se as credenciais são válidas');
   }
   
   // For RLS and permission errors
