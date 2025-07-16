@@ -84,6 +84,7 @@ export const testSupabaseConnection = async () => {
       { table: 'products', name: 'Products' },
       { table: 'customers', name: 'Customers' },
       { table: 'quotes', name: 'Quotes' },
+      { table: 'quote_items', name: 'Quote Items' },
       { table: 'suppliers', name: 'Suppliers' },
       { table: 'accounts_payable', name: 'Accounts Payable' },
       { table: 'app_users', name: 'Users' }
@@ -92,19 +93,28 @@ export const testSupabaseConnection = async () => {
     console.log('🔍 Testing database tables...');
     for (const test of tests) {
       try {
-        const { data, error } = await supabase.from(test.table).select('count').limit(1);
+        const { data, error } = await supabase.from(test.table).select('*').limit(1);
         if (error) {
           console.error(`❌ ${test.name} table error:`, error);
+          if (test.table === 'quote_items') {
+            console.error('🚨 CRITICAL: Quote Items table has issues - this explains why items are not showing!');
+          }
         } else {
           console.log(`✅ ${test.name} table accessible`);
+          if (test.table === 'quote_items') {
+            console.log(`📊 Quote Items table has ${data?.length || 0} records`);
+          }
         }
       } catch (err) {
         console.error(`❌ ${test.name} table failed:`, err);
+        if (test.table === 'quote_items') {
+          console.error('🚨 CRITICAL: Quote Items table connection failed - this explains why items are not showing!');
+        }
       }
     }
     
     // Final connectivity test
-    const { data, error } = await supabase.from('companies').select('count').limit(1);
+    const { data, error } = await supabase.from('companies').select('*').limit(1);
     
     if (error) {
       console.error('❌ Supabase final connection test failed:', error);

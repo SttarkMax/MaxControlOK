@@ -496,35 +496,45 @@ export const customerService = {
 // Quote Services
 export const quoteService = {
   async getQuotes(): Promise<Quote[]> {
+    console.log('🔍 DEBUG: Starting getQuotes function...');
+    
     try {
       // Check if Supabase is configured first
       if (!isSupabaseConfigured()) {
+        console.log('❌ DEBUG: Supabase not configured');
         console.warn('🔌 Supabase not configured - using offline mode');
         return [];
       }
 
       if (!supabase) {
+        console.log('❌ DEBUG: Supabase client not available');
         console.warn('🔌 Supabase client not available - using offline mode');
         return [];
       }
 
+      console.log('🔍 DEBUG: Fetching quotes from database...');
       const { data: quotesData, error: quotesError } = await supabase
         .from('quotes')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (quotesError) {
+        console.log('❌ DEBUG: Quotes error:', quotesError);
         console.warn('🔌 Quotes error - switching to offline mode:', quotesError.message);
         handleSupabaseError(quotesError);
         return []; // Return empty array instead of throwing
       }
 
+      console.log('✅ DEBUG: Quotes fetched successfully:', quotesData?.length || 0, 'quotes');
+      
+      console.log('🔍 DEBUG: Fetching quote items from database...');
       const { data: itemsData, error: itemsError } = await supabase
         .from('quote_items')
         .select('*')
         .order('created_at');
 
       if (itemsError) {
+        console.log('❌ DEBUG: Quote items error:', itemsError);
         // Handle missing table gracefully
         if (itemsError.code === '42P01') {
           console.warn('🔌 Quote items table does not exist - switching to offline mode');
@@ -532,6 +542,16 @@ export const quoteService = {
         }
         handleSupabaseError(itemsError);
         return []; // Return empty array instead of throwing
+      }
+
+      console.log('✅ DEBUG: Quote items fetched successfully:', itemsData?.length || 0, 'items');
+      
+      // Debug: Show relationship between quotes and items
+      if (quotesData && itemsData) {
+        quotesData.forEach(quote => {
+          const quoteItems = itemsData.filter(item => item.quote_id === quote.id);
+          console.log(`🔍 DEBUG: Quote ${quote.quote_number} has ${quoteItems.length} items`);
+        });
       }
 
       return (quotesData || []).map(quote => {
@@ -548,6 +568,8 @@ export const quoteService = {
             height: item.height ? Number(item.height) : undefined,
             itemCountForAreaCalc: item.item_count_for_area_calc || undefined,
           }));
+
+        console.log(`🔍 DEBUG: Mapped quote ${quote.quote_number} with ${quoteItems.length} items:`, quoteItems);
 
         return {
           id: quote.id,
@@ -576,6 +598,7 @@ export const quoteService = {
         };
       });
     } catch (error) {
+      console.log('❌ DEBUG: Exception in getQuotes:', error);
       console.warn('🔌 Quote service - switching to offline mode');
       console.error('Quote service error:', error);
       handleSupabaseError(error);
