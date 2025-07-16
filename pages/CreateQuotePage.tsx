@@ -289,18 +289,7 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
     } catch (error) {
       console.error('Erro ao salvar orçamento:', error);
       
-      // Provide more specific error messages
-      if (error instanceof Error) {
-        if (error.message.includes('Conexão com o banco de dados falhou')) {
-          alert('Erro de conexão: Não foi possível conectar ao banco de dados. Verifique sua conexão com a internet e as configurações do Supabase.');
-        } else if (error.message.includes('CORS')) {
-          alert('Erro de CORS: Adicione http://localhost:5173 às configurações CORS do Supabase.');
-        } else {
-          alert(`Erro ao salvar orçamento: ${error.message}`);
-        }
-      } else {
-        alert('Erro desconhecido ao salvar orçamento. Tente novamente.');
-      }
+      alert(`Erro ao salvar orçamento: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     } finally {
       setIsLoading(false);
     }

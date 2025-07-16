@@ -328,21 +328,8 @@ export const useQuotes = () => {
       
       // Handle all errors gracefully in development
       console.warn('🔌 Switching to offline mode for quotes');
-      setError('Modo offline: Verifique a conexão com Supabase');
-      
-      // Try to load from localStorage as fallback
-      const localQuotes = localStorage.getItem('quotes_backup');
-      if (localQuotes) {
-        try {
-          const parsedQuotes = JSON.parse(localQuotes);
-          setQuotes(parsedQuotes);
-          console.log('📦 Loaded quotes from localStorage backup');
-        } catch {
-          setQuotes([]);
-        }
-      } else {
-        setQuotes([]);
-      }
+      setError('Erro de conexão: Verifique a conexão com Supabase');
+      setQuotes([]);
     } finally {
       setLoading(false);
     }
@@ -426,48 +413,10 @@ export const useSuppliers = () => {
       
       // Handle all errors gracefully in development
       console.warn('🔌 Switching to offline mode for suppliers');
-      setError('Modo offline: Verifique a conexão com Supabase');
-      
-      // Try to load from localStorage as fallback
-      const localSuppliers = localStorage.getItem('suppliers_backup');
-      const localDebts = localStorage.getItem('supplier_debts_backup');
-      const localCredits = localStorage.getItem('supplier_credits_backup');
-      
-      if (localSuppliers) {
-        try {
-          const parsedSuppliers = JSON.parse(localSuppliers);
-          setSuppliers(parsedSuppliers);
-          console.log('📦 Loaded suppliers from localStorage backup');
-        } catch {
-          setSuppliers([]);
-        }
-      } else {
-        setSuppliers([]);
-      }
-      
-      if (localDebts) {
-        try {
-          const parsedDebts = JSON.parse(localDebts);
-          setDebts(parsedDebts);
-          console.log('📦 Loaded supplier debts from localStorage backup');
-        } catch {
-          setDebts([]);
-        }
-      } else {
-        setDebts([]);
-      }
-      
-      if (localCredits) {
-        try {
-          const parsedCredits = JSON.parse(localCredits);
-          setCredits(parsedCredits);
-          console.log('📦 Loaded supplier credits from localStorage backup');
-        } catch {
-          setCredits([]);
-        }
-      } else {
-        setCredits([]);
-      }
+      setError('Erro de conexão: Verifique a conexão com Supabase');
+      setSuppliers([]);
+      setDebts([]);
+      setCredits([]);
     } finally {
       setLoading(false);
     }
@@ -677,27 +626,12 @@ export const useUsers = () => {
       console.log(`✅ useUsers: ${data.length} users loaded from Supabase`);
       setUsers(data);
       
-      // Also save to localStorage as backup
-      localStorage.setItem('appUsers', JSON.stringify(data));
-      console.log('📦 useUsers: Users saved to localStorage as backup');
-      
       setError(null);
     } catch (err) {
       console.error('❌ useUsers: Error loading users:', err);
       const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar usuários';
       setError(errorMessage);
-      
-      // Try localStorage fallback
-      console.log('🔌 useUsers: Trying localStorage fallback...');
-      const localUsers = localStorage.getItem('appUsers');
-      if (localUsers) {
-        const parsedUsers = JSON.parse(localUsers);
-        console.log('📦 useUsers: Using localStorage users as fallback:', parsedUsers);
-        setUsers(parsedUsers);
-      } else {
-        console.log('📦 useUsers: No localStorage fallback available');
-        setUsers([]);
-      }
+      setUsers([]);
     } finally {
       setLoading(false);
       console.log('🏁 useUsers: loadUsers completed');
@@ -710,11 +644,6 @@ export const useUsers = () => {
       const newUser = await userService.createUser(user);
       console.log('✅ User created:', newUser);
       setUsers(prev => [...prev, newUser]);
-      
-      // Also save to localStorage as backup
-      const updatedUsers = [...users, newUser];
-      localStorage.setItem('appUsers', JSON.stringify(updatedUsers));
-      console.log('📦 Users saved to localStorage');
       
       setError(null);
       return newUser;
@@ -731,11 +660,6 @@ export const useUsers = () => {
       await userService.updateUser(user);
       setUsers(prev => prev.map(u => u.id === user.id ? { ...user, password: '' } : u));
       
-      // Also update localStorage
-      const updatedUsers = users.map(u => u.id === user.id ? { ...user, password: '' } : u);
-      localStorage.setItem('appUsers', JSON.stringify(updatedUsers));
-      console.log('📦 Users updated in localStorage');
-      
       setError(null);
     } catch (err) {
       console.error('❌ Error updating user:', err);
@@ -749,11 +673,6 @@ export const useUsers = () => {
       console.log('🔄 Deleting user:', id);
       await userService.deleteUser(id);
       setUsers(prev => prev.filter(u => u.id !== id));
-      
-      // Also update localStorage
-      const updatedUsers = users.filter(u => u.id !== id);
-      localStorage.setItem('appUsers', JSON.stringify(updatedUsers));
-      console.log('📦 User deleted from localStorage');
       
       setError(null);
     } catch (err) {

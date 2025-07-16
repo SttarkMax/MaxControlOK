@@ -154,8 +154,8 @@ export const handleSupabaseError = (error: any) => {
       error.code === 'NETWORK_ERROR' ||
       error.code === 'ENOTFOUND' ||
       error.code === 'ECONNREFUSED') {
-    console.warn('🔌 Supabase Connection Issue - switching to offline mode');
-    throw new Error('Conexão com o banco de dados falhou');
+    console.error('🔌 Supabase Connection Issue - database connection failed');
+    throw new Error('Erro de conexão: Verifique sua internet e configurações do Supabase');
   }
   
   // For RLS and permission errors

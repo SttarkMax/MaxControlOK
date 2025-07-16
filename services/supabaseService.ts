@@ -61,19 +61,8 @@ export const companyService = {
         handleSupabaseError(error);
       }
 
-      if (!data) {
-        console.log('📝 No company data found - returning default');
-        return {
-          name: 'Sua Empresa',
-          logoUrlDarkBg: '',
-          logoUrlLightBg: '',
-          address: '',
-          phone: '',
-          email: '',
-          cnpj: '',
-          instagram: '',
-          website: '',
-        };
+        setError('Erro CORS: Configure CORS no Supabase');
+        setCompany(null);
       }
 
       console.log('✅ Company data loaded successfully:', data.name);
@@ -522,7 +511,7 @@ export const quoteService = {
 
       if (quotesError) {
         console.warn('🔌 Quotes error - switching to offline mode:', quotesError.message);
-        return [];
+        throw new Error('Erro de conexão com banco de dados');
       }
 
       const { data: itemsData, error: itemsError } = await supabase
@@ -534,10 +523,10 @@ export const quoteService = {
         // Handle missing table gracefully
         if (itemsError.code === '42P01') {
           console.warn('🔌 Quote items table does not exist - switching to offline mode');
-          return [];
+          throw new Error('Tabela de itens não encontrada no banco de dados');
         }
         handleSupabaseError(itemsError);
-        return [];
+        throw itemsError;
       }
 
       return (quotesData || []).map(quote => {
@@ -584,7 +573,7 @@ export const quoteService = {
     } catch (error) {
       console.warn('🔌 Quote service - switching to offline mode');
       handleSupabaseError(error);
-      return [];
+      throw error;
     }
   },
 
@@ -890,7 +879,7 @@ export const supplierService = {
 
       if (error) {
         console.warn('🔌 Supplier debts error - switching to offline mode:', error.message);
-        return [];
+        throw new Error('Erro ao carregar dívidas dos fornecedores');
       }
       
       return (data || []).map(debt => ({
@@ -901,7 +890,8 @@ export const supplierService = {
         dateAdded: debt.date_added,
       }));
     } catch (error) {
-      return [];
+      handleSupabaseError(error);
+      throw error;
     }
   },
 
@@ -988,7 +978,7 @@ export const supplierService = {
 
       if (error) {
         console.warn('🔌 Supplier credits error - switching to offline mode:', error.message);
-        return [];
+        throw new Error('Erro ao carregar pagamentos dos fornecedores');
       }
       
       return (data || []).map(credit => ({
@@ -999,7 +989,8 @@ export const supplierService = {
         description: credit.description || '',
       }));
     } catch (error) {
-      return [];
+      handleSupabaseError(error);
+      throw error;
     }
   },
 
