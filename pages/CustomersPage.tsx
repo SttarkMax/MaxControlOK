@@ -13,7 +13,7 @@ import ArchiveBoxIcon from '../components/icons/ArchiveBoxIcon';
 import CurrencyDollarIcon from '../components/icons/CurrencyDollarIcon';
 import ViewQuoteDetailsModal from '../components/ViewQuoteDetailsModal';
 import GlobalQuoteHistoryModal from '../components/GlobalQuoteHistoryModal';
-import { translateQuoteStatus, formatCurrency, formatDateForInput } from '../utils'; 
+import { translateQuoteStatus, formatCurrency, formatDateForInput, formatPhoneNumber } from '../utils'; 
 import { useCustomers, useQuotes } from '../hooks/useSupabaseData';
 
 const initialCustomerState: Customer = {
