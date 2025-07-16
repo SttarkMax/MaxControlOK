@@ -4,6 +4,7 @@ import { Quote, QuoteItem, Product, Customer, PricingModel, CompanyInfo, LoggedI
 import { CARD_SURCHARGE_PERCENTAGE } from '../constants';
 import { formatCurrency, formatDateForInput } from '../utils';
 import { formatPhoneNumber } from '../utils';
+import { isSupabaseConfigured } from '../lib/supabase';
 import Button from '../components/common/Button';
 import Input from '../components/common/Input';
 import Select from '../components/common/Select';
@@ -240,6 +241,12 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
       return;
     }
 
+    // Check Supabase connection before attempting to save
+    if (!isSupabaseConfigured()) {
+      alert('Erro de configuração: Supabase não está configurado. Verifique as variáveis de ambiente.');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -281,7 +288,19 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
       navigate('/');
     } catch (error) {
       console.error('Erro ao salvar orçamento:', error);
-      alert('Erro ao salvar orçamento. Tente novamente.');
+      
+      // Provide more specific error messages
+      if (error instanceof Error) {
+        if (error.message.includes('Conexão com o banco de dados falhou')) {
+          alert('Erro de conexão: Não foi possível conectar ao banco de dados. Verifique sua conexão com a internet e as configurações do Supabase.');
+        } else if (error.message.includes('CORS')) {
+          alert('Erro de CORS: Adicione http://localhost:5173 às configurações CORS do Supabase.');
+        } else {
+          alert(`Erro ao salvar orçamento: ${error.message}`);
+        }
+      } else {
+        alert('Erro desconhecido ao salvar orçamento. Tente novamente.');
+      }
     } finally {
       setIsLoading(false);
     }
