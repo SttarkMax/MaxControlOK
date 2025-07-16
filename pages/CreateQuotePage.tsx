@@ -225,6 +225,7 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
   }, [calculatedTotals]);
 
   const handleSaveQuote = async () => {
+    // Validações básicas antes de salvar
     if (!currentQuote.clientName?.trim()) {
       alert('Por favor, informe o nome do cliente.');
       return;
@@ -240,9 +241,16 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
       return;
     }
 
+    if (!currentQuote.quoteNumber?.trim()) {
+      alert('Número do orçamento não foi gerado. Recarregue a página e tente novamente.');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
+      console.log('🔄 Salvando orçamento:', currentQuote.quoteNumber);
+      
       const quoteToSave: Omit<Quote, 'id'> = {
         quoteNumber: currentQuote.quoteNumber!,
         customerId: currentQuote.customerId,
@@ -271,17 +279,34 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
       };
 
       if (isEditing && quoteId) {
+        console.log('✏️ Atualizando orçamento existente:', quoteId);
         await updateQuote({ ...quoteToSave, id: quoteId });
         alert('Orçamento atualizado com sucesso!');
       } else {
+        console.log('➕ Criando novo orçamento');
         await createQuote(quoteToSave);
         alert('Orçamento criado com sucesso!');
       }
 
+      console.log('✅ Orçamento salvo com sucesso');
       navigate('/');
     } catch (error) {
       console.error('Erro ao salvar orçamento:', error);
-      alert('Erro ao salvar orçamento. Tente novamente.');
+      
+      // Mensagens de erro mais específicas
+      if (error instanceof Error) {
+        if (error.message.includes('Supabase não configurado')) {
+          alert('Erro de configuração: Verifique se o Supabase está configurado corretamente.');
+        } else if (error.message.includes('CORS')) {
+          alert('Erro de CORS: Adicione http://localhost:5173 às configurações CORS do Supabase.');
+        } else if (error.message.includes('Cliente Supabase não inicializado')) {
+          alert('Erro de inicialização: Verifique se as credenciais do Supabase estão corretas.');
+        } else {
+          alert(`Erro ao salvar orçamento: ${error.message}`);
+        }
+      } else {
+        alert('Erro desconhecido ao salvar orçamento. Verifique a conexão e tente novamente.');
+      }
     } finally {
       setIsLoading(false);
     }
