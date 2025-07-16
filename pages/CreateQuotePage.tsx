@@ -298,51 +298,13 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
       return;
     }
 
-    // Se for um novo orçamento (não está editando), salvar primeiro
-    if (!isEditing) {
-      if (!currentQuote.clientName?.trim()) {
-        alert('Por favor, informe o nome do cliente antes de gerar o PDF.');
-        return;
-      }
-
-      setIsLoading(true);
-      try {
-        const quoteToSave: Omit<Quote, 'id'> = {
-          quoteNumber: currentQuote.quoteNumber!,
-          customerId: currentQuote.customerId,
-          clientName: currentQuote.clientName,
-          clientContact: currentQuote.clientContact || '',
-          items: currentQuote.items,
-          subtotal: currentQuote.subtotal!,
-          discountType: currentQuote.discountType as any,
-          discountValue: currentQuote.discountValue!,
-          discountAmountCalculated: currentQuote.discountAmountCalculated!,
-          subtotalAfterDiscount: currentQuote.subtotalAfterDiscount!,
-          totalCash: currentQuote.totalCash!,
-          totalCard: currentQuote.totalCard!,
-          downPaymentApplied: currentQuote.downPaymentApplied || 0,
-          selectedPaymentMethod: currentQuote.selectedPaymentMethod,
-          paymentDate: currentQuote.paymentDate || null,
-          deliveryDeadline: currentQuote.deliveryDeadline || null,
-          status: currentQuote.status as any || 'sent', // Usar status selecionado ou 'sent' como padrão
-          companyInfoSnapshot: companyInfo,
-          notes: currentQuote.notes || '',
-          salespersonUsername: currentUser.username,
-          salespersonFullName: currentUser.fullName || currentUser.username,
-          createdAt: new Date().toISOString(),
-        };
-
-        const savedQuote = await createQuote(quoteToSave);
-        setCurrentQuote(prev => ({ ...prev, ...savedQuote }));
-      } catch (error) {
-        console.error('Erro ao salvar orçamento:', error);
-        alert('Erro ao salvar orçamento. Tente novamente.');
-        setIsLoading(false);
-        return;
-      } finally {
-        setIsLoading(false);
-      }
+    // Validar dados mínimos necessários para o PDF
+    if (!currentQuote.clientName?.trim()) {
+      alert('Por favor, informe o nome do cliente antes de gerar o PDF.');
+      return;
     }
+
+    // Gerar PDF diretamente com os dados atuais, sem salvar no banco
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
     const margin = 10;
