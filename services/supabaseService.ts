@@ -62,8 +62,8 @@ export const companyService = {
       }
 
       if (!data) {
-        setError('Erro CORS: Configure CORS no Supabase');
-        setCompany(null);
+        console.warn('⚠️ No company data found');
+        return null;
       }
 
       console.log('✅ Company data loaded successfully:', data.name);
