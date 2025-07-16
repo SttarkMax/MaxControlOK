@@ -76,6 +76,13 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
     if (isEditing && quoteId && quotes.length > 0) {
       const existingQuote = quotes.find(q => q.id === quoteId);
       if (existingQuote) {
+        console.log('🔄 Loading quote for editing:', {
+          quoteId,
+          quoteNumber: existingQuote.quoteNumber,
+          itemsCount: existingQuote.items?.length || 0,
+          items: existingQuote.items
+        });
+        
         // Load all quote data including payment method, dates, notes, etc.
         setCurrentQuote({
           ...existingQuote,
@@ -102,6 +109,12 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
           salespersonFullName: existingQuote.salespersonFullName,
         });
         
+        console.log('✅ Quote data loaded for editing:', {
+          itemsLoaded: existingQuote.items?.length || 0,
+          subtotal: existingQuote.subtotal,
+          totalCash: existingQuote.totalCash
+        });
+        
         // Load customer data if exists
         if (existingQuote.customerId) {
           const customer = customers.find(c => c.id === existingQuote.customerId);
@@ -122,6 +135,8 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
           }
         }
       }
+    } else if (isEditing && quoteId) {
+      console.log('⚠️ Quote not found for editing:', { quoteId, quotesLoaded: quotes.length });
     }
   }, [isEditing, quoteId, quotes, customers, products]);
 
@@ -688,6 +703,14 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
           {/* Add Items */}
           <div className="bg-[#1d1d1d] p-6 rounded-lg shadow-lg">
             <h3 className="text-lg font-semibold text-white mb-4">Adicionar Item</h3>
+            {isEditing && currentQuote.items && currentQuote.items.length > 0 && (
+              <div className="mb-4 p-3 bg-blue-900/20 border border-blue-500/30 rounded-md">
+                <p className="text-blue-300 text-sm">
+                  ✏️ <strong>Modo Edição:</strong> Este orçamento já possui {currentQuote.items.length} item(s). 
+                  Você pode adicionar novos itens ou remover os existentes na tabela abaixo.
+                </p>
+              </div>
+            )}
             <div className="space-y-4">
               <div className="flex items-center gap-4 mb-4">
                 <label className="flex items-center text-sm text-gray-300">
@@ -749,7 +772,27 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
           {/* Items List */}
           {currentQuote.items && currentQuote.items.length > 0 && (
             <div className="bg-[#1d1d1d] p-6 rounded-lg shadow-lg">
-              <h3 className="text-lg font-semibold text-white mb-4">Itens do Orçamento</h3>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-white">
+                  Itens do Orçamento ({currentQuote.items.length})
+                </h3>
+                {isEditing && (
+                  <div className="text-sm text-yellow-400">
+                    ✏️ Editando orçamento existente
+                  </div>
+                )}
+              </div>
+              
+              {/* Debug info for editing */}
+              {isEditing && (
+                <div className="mb-4 p-2 bg-gray-800 rounded text-xs">
+                  <p>🔍 Debug Edição:</p>
+                  <p>• Quote ID: {quoteId}</p>
+                  <p>• Itens carregados: {currentQuote.items.length}</p>
+                  <p>• Subtotal: {formatCurrency(currentQuote.subtotal || 0)}</p>
+                </div>
+              )}
+              
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-700">
                   <thead>
@@ -770,6 +813,11 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
                             ? `${item.quantity.toFixed(2)} m²`
                             : `${item.quantity} un`
                           }
+                          {item.pricingModel === PricingModel.PER_SQUARE_METER && item.width && item.height && item.itemCountForAreaCalc && (
+                            <div className="text-xs text-gray-400">
+                              ({item.width}m × {item.height}m × {item.itemCountForAreaCalc}pç)
+                            </div>
+                          )}
                         </td>
                         <td className="px-4 py-2 text-sm text-gray-300 text-right">{formatCurrency(item.unitPrice)}</td>
                         <td className="px-4 py-2 text-sm text-gray-300 text-right">{formatCurrency(item.totalPrice)}</td>
@@ -779,8 +827,10 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
                             variant="danger"
                             size="xs"
                             iconLeft={<TrashIcon className="w-4 h-4" />}
+                            title={`Remover ${item.productName}`}
                           >
-                            Remover
+                            <span className="hidden sm:inline">Remover</span>
+                            <span className="sm:hidden">×</span>
                           </Button>
                         </td>
                       </tr>
@@ -788,6 +838,14 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
                   </tbody>
                 </table>
               </div>
+              
+              {isEditing && currentQuote.items.length > 0 && (
+                <div className="mt-4 p-3 bg-yellow-900/20 border border-yellow-500/30 rounded-md">
+                  <p className="text-yellow-300 text-sm">
+                    💡 <strong>Dica:</strong> Para editar um item específico, remova-o e adicione novamente com os dados corretos.
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>
