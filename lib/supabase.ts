@@ -123,8 +123,13 @@ export const testSupabaseConnection = async () => {
 export const handleSupabaseError = (error: any) => {
   // Check if Supabase is configured first
   if (!isSupabaseConfigured()) {
-    console.warn('⚠️ Supabase not configured - using offline mode');
-    throw new Error('Conexão com o banco de dados falhou - modo offline ativado');
+    console.warn('⚠️ Supabase not configured - check environment variables');
+    throw new Error('Supabase não configurado - verifique as variáveis de ambiente');
+  }
+  
+  if (!supabase) {
+    console.warn('⚠️ Supabase client not initialized');
+    throw new Error('Cliente Supabase não inicializado');
   }
   
   console.error('🚨 Supabase Error Details:', {
@@ -138,6 +143,11 @@ export const handleSupabaseError = (error: any) => {
   if (error?.message?.includes('Failed to fetch') || 
       error?.name === 'TypeError' && error?.message?.includes('fetch')) {
     throw new Error('Erro de CORS: Adicione http://localhost:5173 às configurações CORS do Supabase');
+  }
+  
+  // Check for null data errors
+  if (error?.message?.includes('Cannot read properties of null')) {
+    throw new Error('Erro de conexão: Verifique se o Supabase está configurado corretamente');
   }
   
   // Check for network-related errors and missing tables

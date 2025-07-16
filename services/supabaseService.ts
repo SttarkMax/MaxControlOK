@@ -388,6 +388,11 @@ export const customerService = {
 
   async createCustomer(customer: Omit<Customer, 'id'>): Promise<Customer> {
     try {
+      if (!supabase) {
+        console.error('❌ Supabase client not available for customer creation');
+        throw new Error('Cliente Supabase não inicializado');
+      }
+      
       const { data, error } = await supabase
         .from('customers')
         .insert([{
@@ -404,6 +409,11 @@ export const customerService = {
         .single();
 
       if (error) handleSupabaseError(error);
+      
+      if (!data) {
+        console.error('❌ No data returned from customer creation');
+        throw new Error('Erro ao criar cliente - dados não retornados');
+      }
 
       // Insert down payments if any
       if (customer.downPayments && customer.downPayments.length > 0) {
@@ -434,6 +444,7 @@ export const customerService = {
         downPayments: customer.downPayments || [],
       };
     } catch (error) {
+      console.error('❌ Customer creation error:', error);
       handleSupabaseError(error);
       throw error;
     }

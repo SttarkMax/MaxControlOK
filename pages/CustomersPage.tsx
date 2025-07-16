@@ -139,6 +139,18 @@ const CustomersPage: React.FC<CustomersPageProps> = ({ openGlobalViewDetailsModa
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate required fields
+    if (!currentCustomer.name.trim()) {
+      alert('Nome do cliente é obrigatório.');
+      return;
+    }
+    
+    if (!currentCustomer.phone.trim()) {
+      alert('Telefone do cliente é obrigatório.');
+      return;
+    }
+    
     setIsLoading(true);
     
     try {
@@ -155,7 +167,19 @@ const CustomersPage: React.FC<CustomersPageProps> = ({ openGlobalViewDetailsModa
       closeEditModal();
     } catch (error) {
       console.error('Erro ao salvar cliente:', error);
-      alert('Erro ao salvar cliente. Tente novamente.');
+      
+      // More specific error messages
+      if (error instanceof Error) {
+        if (error.message.includes('Supabase não configurado')) {
+          alert('Erro de configuração: Verifique se o Supabase está configurado corretamente.');
+        } else if (error.message.includes('CORS')) {
+          alert('Erro de CORS: Adicione http://localhost:5173 às configurações CORS do Supabase.');
+        } else {
+          alert(`Erro ao salvar cliente: ${error.message}`);
+        }
+      } else {
+        alert('Erro desconhecido ao salvar cliente. Tente novamente.');
+      }
     }
     setIsLoading(false);
   };
