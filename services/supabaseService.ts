@@ -249,6 +249,7 @@ export const productService = {
       return products;
     } catch (error) {
       console.error('❌ Products service error:', error);
+      handleSupabaseError(error);
       console.warn('🔌 Products service - using offline mode');
       return []; // Return empty array instead of throwing
     }
