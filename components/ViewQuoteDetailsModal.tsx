@@ -5,6 +5,7 @@ import DocumentTextIcon from './icons/DocumentTextIcon';
 import { translateQuoteStatus, formatCurrency } from '../utils'; 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { useCustomerOrders } from '../hooks/useCustomerOrders';
 
 interface ViewQuoteDetailsModalProps {
   isOpen: boolean;
@@ -30,6 +31,8 @@ const getInstallmentDetailsTextForModal = (paymentMethod: string | undefined, to
 
 
 const ViewQuoteDetailsModal: React.FC<ViewQuoteDetailsModalProps> = ({ isOpen, onClose, quote }) => {
+  const { createOrderFromQuote } = useCustomerOrders();
+  
   if (!isOpen || !quote) {
     return null;
   }
@@ -250,6 +253,20 @@ const ViewQuoteDetailsModal: React.FC<ViewQuoteDetailsModalProps> = ({ isOpen, o
     doc.save(`Ordem_Servico-${quoteDataForOs.quoteNumber}.pdf`);
   };
 
+  const handleAcceptQuote = async () => {
+    if (!quote) return;
+    
+    if (window.confirm('Aceitar este orçamento criará um pedido para acompanhamento. Deseja continuar?')) {
+      try {
+        await createOrderFromQuote(quote.id, quote);
+        alert('Orçamento aceito! Pedido criado para acompanhamento.');
+        onClose();
+      } catch (error) {
+        console.error('Erro ao aceitar orçamento:', error);
+        alert('Erro ao aceitar orçamento. Tente novamente.');
+      }
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-90 overflow-y-auto h-full w-full z-[60] flex items-center justify-center p-4">
@@ -391,6 +408,16 @@ const ViewQuoteDetailsModal: React.FC<ViewQuoteDetailsModalProps> = ({ isOpen, o
             </div>
         )}
          <div className="mt-6 flex flex-col sm:flex-row justify-end items-center gap-3">
+            {status === 'sent' && (
+                <Button 
+                    onClick={handleAcceptQuote} 
+                    variant="success"
+                    size="md"
+                    iconLeft={<DocumentTextIcon className="w-4 h-4"/>}
+                >
+                    Aceitar Orçamento
+                </Button>
+            )}
             {(status === 'accepted' || status === 'converted_to_order') && (
                  <Button 
                     onClick={() => generateOrderServicePdf(quote)} 

@@ -75,3 +75,43 @@ export const formatPhoneNumber = (value: string): string => {
 export const unformatPhoneNumber = (value: string): string => {
   return value.replace(/\D/g, '');
 };
+
+// Order status translations and configurations
+export const translateOrderStatus = (status: string): string => {
+  const statusMap: Record<string, string> = {
+    'quote_accepted': 'Orçamento aceito com sucesso!',
+    'awaiting_payment': 'Aguardando pagamento',
+    'payment_received': 'O seu pedido foi pago.',
+    'preparing_materials': 'Estamos preparando o seu material para produzir',
+    'in_production': 'Fique tranquilo, seu material está em produção.',
+    'final_production': 'Oba! Seu material está em fase final de produção.',
+    'ready_for_pickup': 'Produção concluída! O item está pronto para retirada.'
+  };
+  return statusMap[status] || status;
+};
+
+export const getOrderStatusColor = (status: string): string => {
+  const colorMap: Record<string, string> = {
+    'quote_accepted': 'text-blue-500',
+    'awaiting_payment': 'text-yellow-500',
+    'payment_received': 'text-green-500',
+    'preparing_materials': 'text-orange-500',
+    'in_production': 'text-purple-500',
+    'final_production': 'text-indigo-500',
+    'ready_for_pickup': 'text-green-600'
+  };
+  return colorMap[status] || 'text-gray-500';
+};
+
+export const getOrderStatusIcon = (status: string): string => {
+  const iconMap: Record<string, string> = {
+    'quote_accepted': '✅',
+    'awaiting_payment': '⏳',
+    'payment_received': '💰',
+    'preparing_materials': '📦',
+    'in_production': '🔧',
+    'final_production': '🎯',
+    'ready_for_pickup': '🎉'
+  };
+  return iconMap[status] || '📋';
+};

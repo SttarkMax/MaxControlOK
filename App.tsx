@@ -17,6 +17,8 @@ import AllQuotesPage from './pages/AllQuotesPage';
 import UserSalesPerformancePage from './pages/UserSalesPerformancePage';
 import SuppliersPage from './pages/SuppliersPage'; // Added for Suppliers
 import AccountsPayablePage from './pages/AccountsPayablePage';
+import OrderTrackingPage from './pages/OrderTrackingPage';
+import CustomerPortalPage from './pages/CustomerPortalPage';
 import ViewQuoteDetailsModal from './components/ViewQuoteDetailsModal'; 
 import { UserAccessLevel, CompanyInfo, Quote, User, LoggedInUser } from './types'; 
 import { DEFAULT_USER_ACCESS_LEVEL, USERS_STORAGE_KEY } from './constants';
@@ -250,6 +252,18 @@ const App: React.FC = () => {
                     <AccountsPayablePage />
                   </ProtectedRoute>
                 } 
+              />
+              <Route 
+                path="/orders/tracking/:orderId" 
+                element={
+                  <ProtectedRoute requiredRole={[UserAccessLevel.ADMIN, UserAccessLevel.SALES]}>
+                    <OrderTrackingPage currentUserRole={currentUser.role} />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/customer-portal" 
+                element={<CustomerPortalPage />}
               />
               <Route 
                 path="/sales/user-performance"
