@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Supplier, Debt, SupplierCredit } from '../types';
 import { formatCurrency, formatDateForInput, formatPhoneNumber } from '../utils';
 import Button from '../components/common/Button';
