@@ -106,13 +106,6 @@ const UserSalesPerformancePage: React.FC<UserSalesPerformancePageProps> = ({ cur
       });
       
       console.log(`📊 User ${user.username} sales:`, userSales.map(q => ({ number: q.quoteNumber, value: q.totalCash })));
-      
-      const userSales = allAcceptedQuotes.filter(quote => {
-        const quoteDate = new Date(quote.createdAt);
-        return quote.salespersonUsername === user.username &&
-               quoteDate.getFullYear() === selectedYear &&
-               (quoteDate.getMonth() + 1) === selectedMonth;
-      });
 
       const daysInSelectedMonth = getDaysInMonth(selectedYear, selectedMonth);
       const dailySales = Array(daysInSelectedMonth).fill(0);
@@ -145,7 +138,13 @@ const UserSalesPerformancePage: React.FC<UserSalesPerformancePageProps> = ({ cur
               label: `Vendas Diárias (${formatCurrency(totalSales)})`,
               data: dailySales,
               backgroundColor: 'rgba(234, 179, 8, 0.6)',
-    console.log(`📊 User ${user.username} sales:`, userSales.map(q => ({ number: q.quoteNumber, value: q.totalCash })));
+              borderColor: 'rgba(234, 179, 8, 1)',
+              borderWidth: 1,
+            },
+          ],
+        },
+      };
+    });
   }, [allUsers, allAcceptedQuotes, selectedYear, selectedMonth]);
 
   const chartBaseOptions: ChartOptions<'bar'> = {
