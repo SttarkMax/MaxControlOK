@@ -288,6 +288,13 @@ const ViewQuoteDetailsModal: React.FC<ViewQuoteDetailsModalProps> = ({ isOpen, o
         {/* Items Table */}
         <div className="mb-6">
           <h4 className="font-semibold text-lg text-white mb-2">Itens</h4>
+          {(!items || items.length === 0) && (
+            <div className="text-center py-4 text-gray-400">
+              <p>Nenhum item encontrado para este orçamento.</p>
+              <p className="text-sm">Isso pode indicar um problema na sincronização dos dados.</p>
+            </div>
+          )}
+          {items && items.length > 0 && (
           <div className="overflow-x-auto border border-[#282828] rounded-md">
             <table className="min-w-full divide-y divide-[#282828]">
               <thead className="bg-[#282828]">
@@ -327,6 +334,7 @@ const ViewQuoteDetailsModal: React.FC<ViewQuoteDetailsModalProps> = ({ isOpen, o
               </tbody>
             </table>
           </div>
+          )}
         </div>
 
         {/* Totals Section */}
