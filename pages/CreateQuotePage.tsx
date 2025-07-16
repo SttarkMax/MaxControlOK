@@ -76,14 +76,54 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
     if (isEditing && quoteId && quotes.length > 0) {
       const existingQuote = quotes.find(q => q.id === quoteId);
       if (existingQuote) {
-        setCurrentQuote(existingQuote);
+        // Load all quote data including payment method, dates, notes, etc.
+        setCurrentQuote({
+          ...existingQuote,
+          // Ensure all fields are properly loaded
+          quoteNumber: existingQuote.quoteNumber,
+          customerId: existingQuote.customerId,
+          clientName: existingQuote.clientName,
+          clientContact: existingQuote.clientContact,
+          items: existingQuote.items || [],
+          subtotal: existingQuote.subtotal,
+          discountType: existingQuote.discountType,
+          discountValue: existingQuote.discountValue,
+          discountAmountCalculated: existingQuote.discountAmountCalculated,
+          subtotalAfterDiscount: existingQuote.subtotalAfterDiscount,
+          totalCash: existingQuote.totalCash,
+          totalCard: existingQuote.totalCard,
+          downPaymentApplied: existingQuote.downPaymentApplied,
+          selectedPaymentMethod: existingQuote.selectedPaymentMethod || '',
+          paymentDate: existingQuote.paymentDate || '',
+          deliveryDeadline: existingQuote.deliveryDeadline || '',
+          status: existingQuote.status,
+          notes: existingQuote.notes || '',
+          salespersonUsername: existingQuote.salespersonUsername,
+          salespersonFullName: existingQuote.salespersonFullName,
+        });
+        
+        // Load customer data if exists
         if (existingQuote.customerId) {
           const customer = customers.find(c => c.id === existingQuote.customerId);
           setSelectedCustomer(customer || null);
         }
+        
+        // Set pricing mode based on existing quote items
+        if (existingQuote.items && existingQuote.items.length > 0) {
+          // Check if any item uses card pricing by comparing with base prices
+          const firstItem = existingQuote.items[0];
+          const product = products.find(p => p.id === firstItem.productId);
+          if (product) {
+            const cashPrice = product.customCashPrice ?? product.basePrice;
+            const cardPrice = product.customCardPrice ?? (cashPrice * (1 + CARD_SURCHARGE_PERCENTAGE / 100));
+            // If the item price is closer to card price, assume card pricing was used
+            const isCardPricing = Math.abs(firstItem.unitPrice - cardPrice) < Math.abs(firstItem.unitPrice - cashPrice);
+            setUseCardPricing(isCardPricing);
+          }
+        }
       }
     }
-  }, [isEditing, quoteId, quotes, customers]);
+  }, [isEditing, quoteId, quotes, customers, products]);
 
   // Generate quote number
   useEffect(() => {
