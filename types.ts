@@ -176,50 +176,6 @@ export interface LoggedInUser {
   role: UserAccessLevel;
 }
 
-// Order tracking system types
-export type OrderStatus = 
-  | 'quote_accepted'
-  | 'awaiting_payment'
-  | 'payment_received'
-  | 'preparing_materials'
-  | 'in_production'
-  | 'final_production'
-  | 'ready_for_pickup';
-
-export interface OrderStatusUpdate {
-  id: string;
-  orderId: string;
-  status: OrderStatus;
-  message: string;
-  updatedAt: string;
-  updatedBy: string;
-}
-
-export interface CustomerOrder {
-  id: string;
-  quoteId: string;
-  quoteNumber: string;
-  customerId: string;
-  clientName: string;
-  items: QuoteItem[];
-  totalAmount: number;
-  paymentMethod: string;
-  acceptedAt: string;
-  currentStatus: OrderStatus;
-  statusHistory: OrderStatusUpdate[];
-  estimatedDelivery?: string;
-}
-
-export interface CustomerAccess {
-  id: string;
-  customerId: string;
-  email: string;
-  passwordHash: string;
-  isActive: boolean;
-  createdAt: string;
-  lastLogin?: string;
-}
-
 // For navigation
 export interface NavItem {
   name: string;

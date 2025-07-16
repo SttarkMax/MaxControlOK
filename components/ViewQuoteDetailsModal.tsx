@@ -5,7 +5,6 @@ import DocumentTextIcon from './icons/DocumentTextIcon';
 import { translateQuoteStatus, formatCurrency } from '../utils'; 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { useCustomerOrders } from '../hooks/useCustomerOrders';
 
 interface ViewQuoteDetailsModalProps {
   isOpen: boolean;
@@ -31,18 +30,10 @@ const getInstallmentDetailsTextForModal = (paymentMethod: string | undefined, to
 
 
 const ViewQuoteDetailsModal: React.FC<ViewQuoteDetailsModalProps> = ({ isOpen, onClose, quote }) => {
-  const { createOrderFromQuote } = useCustomerOrders();
-  
   if (!isOpen || !quote) {
     return null;
   }
 
-  console.log('🔍 ViewQuoteDetailsModal - Quote data:', {
-    id: quote.id,
-    quoteNumber: quote.quoteNumber,
-    itemsCount: quote.items?.length || 0,
-    items: quote.items
-  });
   const {
     quoteNumber,
     status,
@@ -259,20 +250,6 @@ const ViewQuoteDetailsModal: React.FC<ViewQuoteDetailsModalProps> = ({ isOpen, o
     doc.save(`Ordem_Servico-${quoteDataForOs.quoteNumber}.pdf`);
   };
 
-  const handleAcceptQuote = async () => {
-    if (!quote) return;
-    
-    if (window.confirm('Aceitar este orçamento criará um pedido para acompanhamento. Deseja continuar?')) {
-      try {
-        await createOrderFromQuote(quote.id, quote);
-        alert('Orçamento aceito! Pedido criado para acompanhamento.');
-        onClose();
-      } catch (error) {
-        console.error('Erro ao aceitar orçamento:', error);
-        alert('Erro ao aceitar orçamento. Tente novamente.');
-      }
-    }
-  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-90 overflow-y-auto h-full w-full z-[60] flex items-center justify-center p-4">
@@ -311,14 +288,6 @@ const ViewQuoteDetailsModal: React.FC<ViewQuoteDetailsModalProps> = ({ isOpen, o
         {/* Items Table */}
         <div className="mb-6">
           <h4 className="font-semibold text-lg text-white mb-2">Itens</h4>
-          {(!items || items.length === 0) && (
-            <div className="bg-yellow-900/20 border border-yellow-500/50 rounded-md p-4 mb-4">
-              <p className="text-yellow-200 text-sm">
-                ⚠️ Nenhum item encontrado neste orçamento. 
-                {console.log('🔍 Debug - Items data:', items)}
-              </p>
-            </div>
-          )}
           <div className="overflow-x-auto border border-[#282828] rounded-md">
             <table className="min-w-full divide-y divide-[#282828]">
               <thead className="bg-[#282828]">
@@ -330,7 +299,7 @@ const ViewQuoteDetailsModal: React.FC<ViewQuoteDetailsModalProps> = ({ isOpen, o
                 </tr>
               </thead>
               <tbody className="bg-black divide-y divide-[#282828]">
-                {(items || []).map((item, index) => {
+                {items.map((item, index) => {
                     let qtyDisplay = '';
                     if (item.pricingModel === PricingModel.PER_SQUARE_METER) {
                         qtyDisplay = `${item.quantity.toFixed(2)} m²`;
@@ -355,13 +324,6 @@ const ViewQuoteDetailsModal: React.FC<ViewQuoteDetailsModalProps> = ({ isOpen, o
                     <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-200 text-right">{formatCurrency(item.totalPrice)}</td>
                   </tr>
                 )})}
-                {(!items || items.length === 0) && (
-                  <tr>
-                    <td colSpan={4} className="px-3 py-4 text-center text-gray-400">
-                      Nenhum item encontrado neste orçamento
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
           </div>
@@ -429,16 +391,6 @@ const ViewQuoteDetailsModal: React.FC<ViewQuoteDetailsModalProps> = ({ isOpen, o
             </div>
         )}
          <div className="mt-6 flex flex-col sm:flex-row justify-end items-center gap-3">
-            {status === 'sent' && (
-                <Button 
-                    onClick={handleAcceptQuote} 
-                    variant="success"
-                    size="md"
-                    iconLeft={<DocumentTextIcon className="w-4 h-4"/>}
-                >
-                    Aceitar Orçamento
-                </Button>
-            )}
             {(status === 'accepted' || status === 'converted_to_order') && (
                  <Button 
                     onClick={() => generateOrderServicePdf(quote)} 

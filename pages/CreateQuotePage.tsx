@@ -225,7 +225,6 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
   }, [calculatedTotals]);
 
   const handleSaveQuote = async () => {
-    // Validações básicas antes de salvar
     if (!currentQuote.clientName?.trim()) {
       alert('Por favor, informe o nome do cliente.');
       return;
@@ -237,39 +236,19 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
     }
 
     if (!companyInfo) {
-      console.warn('⚠️ Company info not found - using default values');
-      // Use default company info if not available
-    }
-
-    if (!currentQuote.quoteNumber?.trim()) {
-      alert('Número do orçamento não foi gerado. Recarregue a página e tente novamente.');
+      alert('Informações da empresa não encontradas. Configure a empresa primeiro.');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      console.log('🔄 Salvando orçamento:', currentQuote.quoteNumber);
-      
-      // Use company info or default values
-      const effectiveCompanyInfo = companyInfo || {
-        name: 'Sua Empresa',
-        logoUrlDarkBg: '',
-        logoUrlLightBg: '',
-        address: '',
-        phone: '',
-        email: '',
-        cnpj: '',
-        instagram: '',
-        website: '',
-      };
-      
       const quoteToSave: Omit<Quote, 'id'> = {
         quoteNumber: currentQuote.quoteNumber!,
         customerId: currentQuote.customerId,
         clientName: currentQuote.clientName,
         clientContact: currentQuote.clientContact || '',
-        items: currentQuote.items || [], // Ensure items array exists
+        items: currentQuote.items,
         subtotal: currentQuote.subtotal!,
         discountType: currentQuote.discountType as any,
         discountValue: currentQuote.discountValue!,
@@ -282,7 +261,7 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
         paymentDate: currentQuote.paymentDate,
         deliveryDeadline: currentQuote.deliveryDeadline,
         status: currentQuote.status as any,
-        companyInfoSnapshot: effectiveCompanyInfo,
+        companyInfoSnapshot: companyInfo,
         notes: currentQuote.notes || '',
         salespersonUsername: currentUser.username,
         salespersonFullName: currentUser.fullName || currentUser.username,
@@ -291,30 +270,18 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
         createdAt: new Date().toISOString(),
       };
 
-      console.log('💾 Saving quote with items:', {
-        quoteNumber: quoteToSave.quoteNumber,
-        itemsCount: quoteToSave.items.length,
-        items: quoteToSave.items
-      });
       if (isEditing && quoteId) {
-        console.log('✏️ Atualizando orçamento existente:', quoteId);
-        const updatedQuote = { ...quoteToSave, id: quoteId };
-        await updateQuote(updatedQuote);
+        await updateQuote({ ...quoteToSave, id: quoteId });
         alert('Orçamento atualizado com sucesso!');
       } else {
-        console.log('➕ Criando novo orçamento');
-        const createdQuote = await createQuote(quoteToSave);
-        console.log('✅ Quote created with items:', createdQuote.items?.length || 0);
+        await createQuote(quoteToSave);
         alert('Orçamento criado com sucesso!');
       }
 
-      console.log('✅ Orçamento salvo com sucesso');
       navigate('/');
     } catch (error) {
       console.error('Erro ao salvar orçamento:', error);
-      
-      // Show user-friendly error message
-      alert('Erro ao salvar orçamento. O sistema está funcionando em modo offline. Tente novamente.');
+      alert('Erro ao salvar orçamento. Tente novamente.');
     } finally {
       setIsLoading(false);
     }
@@ -345,7 +312,7 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
           customerId: currentQuote.customerId,
           clientName: currentQuote.clientName,
           clientContact: currentQuote.clientContact || '',
-          items: currentQuote.items || [], // Ensure items array exists
+          items: currentQuote.items,
           subtotal: currentQuote.subtotal!,
           discountType: currentQuote.discountType as any,
           discountValue: currentQuote.discountValue!,

@@ -13,7 +13,7 @@ import ArchiveBoxIcon from '../components/icons/ArchiveBoxIcon';
 import CurrencyDollarIcon from '../components/icons/CurrencyDollarIcon';
 import ViewQuoteDetailsModal from '../components/ViewQuoteDetailsModal';
 import GlobalQuoteHistoryModal from '../components/GlobalQuoteHistoryModal';
-import { translateQuoteStatus, formatCurrency, formatDateForInput, formatPhoneNumber } from '../utils'; 
+import { translateQuoteStatus, formatCurrency, formatDateForInput } from '../utils'; 
 import { useCustomers, useQuotes } from '../hooks/useSupabaseData';
 
 const initialCustomerState: Customer = {
@@ -139,18 +139,6 @@ const CustomersPage: React.FC<CustomersPageProps> = ({ openGlobalViewDetailsModa
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validate required fields
-    if (!currentCustomer.name.trim()) {
-      alert('Nome do cliente é obrigatório.');
-      return;
-    }
-    
-    if (!currentCustomer.phone.trim()) {
-      alert('Telefone do cliente é obrigatório.');
-      return;
-    }
-    
     setIsLoading(true);
     
     try {
@@ -167,19 +155,7 @@ const CustomersPage: React.FC<CustomersPageProps> = ({ openGlobalViewDetailsModa
       closeEditModal();
     } catch (error) {
       console.error('Erro ao salvar cliente:', error);
-      
-      // More specific error messages
-      if (error instanceof Error) {
-        if (error.message.includes('Supabase não configurado')) {
-          alert('Erro de configuração: Verifique se o Supabase está configurado corretamente.');
-        } else if (error.message.includes('CORS')) {
-          alert('Erro de CORS: Adicione http://localhost:5173 às configurações CORS do Supabase.');
-        } else {
-          alert(`Erro ao salvar cliente: ${error.message}`);
-        }
-      } else {
-        alert('Erro desconhecido ao salvar cliente. Tente novamente.');
-      }
+      alert('Erro ao salvar cliente. Tente novamente.');
     }
     setIsLoading(false);
   };

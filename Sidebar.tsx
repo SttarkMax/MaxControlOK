@@ -11,7 +11,6 @@ import TagIcon from './icons/TagIcon';
 import ChartBarIcon from './icons/ChartBarIcon';
 import TruckIcon from './icons/TruckIcon';
 import BanknotesIcon from './icons/BanknotesIcon';
-import ClipboardDocumentListIcon from './icons/ClipboardDocumentListIcon';
 import { APP_NAME } from '../constants'; 
 
 interface SidebarProps {
@@ -26,7 +25,6 @@ const allNavItems: NavItem[] = [
   { name: 'Produtos', path: '/products', icon: SquaresPlusIcon, allowedRoles: [UserAccessLevel.ADMIN, UserAccessLevel.SALES] },
   { name: 'Categorias', path: '/categories', icon: TagIcon, allowedRoles: [UserAccessLevel.ADMIN, UserAccessLevel.SALES] }, 
   { name: 'Orçamentos', path: '/quotes/new', icon: DocumentTextIcon, allowedRoles: [UserAccessLevel.ADMIN, UserAccessLevel.SALES] },
-  { name: 'Acompanhar Pedidos', path: '/orders', icon: ClipboardDocumentListIcon, allowedRoles: [UserAccessLevel.ADMIN, UserAccessLevel.SALES] },
   { name: 'Fornecedores', path: '/suppliers', icon: TruckIcon, allowedRoles: [UserAccessLevel.ADMIN, UserAccessLevel.SALES] },
   { name: 'Contas a Pagar', path: '/accounts-payable', icon: BanknotesIcon, allowedRoles: [UserAccessLevel.ADMIN] },
   { name: 'Vendas por Usuário', path: '/sales/user-performance', icon: ChartBarIcon, allowedRoles: [UserAccessLevel.ADMIN] },

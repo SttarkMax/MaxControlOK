@@ -95,23 +95,6 @@ const ProductsPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validate required fields before submitting
-    if (!currentProduct.name || !currentProduct.name.trim()) {
-      alert('Nome do produto é obrigatório.');
-      return;
-    }
-    
-    if (!currentProduct.pricingModel) {
-      alert('Modelo de precificação é obrigatório.');
-      return;
-    }
-    
-    if (currentProduct.basePrice < 0) {
-      alert('Preço base deve ser maior ou igual a zero.');
-      return;
-    }
-    
     setIsLoading(true);
     
     try {
@@ -128,21 +111,7 @@ const ProductsPage: React.FC = () => {
       closeModal();
     } catch (error) {
       console.error('Erro ao salvar produto:', error);
-      
-      // More specific error messages
-      if (error instanceof Error) {
-        if (error.message.includes('Supabase não configurado')) {
-          alert('Erro de configuração: Verifique se o Supabase está configurado corretamente nas variáveis de ambiente.');
-        } else if (error.message.includes('CORS')) {
-          alert('Erro de CORS: Adicione http://localhost:5173 às configurações CORS do Supabase.');
-        } else if (error.message.includes('Cliente Supabase não inicializado')) {
-          alert('Erro de inicialização: Verifique se as credenciais do Supabase estão corretas.');
-        } else {
-          alert(`Erro ao salvar produto: ${error.message}`);
-        }
-      } else {
-        alert('Erro desconhecido ao salvar produto. Verifique a conexão e tente novamente.');
-      }
+      alert('Erro ao salvar produto. Tente novamente.');
     }
     setIsLoading(false);
   };
