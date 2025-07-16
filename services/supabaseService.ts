@@ -151,8 +151,9 @@ export const categoryService = {
       return data || [];
     } catch (error) {
       console.error('❌ Categories service error:', error);
-      handleSupabaseError(error);
-      return [];
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao carregar categorias';
+      setError(errorMessage);
+      setCategories([]);
     }
   },
 
@@ -950,8 +951,10 @@ export const supplierService = {
         dateAdded: debt.date_added,
       }));
     } catch (error) {
-      handleSupabaseError(error);
-      return [];
+      console.error('❌ Supplier debts service error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao carregar dívidas dos fornecedores';
+      setError(errorMessage);
+      setDebts([]);
     }
   },
 
@@ -1049,8 +1052,10 @@ export const supplierService = {
         description: credit.description || '',
       }));
     } catch (error) {
-      handleSupabaseError(error);
-      return [];
+      console.error('❌ Supplier credits service error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao carregar pagamentos dos fornecedores';
+      setError(errorMessage);
+      setCredits([]);
     }
   },
 
