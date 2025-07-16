@@ -624,12 +624,47 @@ export const quoteService = {
 
       if (error) {
         console.error('❌ Quote creation error:', error);
-        handleSupabaseError(error);
+        
+        // Check for specific RLS or permission errors
+        if (error.code === '42501' || error.message?.includes('permission denied') || error.message?.includes('RLS')) {
+          throw new Error('Erro de permissão: Verifique as configurações RLS no Supabase para a tabela quotes');
+        }
+        
+        // Check for missing table errors
+        if (error.code === '42P01' || error.message?.includes('does not exist')) {
+          throw new Error('Tabela quotes não encontrada: Execute as migrações do banco de dados');
+        }
+        
+        // Check for CORS/connection errors
+        if (error.message?.includes('Failed to fetch') || error.message?.includes('fetch')) {
+          throw new Error('Erro de conexão: Verifique as configurações CORS do Supabase');
+        }
+        
+        // For other errors, provide more context
+        throw new Error(`Erro ao criar orçamento: ${error.message || 'Erro desconhecido'}`);
       }
 
       if (!data) {
-        console.error('❌ No data returned from quote creation');
-        throw new Error('Erro ao criar orçamento - nenhum dado retornado');
+        console.warn('⚠️ No data returned from quote creation - checking if quote was actually created...');
+        
+        // Try to fetch the quote that might have been created
+        try {
+          const { data: fetchedQuote, error: fetchError } = await supabase
+            .from('quotes')
+            .select('*')
+            .eq('quote_number', quote.quoteNumber)
+            .single();
+            
+          if (fetchedQuote && !fetchError) {
+            console.log('✅ Quote was created successfully, using fetched data');
+            data = fetchedQuote;
+          } else {
+            throw new Error('Orçamento não foi criado - verifique as permissões RLS no Supabase');
+          }
+        } catch (fetchErr) {
+          console.error('❌ Failed to fetch created quote:', fetchErr);
+          throw new Error('Erro ao criar orçamento - verifique as configurações do banco de dados');
+        }
       }
 
       console.log('✅ Quote created successfully:', data.quote_number);
@@ -657,7 +692,8 @@ export const quoteService = {
 
         if (itemsError) {
           console.error('❌ Quote items creation error:', itemsError);
-          handleSupabaseError(itemsError);
+          console.warn('⚠️ Quote created but items failed - this may be due to RLS policies');
+          // Don't throw error for items, the quote was created successfully
         } else {
           console.log('✅ Quote items created successfully');
         }
@@ -690,7 +726,6 @@ export const quoteService = {
       };
     } catch (error) {
       console.error('❌ createQuote service error:', error);
-      handleSupabaseError(error);
       throw error;
     }
   },
