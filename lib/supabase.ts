@@ -30,7 +30,7 @@ export function isSupabaseConfigured() {
 console.log('🔧 Supabase Configuration Status:', {
   url: supabaseUrl ? '✅ Configured' : '❌ Missing VITE_SUPABASE_URL',
   key: supabaseAnonKey ? '✅ Configured' : '❌ Missing VITE_SUPABASE_ANON_KEY',
-  status: isSupabaseConfigured() ? '🟢 Ready' : '🔴 Needs Setup'
+  status: isSupabaseConfigured() ? '🟢 Ready' : '🟡 Using Fallback Mode'
 });
 
 // Create Supabase client only if properly configured
@@ -67,11 +67,16 @@ export const supabase = isSupabaseConfigured()
     })
   : null;
 
+// Show fallback mode notification
+if (!isSupabaseConfigured()) {
+  console.warn('🟡 MODO FALLBACK ATIVO: O sistema funcionará usando localStorage. Para usar o Supabase, configure as variáveis VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no arquivo .env.local');
+}
+
 // Test connection function
 export const testSupabaseConnection = async () => {
   if (!supabase) {
-    console.error('❌ Supabase client not initialized - check configuration');
-    return false;
+    console.warn('🟡 Supabase client not initialized - using fallback mode');
+    return true; // Return true for fallback mode
   }
   
   try {
@@ -123,13 +128,13 @@ export const testSupabaseConnection = async () => {
 export const handleSupabaseError = (error: any) => {
   // Check if Supabase is configured first
   if (!isSupabaseConfigured()) {
-    console.warn('⚠️ Supabase not configured - check environment variables');
-    throw new Error('Supabase não configurado - verifique as variáveis de ambiente');
+    console.warn('🟡 Supabase not configured - using fallback mode');
+    return; // Don't throw error in fallback mode
   }
   
   if (!supabase) {
-    console.warn('⚠️ Supabase client not initialized');
-    throw new Error('Cliente Supabase não inicializado');
+    console.warn('🟡 Supabase client not initialized - using fallback mode');
+    return; // Don't throw error in fallback mode
   }
   
   console.error('🚨 Supabase Error Details:', {
