@@ -213,12 +213,12 @@ export const productService = {
       // Check if Supabase is configured first
       if (!isSupabaseConfigured()) {
         console.error('❌ Supabase not configured for products');
-        throw new Error('Supabase não configurado');
+        return []; // Return empty array instead of throwing
       }
 
       if (!supabase) {
         console.error('❌ Supabase client not available for products');
-        throw new Error('Cliente Supabase não inicializado');
+        return []; // Return empty array instead of throwing
       }
 
       const { data, error } = await supabase
@@ -229,6 +229,7 @@ export const productService = {
       if (error) {
         console.error('❌ Products error:', error);
         handleSupabaseError(error);
+        return []; // Return empty array if error was handled gracefully
       }
       
       const products = (data || []).map(item => ({
@@ -248,8 +249,8 @@ export const productService = {
       return products;
     } catch (error) {
       console.error('❌ Products service error:', error);
-      handleSupabaseError(error);
-      throw error;
+      console.warn('🔌 Products service - using offline mode');
+      return []; // Return empty array instead of throwing
     }
   },
 
@@ -512,7 +513,8 @@ export const quoteService = {
 
       if (quotesError) {
         console.warn('🔌 Quotes error - switching to offline mode:', quotesError.message);
-        throw new Error('Erro de conexão com banco de dados');
+        handleSupabaseError(quotesError);
+        return []; // Return empty array instead of throwing
       }
 
       const { data: itemsData, error: itemsError } = await supabase
@@ -524,10 +526,10 @@ export const quoteService = {
         // Handle missing table gracefully
         if (itemsError.code === '42P01') {
           console.warn('🔌 Quote items table does not exist - switching to offline mode');
-          throw new Error('Tabela de itens não encontrada no banco de dados');
+          return []; // Return empty array instead of throwing
         }
         handleSupabaseError(itemsError);
-        throw itemsError;
+        return []; // Return empty array instead of throwing
       }
 
       return (quotesData || []).map(quote => {
@@ -573,8 +575,8 @@ export const quoteService = {
       });
     } catch (error) {
       console.warn('🔌 Quote service - switching to offline mode');
-      handleSupabaseError(error);
-      throw error;
+      console.error('Quote service error:', error);
+      return []; // Return empty array instead of throwing
     }
   },
 

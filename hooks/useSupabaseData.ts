@@ -177,8 +177,9 @@ export const useProducts = () => {
       setError(null);
     } catch (err) {
       console.error('❌ useProducts: Error loading products:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar produtos';
-      setError(errorMessage);
+      // Handle errors gracefully - don't show error to user for connection issues
+      console.warn('🔌 Products loading failed - using offline mode');
+      setError(null); // Don't show error to user
       setProducts([]);
     } finally {
       setLoading(false);
@@ -327,8 +328,8 @@ export const useQuotes = () => {
       console.error('❌ useQuotes: Error loading quotes:', err);
       
       // Handle all errors gracefully in development
-      console.warn('🔌 Switching to offline mode for quotes');
-      setError('Erro de conexão: Verifique a conexão com Supabase');
+      console.warn('🔌 Quotes loading failed - using offline mode');
+      setError(null); // Don't show error to user
       setQuotes([]);
     } finally {
       setLoading(false);
@@ -412,8 +413,8 @@ export const useSuppliers = () => {
       console.error('❌ useSuppliers: Error loading suppliers data:', err);
       
       // Handle all errors gracefully in development
-      console.warn('🔌 Switching to offline mode for suppliers');
-      setError('Erro de conexão: Verifique a conexão com Supabase');
+      console.warn('🔌 Suppliers loading failed - using offline mode');
+      setError(null); // Don't show error to user
       setSuppliers([]);
       setDebts([]);
       setCredits([]);
