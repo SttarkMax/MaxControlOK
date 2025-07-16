@@ -632,7 +632,7 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
           <Button onClick={generatePDF} variant="outline" disabled={!currentQuote.items?.length}>
             {!isEditing ? 'Enviar Orçamento (PDF)' : 'Gerar PDF'}
           </Button>
-          {(isEditing || currentQuote.status === 'sent') && currentQuote.status !== 'accepted' && (
+          {isEditing && currentQuote.status !== 'accepted' && currentQuote.status !== 'sent' && (
             <Button 
               onClick={handleCloseQuote} 
               variant="success" 
