@@ -595,7 +595,7 @@ export const quoteService = {
 
       console.log('🔄 Creating quote:', quote.quoteNumber);
 
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('quotes')
         .insert([{
           quote_number: quote.quoteNumber,
