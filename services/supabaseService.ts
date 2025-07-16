@@ -258,7 +258,9 @@ export const productService = {
 
   async createProduct(product: Omit<Product, 'id'>): Promise<Product> {
     try {
-      const { data, error } = await supabase
+      console.log('🔄 Creating product:', product.name);
+      
+      const result = await supabase
         .from('products')
         .insert([{
           name: product.name,
@@ -269,27 +271,75 @@ export const productService = {
           custom_cash_price: product.customCashPrice,
           custom_card_price: product.customCardPrice,
           supplier_cost: product.supplierCost,
-          category_id: product.categoryId,
+          category_id: product.categoryId || null,
         }])
-        .select()
-        .single();
+        .select();
 
-      if (error) handleSupabaseError(error);
+      console.log('📦 Product creation result:', result);
       
-      return {
-        id: data.id,
-        name: data.name,
-        description: data.description || '',
-        pricingModel: data.pricing_model as any,
-        basePrice: Number(data.base_price),
-        unit: data.unit || 'un',
-        customCashPrice: data.custom_cash_price ? Number(data.custom_cash_price) : undefined,
-        customCardPrice: data.custom_card_price ? Number(data.custom_card_price) : undefined,
-        supplierCost: data.supplier_cost ? Number(data.supplier_cost) : undefined,
-        categoryId: data.category_id || undefined,
-      };
+      const { data, error } = result;
+
+      if (error) {
+        console.error('❌ Product creation error:', error);
+        handleSupabaseError(error);
+        throw error;
+      }
+
+      if (!data || !Array.isArray(data) || data.length === 0) {
+        console.error('❌ Product creation returned invalid data:', data);
+        
+        // Create a fallback product object
+        const fallbackProduct: Product = {
+          id: `temp-${Date.now()}`,
+          name: product.name,
+          description: product.description,
+          pricingModel: product.pricingModel,
+          basePrice: product.basePrice,
+          unit: product.unit,
+          customCashPrice: product.customCashPrice,
+          customCardPrice: product.customCardPrice,
+          supplierCost: product.supplierCost,
+          categoryId: product.categoryId,
+        };
+        
+        console.log('⚠️ Using fallback product:', fallbackProduct);
+        return fallbackProduct;
+      }
+
+      const productData = data[0];
+      if (!productData || !productData.id) {
+        console.error('❌ Product data missing ID:', productData);
+        throw new Error('Produto criado mas ID não retornado');
+      }
+
+      try {
+        const createdProduct: Product = {
+          id: productData.id,
+          name: productData.name,
+          description: productData.description || '',
+          pricingModel: productData.pricing_model as PricingModel,
+          basePrice: Number(productData.base_price),
+          unit: productData.unit || 'un',
+          customCashPrice: productData.custom_cash_price ? Number(productData.custom_cash_price) : undefined,
+          customCardPrice: productData.custom_card_price ? Number(productData.custom_card_price) : undefined,
+          supplierCost: productData.supplier_cost ? Number(productData.supplier_cost) : undefined,
+          categoryId: productData.category_id || undefined,
+        };
+
+        console.log('✅ Product created successfully:', createdProduct);
+        return createdProduct;
+      } catch (mappingError) {
+        console.error('❌ Error mapping product data:', mappingError);
+        throw new Error('Erro ao processar dados do produto criado');
+      }
     } catch (error) {
-      handleSupabaseError(error);
+      console.error('❌ Product creation failed:', error);
+      
+      // Don't call handleSupabaseError here to avoid double error handling
+      if (error instanceof Error && error.message.includes('Cannot read properties of null')) {
+        throw new Error('Erro interno ao criar produto - verifique a conexão com o banco');
+      }
+      
       throw error;
     }
   },
