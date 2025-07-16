@@ -262,7 +262,7 @@ const SupplierDetailsModal: React.FC<{
     const handleAddDebt = async () => {
         if (debtForm.totalAmount <= 0) { alert("O valor da dívida deve ser positivo."); return; }
         try {
-            await onCreateDebt({ supplierId: supplier.id, ...debtForm });
+            const newDebt = await onCreateDebt({ supplierId: supplier.id, ...debtForm });
             setDebtForm(initialDebtFormState);
         } catch (error) {
             console.error('Erro ao adicionar dívida:', error);
@@ -273,7 +273,7 @@ const SupplierDetailsModal: React.FC<{
     const handleAddPayment = async () => {
         if (paymentForm.amount <= 0) { alert("O valor do pagamento deve ser positivo."); return; }
         try {
-            await onCreateCredit({ supplierId: supplier.id, ...paymentForm });
+            const newCredit = await onCreateCredit({ supplierId: supplier.id, ...paymentForm });
             setPaymentForm(initialPaymentFormState);
         } catch (error) {
             console.error('Erro ao adicionar pagamento:', error);
