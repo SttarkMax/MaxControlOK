@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { supabase, handleSupabaseError, isSupabaseConfigured, testSupabaseConnection } from '../lib/supabase';
+import { v4 as uuidv4 } from 'uuid';
 import { 
   CompanyInfo, 
   Category, 
@@ -24,6 +25,64 @@ export class UserAlreadyExistsError extends Error {
   }
 }
 
+// Fallback storage keys
+const FALLBACK_STORAGE_KEYS = {
+  companies: 'fallback_companies',
+  categories: 'fallback_categories', 
+  products: 'fallback_products',
+  customers: 'fallback_customers',
+  quotes: 'fallback_quotes',
+  suppliers: 'fallback_suppliers',
+  supplier_debts: 'fallback_supplier_debts',
+  supplier_credits: 'fallback_supplier_credits',
+  accounts_payable: 'fallback_accounts_payable',
+  app_users: 'fallback_app_users'
+};
+
+// Fallback functions for localStorage
+const fallbackStorage = {
+  get: (key: string) => {
+    try {
+      const data = localStorage.getItem(key);
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  },
+  
+  set: (key: string, data: any[]) => {
+    try {
+      localStorage.setItem(key, JSON.stringify(data));
+    } catch (error) {
+      console.error('Error saving to localStorage:', error);
+    }
+  },
+  
+  create: (key: string, item: any) => {
+    const items = fallbackStorage.get(key);
+    const newItem = { ...item, id: item.id || uuidv4() };
+    items.push(newItem);
+    fallbackStorage.set(key, items);
+    return newItem;
+  },
+  
+  update: (key: string, updatedItem: any) => {
+    const items = fallbackStorage.get(key);
+    const index = items.findIndex((item: any) => item.id === updatedItem.id);
+    if (index !== -1) {
+      items[index] = updatedItem;
+      fallbackStorage.set(key, items);
+    }
+    return updatedItem;
+  },
+  
+  delete: (key: string, id: string) => {
+    const items = fallbackStorage.get(key);
+    const filtered = items.filter((item: any) => item.id !== id);
+    fallbackStorage.set(key, filtered);
+  }
+};
+
 // Test connection on service load
 if (isSupabaseConfigured()) {
   testSupabaseConnection().then(success => {
@@ -36,6 +95,12 @@ if (isSupabaseConfigured()) {
 // Company Services
 export const companyService = {
   async getCompany(): Promise<CompanyInfo | null> {
+    if (!isSupabaseConfigured() || !supabase) {
+      console.warn('🔌 Supabase not configured - using fallback storage for company');
+      const companies = fallbackStorage.get(FALLBACK_STORAGE_KEYS.companies);
+      return companies.length > 0 ? companies[0] : null;
+    }
+    
     console.log('🔄 Loading company data from Supabase...');
     
     // Check if Supabase is configured first
@@ -96,6 +161,18 @@ export const companyService = {
   },
 
   async saveCompany(company: CompanyInfo): Promise<void> {
+    if (!isSupabaseConfigured() || !supabase) {
+      console.warn('🔌 Supabase not configured - using fallback storage for company');
+      const companies = fallbackStorage.get(FALLBACK_STORAGE_KEYS.companies);
+      if (companies.length > 0) {
+        companies[0] = company;
+      } else {
+        companies.push({ ...company, id: uuidv4() });
+      }
+      fallbackStorage.set(FALLBACK_STORAGE_KEYS.companies, companies);
+      return;
+    }
+    
     try {
       const { data: existing } = await supabase
         .from('companies')
@@ -139,6 +216,11 @@ export const companyService = {
 // Category Services
 export const categoryService = {
   async getCategories(): Promise<Category[]> {
+    if (!isSupabaseConfigured() || !supabase) {
+      console.warn('🔌 Supabase not configured - using fallback storage for categories');
+      return fallbackStorage.get(FALLBACK_STORAGE_KEYS.categories);
+    }
+    
     console.log('🔄 Loading categories from Supabase...');
     
     if (!isSupabaseConfigured() || !supabase) {
@@ -167,6 +249,11 @@ export const categoryService = {
   },
 
   async createCategory(category: Omit<Category, 'id'>): Promise<Category> {
+    if (!isSupabaseConfigured() || !supabase) {
+      console.warn('🔌 Supabase not configured - using fallback storage for categories');
+      return fallbackStorage.create(FALLBACK_STORAGE_KEYS.categories, category);
+    }
+    
     try {
       const { data, error } = await supabase
         .from('categories')
@@ -185,6 +272,12 @@ export const categoryService = {
   },
 
   async updateCategory(category: Category): Promise<void> {
+    if (!isSupabaseConfigured() || !supabase) {
+      console.warn('🔌 Supabase not configured - using fallback storage for categories');
+      fallbackStorage.update(FALLBACK_STORAGE_KEYS.categories, category);
+      return;
+    }
+    
     try {
       const { error } = await supabase
         .from('categories')
@@ -201,6 +294,12 @@ export const categoryService = {
   },
 
   async deleteCategory(id: string): Promise<void> {
+    if (!isSupabaseConfigured() || !supabase) {
+      console.warn('🔌 Supabase not configured - using fallback storage for categories');
+      fallbackStorage.delete(FALLBACK_STORAGE_KEYS.categories, id);
+      return;
+    }
+    
     try {
       const { error } = await supabase
         .from('categories')
@@ -217,6 +316,11 @@ export const categoryService = {
 // Product Services
 export const productService = {
   async getProducts(): Promise<Product[]> {
+    if (!isSupabaseConfigured() || !supabase) {
+      console.warn('🔌 Supabase not configured - using fallback storage for products');
+      return fallbackStorage.get(FALLBACK_STORAGE_KEYS.products);
+    }
+    
     console.log('🔄 Loading products from Supabase...');
     
     try {
@@ -264,6 +368,11 @@ export const productService = {
   },
 
   async createProduct(product: Omit<Product, 'id'>): Promise<Product> {
+    if (!isSupabaseConfigured() || !supabase) {
+      console.warn('🔌 Supabase not configured - using fallback storage for products');
+      return fallbackStorage.create(FALLBACK_STORAGE_KEYS.products, product);
+    }
+    
     try {
       console.log('🔄 Creating product:', product.name);
       
@@ -339,6 +448,12 @@ export const productService = {
   },
 
   async updateProduct(product: Product): Promise<void> {
+    if (!isSupabaseConfigured() || !supabase) {
+      console.warn('🔌 Supabase not configured - using fallback storage for products');
+      fallbackStorage.update(FALLBACK_STORAGE_KEYS.products, product);
+      return;
+    }
+    
     try {
       console.log('🔄 Updating product:', product.name);
       
@@ -383,6 +498,12 @@ export const productService = {
   },
 
   async deleteProduct(id: string): Promise<void> {
+    if (!isSupabaseConfigured() || !supabase) {
+      console.warn('🔌 Supabase not configured - using fallback storage for products');
+      fallbackStorage.delete(FALLBACK_STORAGE_KEYS.products, id);
+      return;
+    }
+    
     try {
       if (!isSupabaseConfigured()) {
         throw new Error('Supabase não configurado');
@@ -413,6 +534,11 @@ export const productService = {
 // Customer Services
 export const customerService = {
   async getCustomers(): Promise<Customer[]> {
+    if (!isSupabaseConfigured() || !supabase) {
+      console.warn('🔌 Supabase not configured - using fallback storage for customers');
+      return fallbackStorage.get(FALLBACK_STORAGE_KEYS.customers);
+    }
+    
     try {
       const { data: customersData, error: customersError } = await supabase
         .from('customers')
@@ -507,6 +633,11 @@ export const customerService = {
     }
   },
   async createCustomer(customer: Omit<Customer, 'id'>): Promise<Customer> {
+    if (!isSupabaseConfigured() || !supabase) {
+      console.warn('🔌 Supabase not configured - using fallback storage for customers');
+      return fallbackStorage.create(FALLBACK_STORAGE_KEYS.customers, customer);
+    }
+    
     try {
       if (!supabase) {
         console.error('❌ Supabase client not available for customer creation');
@@ -579,6 +710,12 @@ export const customerService = {
   },
 
   async updateCustomer(customer: Customer): Promise<void> {
+    if (!isSupabaseConfigured() || !supabase) {
+      console.warn('🔌 Supabase not configured - using fallback storage for customers');
+      fallbackStorage.update(FALLBACK_STORAGE_KEYS.customers, customer);
+      return;
+    }
+    
     try {
       // Check for duplicate document before updating (excluding current customer)
       if (customer.documentNumber && customer.documentType !== 'N/A') {
@@ -634,6 +771,12 @@ export const customerService = {
   },
 
   async deleteCustomer(id: string): Promise<void> {
+    if (!isSupabaseConfigured() || !supabase) {
+      console.warn('🔌 Supabase not configured - using fallback storage for customers');
+      fallbackStorage.delete(FALLBACK_STORAGE_KEYS.customers, id);
+      return;
+    }
+    
     try {
       const { error } = await supabase
         .from('customers')
@@ -650,6 +793,11 @@ export const customerService = {
 // Quote Services
 export const quoteService = {
   async getQuotes(): Promise<Quote[]> {
+    if (!isSupabaseConfigured() || !supabase) {
+      console.warn('🔌 Supabase not configured - using fallback storage for quotes');
+      return fallbackStorage.get(FALLBACK_STORAGE_KEYS.quotes);
+    }
+    
     try {
       // Check if Supabase is configured first
       if (!isSupabaseConfigured()) {
@@ -736,6 +884,16 @@ export const quoteService = {
   },
 
   async createQuote(quote: Omit<Quote, 'id'>): Promise<Quote> {
+    if (!isSupabaseConfigured() || !supabase) {
+      console.warn('🔌 Supabase not configured - using fallback storage for quotes');
+      const newQuote = {
+        ...quote,
+        id: uuidv4(),
+        createdAt: new Date().toISOString()
+      };
+      return fallbackStorage.create(FALLBACK_STORAGE_KEYS.quotes, newQuote);
+    }
+    
     try {
       const { data, error } = await supabase
         .from('quotes')
@@ -820,6 +978,12 @@ export const quoteService = {
   },
 
   async updateQuote(quote: Quote): Promise<void> {
+    if (!isSupabaseConfigured() || !supabase) {
+      console.warn('🔌 Supabase not configured - using fallback storage for quotes');
+      fallbackStorage.update(FALLBACK_STORAGE_KEYS.quotes, quote);
+      return;
+    }
+    
     try {
       const { error } = await supabase
         .from('quotes')
@@ -885,6 +1049,12 @@ export const quoteService = {
   },
 
   async deleteQuote(id: string): Promise<void> {
+    if (!isSupabaseConfigured() || !supabase) {
+      console.warn('🔌 Supabase not configured - using fallback storage for quotes');
+      fallbackStorage.delete(FALLBACK_STORAGE_KEYS.quotes, id);
+      return;
+    }
+    
     try {
       const { error } = await supabase
         .from('quotes')
