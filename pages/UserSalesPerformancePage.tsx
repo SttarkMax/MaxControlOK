@@ -84,13 +84,17 @@ const UserSalesPerformancePage: React.FC<UserSalesPerformancePageProps> = ({ cur
     return allUsers.map(user => {
       const userSales = allAcceptedQuotes.filter(quote => {
         const quoteDate = new Date(quote.createdAt);
-        const matchesUser = quote.salespersonUsername === user.username;
+        const matchesUser = quote.salespersonFullName === user.fullName || 
+                           quote.salespersonFullName === (user.fullName || user.username) ||
+                           quote.salespersonUsername === user.username;
         const matchesYear = quoteDate.getFullYear() === selectedYear;
         const matchesMonth = (quoteDate.getMonth() + 1) === selectedMonth;
         
         console.log(`🔍 Quote ${quote.quoteNumber}:`, {
           salesperson: quote.salespersonUsername,
+          salespersonFullName: quote.salespersonFullName,
           user: user.username,
+          userFullName: user.fullName,
           matchesUser,
           quoteYear: quoteDate.getFullYear(),
           selectedYear,
