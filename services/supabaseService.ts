@@ -61,6 +61,7 @@ export const companyService = {
         handleSupabaseError(error);
       }
 
+      if (!data) {
         setError('Erro CORS: Configure CORS no Supabase');
         setCompany(null);
       }
