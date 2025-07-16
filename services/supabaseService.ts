@@ -590,6 +590,17 @@ export const quoteService = {
 
   async createQuote(quote: Omit<Quote, 'id'>): Promise<Quote> {
     try {
+      // Check if Supabase is configured and client is available
+      if (!isSupabaseConfigured()) {
+        console.error('❌ Supabase not configured for createQuote');
+        throw new Error('Supabase não configurado');
+      }
+
+      if (!supabase) {
+        console.error('❌ Supabase client not available for createQuote');
+        throw new Error('Cliente Supabase não inicializado');
+      }
+
       const { data, error } = await supabase
         .from('quotes')
         .insert([{
@@ -674,6 +685,17 @@ export const quoteService = {
 
   async updateQuote(quote: Quote): Promise<void> {
     try {
+      // Check if Supabase is configured and client is available
+      if (!isSupabaseConfigured()) {
+        console.error('❌ Supabase not configured for updateQuote');
+        throw new Error('Supabase não configurado');
+      }
+
+      if (!supabase) {
+        console.error('❌ Supabase client not available for updateQuote');
+        throw new Error('Cliente Supabase não inicializado');
+      }
+
       const { error } = await supabase
         .from('quotes')
         .update({
@@ -739,6 +761,17 @@ export const quoteService = {
 
   async deleteQuote(id: string): Promise<void> {
     try {
+      // Check if Supabase is configured and client is available
+      if (!isSupabaseConfigured()) {
+        console.error('❌ Supabase not configured for deleteQuote');
+        throw new Error('Supabase não configurado');
+      }
+
+      if (!supabase) {
+        console.error('❌ Supabase client not available for deleteQuote');
+        throw new Error('Cliente Supabase não inicializado');
+      }
+
       const { error } = await supabase
         .from('quotes')
         .delete()
