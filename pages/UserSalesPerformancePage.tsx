@@ -145,14 +145,7 @@ const UserSalesPerformancePage: React.FC<UserSalesPerformancePageProps> = ({ cur
               label: `Vendas Diárias (${formatCurrency(totalSales)})`,
               data: dailySales,
               backgroundColor: 'rgba(234, 179, 8, 0.6)',
-              borderColor: 'rgba(234, 179, 8, 1)',
-              borderWidth: 1,
-              borderRadius: 4,
-            },
-          ],
-        } as ChartData<'bar'>,
-      };
-    });
+    console.log(`📊 User ${user.username} sales:`, userSales.map(q => ({ number: q.quoteNumber, value: q.totalCash })));
   }, [allUsers, allAcceptedQuotes, selectedYear, selectedMonth]);
 
   const chartBaseOptions: ChartOptions<'bar'> = {
