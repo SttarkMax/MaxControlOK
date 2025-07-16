@@ -794,8 +794,15 @@ export const customerService = {
 export const quoteService = {
   async getQuotes(): Promise<Quote[]> {
     if (!isSupabaseConfigured() || !supabase) {
-      console.warn('🔌 Supabase not configured - using fallback storage for quotes');
-      return fallbackStorage.get(FALLBACK_STORAGE_KEYS.quotes);
+      console.log('📦 Loading quotes from localStorage...');
+      const stored = localStorage.getItem('quotes');
+      const quotes = stored ? JSON.parse(stored) : [];
+      console.log('📦 Loaded quotes from localStorage:', quotes.length, 'quotes');
+      // Log first quote items for debugging
+      if (quotes.length > 0) {
+        console.log('📦 First quote items:', quotes[0].items);
+      }
+      return quotes;
     }
     
     try {
@@ -885,13 +892,27 @@ export const quoteService = {
 
   async createQuote(quote: Omit<Quote, 'id'>): Promise<Quote> {
     if (!isSupabaseConfigured() || !supabase) {
-      console.warn('🔌 Supabase not configured - using fallback storage for quotes');
-      const newQuote = {
+      console.log('📦 Creating quote in localStorage...');
+      console.log('📦 Quote data being saved:', {
+        quoteNumber: quote.quoteNumber,
+        itemsCount: quote.items?.length || 0,
+        items: quote.items
+      });
+      
+      const newQuote: Quote = {
         ...quote,
-        id: uuidv4(),
-        createdAt: new Date().toISOString()
+        id: `quote-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        createdAt: quote.createdAt || new Date().toISOString(),
+        items: quote.items || [], // Ensure items array exists
       };
-      return fallbackStorage.create(FALLBACK_STORAGE_KEYS.quotes, newQuote);
+      
+      const stored = localStorage.getItem('quotes');
+      const quotes = stored ? JSON.parse(stored) : [];
+      quotes.push(newQuote);
+      localStorage.setItem('quotes', JSON.stringify(quotes));
+      
+      console.log('📦 Quote saved with items:', newQuote.items?.length || 0);
+      return newQuote;
     }
     
     try {
@@ -979,8 +1000,27 @@ export const quoteService = {
 
   async updateQuote(quote: Quote): Promise<void> {
     if (!isSupabaseConfigured() || !supabase) {
-      console.warn('🔌 Supabase not configured - using fallback storage for quotes');
-      fallbackStorage.update(FALLBACK_STORAGE_KEYS.quotes, quote);
+      console.log('📦 Updating quote in localStorage...');
+      console.log('📦 Quote update data:', {
+        id: quote.id,
+        itemsCount: quote.items?.length || 0,
+        items: quote.items
+      });
+      
+      const stored = localStorage.getItem('quotes');
+      const quotes: Quote[] = stored ? JSON.parse(stored) : [];
+      const index = quotes.findIndex(q => q.id === quote.id);
+      
+      if (index !== -1) {
+        quotes[index] = {
+          ...quote,
+          items: quote.items || [], // Ensure items array exists
+        };
+        localStorage.setItem('quotes', JSON.stringify(quotes));
+        console.log('📦 Quote updated with items:', quotes[index].items?.length || 0);
+      } else {
+        throw new Error('Orçamento não encontrado para atualização');
+      }
       return;
     }
     

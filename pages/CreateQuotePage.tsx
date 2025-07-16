@@ -269,7 +269,7 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
         customerId: currentQuote.customerId,
         clientName: currentQuote.clientName,
         clientContact: currentQuote.clientContact || '',
-        items: currentQuote.items,
+        items: currentQuote.items || [], // Ensure items array exists
         subtotal: currentQuote.subtotal!,
         discountType: currentQuote.discountType as any,
         discountValue: currentQuote.discountValue!,
@@ -291,13 +291,20 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
         createdAt: new Date().toISOString(),
       };
 
+      console.log('💾 Saving quote with items:', {
+        quoteNumber: quoteToSave.quoteNumber,
+        itemsCount: quoteToSave.items.length,
+        items: quoteToSave.items
+      });
       if (isEditing && quoteId) {
         console.log('✏️ Atualizando orçamento existente:', quoteId);
-        await updateQuote({ ...quoteToSave, id: quoteId });
+        const updatedQuote = { ...quoteToSave, id: quoteId };
+        await updateQuote(updatedQuote);
         alert('Orçamento atualizado com sucesso!');
       } else {
         console.log('➕ Criando novo orçamento');
-        await createQuote(quoteToSave);
+        const createdQuote = await createQuote(quoteToSave);
+        console.log('✅ Quote created with items:', createdQuote.items?.length || 0);
         alert('Orçamento criado com sucesso!');
       }
 
@@ -338,7 +345,7 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
           customerId: currentQuote.customerId,
           clientName: currentQuote.clientName,
           clientContact: currentQuote.clientContact || '',
-          items: currentQuote.items,
+          items: currentQuote.items || [], // Ensure items array exists
           subtotal: currentQuote.subtotal!,
           discountType: currentQuote.discountType as any,
           discountValue: currentQuote.discountValue!,

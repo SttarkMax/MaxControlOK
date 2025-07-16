@@ -37,6 +37,12 @@ const ViewQuoteDetailsModal: React.FC<ViewQuoteDetailsModalProps> = ({ isOpen, o
     return null;
   }
 
+  console.log('🔍 ViewQuoteDetailsModal - Quote data:', {
+    id: quote.id,
+    quoteNumber: quote.quoteNumber,
+    itemsCount: quote.items?.length || 0,
+    items: quote.items
+  });
   const {
     quoteNumber,
     status,
@@ -305,6 +311,14 @@ const ViewQuoteDetailsModal: React.FC<ViewQuoteDetailsModalProps> = ({ isOpen, o
         {/* Items Table */}
         <div className="mb-6">
           <h4 className="font-semibold text-lg text-white mb-2">Itens</h4>
+          {(!items || items.length === 0) && (
+            <div className="bg-yellow-900/20 border border-yellow-500/50 rounded-md p-4 mb-4">
+              <p className="text-yellow-200 text-sm">
+                ⚠️ Nenhum item encontrado neste orçamento. 
+                {console.log('🔍 Debug - Items data:', items)}
+              </p>
+            </div>
+          )}
           <div className="overflow-x-auto border border-[#282828] rounded-md">
             <table className="min-w-full divide-y divide-[#282828]">
               <thead className="bg-[#282828]">
@@ -316,7 +330,7 @@ const ViewQuoteDetailsModal: React.FC<ViewQuoteDetailsModalProps> = ({ isOpen, o
                 </tr>
               </thead>
               <tbody className="bg-black divide-y divide-[#282828]">
-                {items.map((item, index) => {
+                {(items || []).map((item, index) => {
                     let qtyDisplay = '';
                     if (item.pricingModel === PricingModel.PER_SQUARE_METER) {
                         qtyDisplay = `${item.quantity.toFixed(2)} m²`;
@@ -341,6 +355,13 @@ const ViewQuoteDetailsModal: React.FC<ViewQuoteDetailsModalProps> = ({ isOpen, o
                     <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-200 text-right">{formatCurrency(item.totalPrice)}</td>
                   </tr>
                 )})}
+                {(!items || items.length === 0) && (
+                  <tr>
+                    <td colSpan={4} className="px-3 py-4 text-center text-gray-400">
+                      Nenhum item encontrado neste orçamento
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

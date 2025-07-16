@@ -321,6 +321,12 @@ export const useQuotes = () => {
       
       const data = await quoteService.getQuotes();
       console.log(`✅ useQuotes: ${data.length} quotes loaded`);
+      
+      // Debug: Log quotes with items
+      data.forEach((quote, index) => {
+        console.log(`📋 Quote ${index + 1}: ${quote.quoteNumber} - ${quote.items?.length || 0} items`);
+      });
+      
       setQuotes(data);
       setError(null);
     } catch (err) {
