@@ -237,7 +237,7 @@ const CustomersPage: React.FC<CustomersPageProps> = ({ openGlobalViewDetailsModa
       <div className="p-6 text-white flex items-center justify-center">
         <Spinner size="lg" />
         <span className="ml-3">Carregando clientes...</span>
-      alert('Erro ao salvar cliente. Verifique os dados e tente novamente.');
+      </div>
     );
   }
 
