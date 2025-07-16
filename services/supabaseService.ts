@@ -386,6 +386,55 @@ export const customerService = {
     }
   },
 
+  async checkDuplicateDocument(documentNumber: string, documentType: string, excludeCustomerId?: string): Promise<boolean> {
+    try {
+      if (!supabase) {
+        console.error('❌ Supabase client not available for duplicate check');
+        return false;
+      }
+
+      // Only check if document number is provided and not N/A
+      if (!documentNumber || !documentNumber.trim() || documentType === 'N/A') {
+        return false;
+      }
+
+      // Clean document number (remove formatting)
+      const cleanDocumentNumber = documentNumber.replace(/[^\d]/g, '');
+      
+      if (cleanDocumentNumber.length === 0) {
+        return false;
+      }
+
+      let query = supabase
+        .from('customers')
+        .select('id, document_number, document_type')
+        .eq('document_type', documentType)
+        .not('document_number', 'is', null);
+
+      // Exclude current customer if editing
+      if (excludeCustomerId) {
+        query = query.neq('id', excludeCustomerId);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('❌ Error checking duplicate document:', error);
+        return false;
+      }
+
+      // Check if any existing document matches (comparing cleaned versions)
+      const isDuplicate = (data || []).some(customer => {
+        const existingCleanDocument = (customer.document_number || '').replace(/[^\d]/g, '');
+        return existingCleanDocument === cleanDocumentNumber;
+      });
+
+      return isDuplicate;
+    } catch (error) {
+      console.error('❌ Exception in checkDuplicateDocument:', error);
+      return false;
+    }
+  },
   async createCustomer(customer: Omit<Customer, 'id'>): Promise<Customer> {
     try {
       if (!supabase) {
@@ -393,6 +442,14 @@ export const customerService = {
         throw new Error('Cliente Supabase não inicializado');
       }
       
+      // Check for duplicate document before creating
+      if (customer.documentNumber && customer.documentType !== 'N/A') {
+        const isDuplicate = await this.checkDuplicateDocument(customer.documentNumber, customer.documentType);
+        if (isDuplicate) {
+          throw new Error(`Já existe um cliente cadastrado com este ${customer.documentType}: ${customer.documentNumber}`);
+        }
+      }
+
       const { data, error } = await supabase
         .from('customers')
         .insert([{
@@ -452,6 +509,14 @@ export const customerService = {
 
   async updateCustomer(customer: Customer): Promise<void> {
     try {
+      // Check for duplicate document before updating (excluding current customer)
+      if (customer.documentNumber && customer.documentType !== 'N/A') {
+        const isDuplicate = await this.checkDuplicateDocument(customer.documentNumber, customer.documentType, customer.id);
+        if (isDuplicate) {
+          throw new Error(`Já existe outro cliente cadastrado com este ${customer.documentType}: ${customer.documentNumber}`);
+        }
+      }
+
       const { error } = await supabase
         .from('customers')
         .update({
