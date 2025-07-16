@@ -255,7 +255,10 @@ const App: React.FC = () => {
                 path="/sales/user-performance"
                 element={
                   <ProtectedRoute requiredRole={UserAccessLevel.ADMIN}>
-                    <UserSalesPerformancePage currentUser={currentUser} />
+                    <UserSalesPerformancePage 
+                      currentUser={currentUser} 
+                      openGlobalViewDetailsModal={handleOpenViewDetailsForGlobal}
+                    />
                   </ProtectedRoute>
                 }
               />

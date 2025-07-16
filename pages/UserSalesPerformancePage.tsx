@@ -4,6 +4,8 @@ import Select from '../components/common/Select';
 import Spinner from '../components/common/Spinner';
 import ChartBarIcon from '../components/icons/ChartBarIcon';
 import UserGroupIcon from '../components/icons/UserGroupIcon';
+import DocumentTextIcon from '../components/icons/DocumentTextIcon';
+import Button from '../components/common/Button';
 import { Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -16,7 +18,7 @@ import {
   ChartData,
   ChartOptions,
 } from 'chart.js';
-import { formatCurrency } from '../utils';
+import { formatCurrency, translateQuoteStatus } from '../utils';
 import { useUsers, useQuotes } from '../hooks/useSupabaseData';
 
 ChartJS.register(
@@ -30,9 +32,10 @@ ChartJS.register(
 
 interface UserSalesPerformancePageProps {
   currentUser: LoggedInUser;
+  openGlobalViewDetailsModal?: (quote: Quote) => void;
 }
 
-const UserSalesPerformancePage: React.FC<UserSalesPerformancePageProps> = ({ currentUser }) => {
+const UserSalesPerformancePage: React.FC<UserSalesPerformancePageProps> = ({ currentUser, openGlobalViewDetailsModal }) => {
   const { users: allUsers, loading: usersLoading } = useUsers();
   const { quotes: allQuotes, loading: quotesLoading } = useQuotes();
   
@@ -91,16 +94,19 @@ const UserSalesPerformancePage: React.FC<UserSalesPerformancePageProps> = ({ cur
       });
       
       const hasSales = dailySales.some(sale => sale > 0);
+      const totalSales = dailySales.reduce((a, b) => a + b, 0);
 
       return {
         userId: user.id,
         userName: user.fullName || user.username,
         hasSales,
+        userSales,
+        totalSales,
         chartData: {
           labels: dayLabels,
           datasets: [
             {
-              label: `Vendas Diárias (${formatCurrency(dailySales.reduce((a,b) => a+b,0))})`,
+              label: `Vendas Diárias (${formatCurrency(totalSales)})`,
               data: dailySales,
               backgroundColor: 'rgba(234, 179, 8, 0.6)',
               borderColor: 'rgba(234, 179, 8, 1)',
@@ -228,6 +234,11 @@ const UserSalesPerformancePage: React.FC<UserSalesPerformancePageProps> = ({ cur
               </p>
               {data.hasSales ? (
                 <div className="h-72 md:h-96 relative">
+                  {data.hasSales && (
+                    <p className="text-sm text-green-400 mt-1">
+                      {data.userSales.length} orçamento(s) aceito(s) • Total: {formatCurrency(data.totalSales)}
+                    </p>
+                  )}
                   <Bar 
                     options={{
                       ...chartBaseOptions,
@@ -241,8 +252,73 @@ const UserSalesPerformancePage: React.FC<UserSalesPerformancePageProps> = ({ cur
                     data={data.chartData} 
                   />
                 </div>
+                {data.hasSales && (
+                  <div className="text-right">
+                    <p className="text-sm text-gray-400 mb-2">Orçamentos Aceitos:</p>
+                    <div className="space-y-1 max-h-32 overflow-y-auto">
+                      {data.userSales.slice(0, 5).map(quote => (
+                        <div key={quote.id} className="flex items-center justify-between bg-[#282828] p-2 rounded text-xs">
+                          <span className="text-yellow-400">{quote.quoteNumber}</span>
+                          <span className="text-gray-300">{formatCurrency(quote.totalCash)}</span>
+                          {openGlobalViewDetailsModal && (
+                            <Button 
+                              onClick={() => openGlobalViewDetailsModal(quote)}
+                              variant="outline" 
+                              size="xs"
+                              className="ml-2"
+                            >
+                              Ver
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                      {data.userSales.length > 5 && (
+                        <p className="text-xs text-gray-500 text-center">
+                          +{data.userSales.length - 5} orçamento(s) adicional(is)
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
               ) : (
                 <p className="text-gray-500 text-center py-10">Nenhuma venda encontrada para este usuário no período selecionado.</p>
+              )}
+              
+              {/* Lista completa de orçamentos aceitos */}
+              {data.hasSales && data.userSales.length > 0 && (
+                <div className="mt-6 pt-4 border-t border-gray-700">
+                  <h4 className="text-md font-semibold text-white mb-3 flex items-center">
+                    <DocumentTextIcon className="w-5 h-5 mr-2 text-yellow-500" />
+                    Todos os Orçamentos Aceitos ({data.userSales.length})
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {data.userSales.map(quote => (
+                      <div key={quote.id} className="bg-[#282828] p-3 rounded-lg hover:bg-[#3a3a3a] transition-colors">
+                        <div className="flex justify-between items-start mb-2">
+                          <span className="font-medium text-yellow-400 text-sm">{quote.quoteNumber}</span>
+                          <span className="text-xs text-gray-400">
+                            {new Date(quote.createdAt).toLocaleDateString('pt-BR')}
+                          </span>
+                        </div>
+                        <p className="text-sm text-white mb-1">{quote.clientName}</p>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-semibold text-green-400">
+                            {formatCurrency(quote.totalCash)}
+                          </span>
+                          {openGlobalViewDetailsModal && (
+                            <Button 
+                              onClick={() => openGlobalViewDetailsModal(quote)}
+                              variant="outline" 
+                              size="xs"
+                            >
+                              Detalhes
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
           ))}
