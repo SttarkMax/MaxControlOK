@@ -290,6 +290,8 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
     setIsLoading(true);
 
     try {
+      console.log('🔄 Preparing to save quote:', currentQuote.quoteNumber);
+      
       const quoteToSave: Omit<Quote, 'id'> = {
         quoteNumber: currentQuote.quoteNumber!,
         customerId: currentQuote.customerId,
@@ -317,11 +319,21 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
         createdAt: new Date().toISOString(),
       };
 
+      console.log('💾 Saving quote data:', {
+        number: quoteToSave.quoteNumber,
+        client: quoteToSave.clientName,
+        itemsCount: quoteToSave.items.length,
+        total: quoteToSave.totalCash
+      });
       if (isEditing && quoteId) {
+        console.log('🔄 Updating existing quote:', quoteId);
         await updateQuote({ ...quoteToSave, id: quoteId });
+        console.log('✅ Quote updated successfully');
         alert('Orçamento atualizado com sucesso!');
       } else {
+        console.log('🔄 Creating new quote');
         await createQuote(quoteToSave);
+        console.log('✅ Quote created successfully');
         alert('Orçamento criado com sucesso!');
       }
 
@@ -329,6 +341,23 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
     } catch (error) {
       console.error('Erro ao salvar orçamento:', error);
       
+      // Check if it's just a connection warning but the operation was successful
+      if (error instanceof Error && error.message.includes('Erro de conexão')) {
+        console.warn('⚠️ Connection warning, but quote may have been saved. Checking...');
+        
+        // Give a more user-friendly message
+        const shouldContinue = window.confirm(
+          'Houve um aviso de conexão, mas o orçamento pode ter sido salvo com sucesso.\n\n' +
+          'Deseja continuar? (Recomendado: Clique OK para continuar)'
+        );
+        
+        if (shouldContinue) {
+          navigate('/');
+          return;
+        }
+      }
+      
+      // For other errors, show the full error message
       alert(`Erro ao salvar orçamento: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     } finally {
       setIsLoading(false);

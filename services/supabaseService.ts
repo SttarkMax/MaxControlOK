@@ -591,6 +591,8 @@ export const quoteService = {
         throw new Error('Cliente Supabase não inicializado');
       }
 
+      console.log('🔄 Creating quote:', quote.quoteNumber);
+
       const { data, error } = await supabase
         .from('quotes')
         .insert([{
@@ -618,10 +620,22 @@ export const quoteService = {
         .select()
         .single();
 
-      if (error) handleSupabaseError(error);
+      if (error) {
+        console.error('❌ Quote creation error:', error);
+        handleSupabaseError(error);
+      }
+
+      if (!data) {
+        console.error('❌ No data returned from quote creation');
+        throw new Error('Erro ao criar orçamento - nenhum dado retornado');
+      }
+
+      console.log('✅ Quote created successfully:', data.quote_number);
 
       // Insert quote items
       if (quote.items && quote.items.length > 0) {
+        console.log('🔄 Inserting quote items:', quote.items.length);
+        
         const itemsToInsert = quote.items.map(item => ({
           quote_id: data.id,
           product_id: item.productId,
@@ -639,7 +653,12 @@ export const quoteService = {
           .from('quote_items')
           .insert(itemsToInsert);
 
-        if (itemsError) handleSupabaseError(itemsError);
+        if (itemsError) {
+          console.error('❌ Quote items creation error:', itemsError);
+          handleSupabaseError(itemsError);
+        } else {
+          console.log('✅ Quote items created successfully');
+        }
       }
 
       return {
@@ -668,6 +687,7 @@ export const quoteService = {
         createdAt: data.created_at,
       };
     } catch (error) {
+      console.error('❌ createQuote service error:', error);
       handleSupabaseError(error);
       throw error;
     }

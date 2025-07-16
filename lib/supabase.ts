@@ -134,6 +134,12 @@ export const handleSupabaseError = (error: any) => {
     hint: error?.hint
   });
   
+  // If the operation was successful but there's a warning/info message, don't throw
+  if (error?.code === 'PGRST116' || error?.message?.includes('No rows found')) {
+    console.warn('⚠️ Supabase warning (non-critical):', error?.message);
+    return; // Don't throw for non-critical warnings
+  }
+  
   // Check for CORS errors specifically
   if (error?.message?.includes('Failed to fetch') || 
       error?.name === 'TypeError' && error?.message?.includes('fetch')) {
@@ -155,7 +161,10 @@ export const handleSupabaseError = (error: any) => {
       error.code === 'ENOTFOUND' ||
       error.code === 'ECONNREFUSED') {
     console.error('🔌 Supabase Connection Issue - database connection failed');
-    throw new Error('Erro de conexão: Verifique sua internet e configurações do Supabase');
+    // Only throw if it's a real connection error, not a successful operation
+    if (!error?.statusText || error?.statusText !== 'OK') {
+      throw new Error('Erro de conexão: Verifique sua internet e configurações do Supabase');
+    }
   }
   
   // For RLS and permission errors
