@@ -95,6 +95,8 @@ export default function CreateQuotePage({ currentUser }: CreateQuotePageProps) {
           totalCard: existingQuote.totalCard
         });
         
+        console.log('📦 Items being loaded:', existingQuote.items);
+        
         // Load ALL quote data including items, values, payment info, dates, notes, etc.
         setCurrentQuote({
           id: existingQuote.id,
@@ -119,6 +121,8 @@ export default function CreateQuotePage({ currentUser }: CreateQuotePageProps) {
           salespersonUsername: existingQuote.salespersonUsername,
           salespersonFullName: existingQuote.salespersonFullName,
         });
+        
+        console.log('📊 Quote data fully loaded for editing - Items:', existingQuote.items?.length || 0);
         
         console.log('📊 Quote data fully loaded for editing:', {
           itemsLoaded: existingQuote.items?.length || 0,
@@ -165,10 +169,10 @@ export default function CreateQuotePage({ currentUser }: CreateQuotePageProps) {
     };
     
     // Wait for quotes to be loaded before trying to find the quote
-    if (quotes.length > 0 || !loading) {
+    if (!loading && (quotes.length > 0 || !isEditing)) {
       loadQuoteForEditing();
     }
-  }, [isEditing, quoteId, quotes, customers, products, loading, useCardPricing]);
+  }, [isEditing, quoteId, quotes, customers, products, loading]);
 
   // Add loading state check
   const isLoadingQuoteData = isEditing && quoteId && quotes.length === 0 && loading;

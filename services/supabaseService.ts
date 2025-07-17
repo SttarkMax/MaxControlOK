@@ -708,7 +708,7 @@ export const quoteService = {
       if (quote.items && quote.items.length > 0) {
         const itemsToInsert = quote.items.map(item => ({
           quote_id: quoteData.id,
-          product_id: item.productId || null,
+          product_id: item.productId && item.productId !== '' ? item.productId : null,
           product_name: item.productName,
           quantity: item.quantity,
           unit_price: item.unitPrice,
@@ -813,7 +813,7 @@ export const quoteService = {
       if (quote.items && quote.items.length > 0) {
         const itemsToInsert = quote.items.map(item => ({
           quote_id: quote.id,
-          product_id: item.productId || null,
+          product_id: item.productId && item.productId !== '' ? item.productId : null,
           product_name: item.productName,
           quantity: item.quantity,
           unit_price: item.unitPrice,
