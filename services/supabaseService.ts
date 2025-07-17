@@ -85,19 +85,30 @@ export const companyService = {
         website: company.website || '',
       };
 
-      if (company.id) {
-        // Update existing company
+      // Check if any company record exists
+      const { data: existingCompanies, error: checkError } = await supabase
+        .from('companies')
+        .select('id')
+        .limit(1);
+
+      if (checkError) {
+        handleSupabaseError(checkError);
+        throw new Error('Erro ao verificar empresa existente');
+      }
+
+      if (existingCompanies && existingCompanies.length > 0) {
+        // Update the first (and should be only) company record
         const { error } = await supabase
           .from('companies')
           .update(companyData)
-          .eq('id', company.id);
+          .eq('id', existingCompanies[0].id);
 
         if (error) {
           handleSupabaseError(error);
           throw new Error('Erro ao atualizar empresa');
         }
       } else {
-        // Create new company
+        // Create new company record (first time setup)
         const { error } = await supabase
           .from('companies')
           .insert([companyData]);
