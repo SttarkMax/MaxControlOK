@@ -1570,6 +1570,12 @@ export const userService = {
 
       console.log('🔍 User found, checking password...');
       
+      // Check if password_hash exists and is valid
+      if (!data.password_hash || typeof data.password_hash !== 'string') {
+        console.log('❌ Invalid or missing password hash for user:', username);
+        return null;
+      }
+
       // Check password
       const isValidPassword = await bcrypt.compare(password, data.password_hash);
       
