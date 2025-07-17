@@ -1479,6 +1479,10 @@ export const userService = {
       throw new Error('Supabase não configurado');
     }
 
+    if (!user.id || user.id === 'undefined' || user.id.trim() === '') {
+      throw new Error('ID do usuário é obrigatório para atualização');
+    }
+
     try {
       console.log('🔄 Updating user in Supabase:', user.username);
       
