@@ -76,7 +76,11 @@ export default function CreateQuotePage({ currentUser }: CreateQuotePageProps) {
     const loadQuoteForEditing = async () => {
       if (!isEditing || !quoteId) return;
       
-      console.log('🔄 Loading quote for editing:', { quoteId, quotesAvailable: quotes.length });
+      console.log('🔄 Loading quote for editing:', { 
+        quoteId, 
+        quotesAvailable: quotes.length,
+        quotesLoaded: !loading 
+      });
       
       const existingQuote = quotes.find(q => q.id === quoteId);
       if (existingQuote) {
@@ -85,24 +89,27 @@ export default function CreateQuotePage({ currentUser }: CreateQuotePageProps) {
           quoteNumber: existingQuote.quoteNumber,
           status: existingQuote.status,
           client: existingQuote.clientName,
-          itemsCount: existingQuote.items?.length || 0
+          itemsCount: existingQuote.items?.length || 0,
+          subtotal: existingQuote.subtotal,
+          totalCash: existingQuote.totalCash,
+          totalCard: existingQuote.totalCard
         });
         
-        // Load ALL quote data including items, payment info, dates, notes, etc.
+        // Load ALL quote data including items, values, payment info, dates, notes, etc.
         setCurrentQuote({
           id: existingQuote.id,
           quoteNumber: existingQuote.quoteNumber,
           customerId: existingQuote.customerId || '',
           clientName: existingQuote.clientName,
           clientContact: existingQuote.clientContact || '',
-          items: existingQuote.items || [],
+          items: existingQuote.items || [], // ✅ Load all items
           subtotal: existingQuote.subtotal,
           discountType: existingQuote.discountType,
           discountValue: existingQuote.discountValue,
           discountAmountCalculated: existingQuote.discountAmountCalculated,
           subtotalAfterDiscount: existingQuote.subtotalAfterDiscount,
-          totalCash: existingQuote.totalCash,
-          totalCard: existingQuote.totalCard,
+          totalCash: existingQuote.totalCash, // ✅ Load cash total
+          totalCard: existingQuote.totalCard, // ✅ Load card total
           downPaymentApplied: existingQuote.downPaymentApplied || 0,
           selectedPaymentMethod: existingQuote.selectedPaymentMethod || '',
           paymentDate: existingQuote.paymentDate || '',
@@ -113,10 +120,14 @@ export default function CreateQuotePage({ currentUser }: CreateQuotePageProps) {
           salespersonFullName: existingQuote.salespersonFullName,
         });
         
-        console.log('📊 Quote data fully loaded:', {
+        console.log('📊 Quote data fully loaded for editing:', {
           itemsLoaded: existingQuote.items?.length || 0,
           subtotal: existingQuote.subtotal,
-          totalCash: existingQuote.totalCash
+          totalCash: existingQuote.totalCash,
+          totalCard: existingQuote.totalCard,
+          clientName: existingQuote.clientName,
+          clientContact: existingQuote.clientContact,
+          status: existingQuote.status
         });
         
         // Load customer data if exists
@@ -127,7 +138,7 @@ export default function CreateQuotePage({ currentUser }: CreateQuotePageProps) {
         
         // Set pricing mode based on existing quote items
         if (existingQuote.items && existingQuote.items.length > 0) {
-          // Check if any item uses card pricing by comparing with base prices
+          // Detect pricing mode based on existing items
           const firstItem = existingQuote.items[0];
           const product = products.find(p => p.id === firstItem.productId);
           if (product) {
@@ -137,6 +148,7 @@ export default function CreateQuotePage({ currentUser }: CreateQuotePageProps) {
             const isCardPricing = Math.abs(firstItem.unitPrice - cardPrice) < Math.abs(firstItem.unitPrice - cashPrice);
             setUseCardPricing(isCardPricing);
           }
+          console.log('💳 Pricing mode detected for editing:', useCardPricing ? 'Card' : 'Cash');
         }
       }
       else if (isEditing && quoteId) {
@@ -146,7 +158,7 @@ export default function CreateQuotePage({ currentUser }: CreateQuotePageProps) {
           availableQuoteIds: quotes.map(q => q.id)
         });
         
-        // Try to reload quotes if not found
+        // Quote not found - may need to wait for quotes to load
         console.log('🔄 Attempting to reload quotes...');
         // The quotes will be reloaded by the useQuotes hook
       }
@@ -156,7 +168,7 @@ export default function CreateQuotePage({ currentUser }: CreateQuotePageProps) {
     if (quotes.length > 0 || !loading) {
       loadQuoteForEditing();
     }
-  }, [isEditing, quoteId, quotes, customers, products, loading]);
+  }, [isEditing, quoteId, quotes, customers, products, loading, useCardPricing]);
 
   // Add loading state check
   const isLoadingQuoteData = isEditing && quoteId && quotes.length === 0 && loading;
@@ -810,7 +822,7 @@ export default function CreateQuotePage({ currentUser }: CreateQuotePageProps) {
                 </h3>
                 {isEditing && (
                   <div className="text-sm text-yellow-400">
-                    ✏️ Editando orçamento existente
+                    ✏️ Editando: {currentQuote.quoteNumber} | Total: {formatCurrency(currentQuote.totalCash || 0)}
                   </div>
                 )}
               </div>
@@ -818,13 +830,16 @@ export default function CreateQuotePage({ currentUser }: CreateQuotePageProps) {
               {/* Debug info for editing */}
               {isEditing && (
                 <div className="mb-4 p-2 bg-gray-800 rounded text-xs">
-                  <p>🔍 Debug Edição:</p>
+                  <p>🔍 Debug - Dados Carregados para Edição:</p>
                   <p>• Quote ID: {quoteId}</p>
                   <p>• Quote Number: {currentQuote.quoteNumber}</p>
                   <p>• Status: {currentQuote.status}</p>
                   <p>• Cliente: {currentQuote.clientName}</p>
+                  <p>• Contato: {currentQuote.clientContact || 'Não informado'}</p>
                   <p>• Itens carregados: {currentQuote.items.length}</p>
                   <p>• Subtotal: {formatCurrency(currentQuote.subtotal || 0)}</p>
+                  <p>• Total À Vista: {formatCurrency(currentQuote.totalCash || 0)}</p>
+                  <p>• Total Cartão: {formatCurrency(currentQuote.totalCard || 0)}</p>
                   <p>• Forma Pagamento: {currentQuote.selectedPaymentMethod || 'Não definida'}</p>
                   <p>• Data Entrega: {currentQuote.deliveryDeadline || 'Não definida'}</p>
                 </div>
@@ -882,10 +897,13 @@ export default function CreateQuotePage({ currentUser }: CreateQuotePageProps) {
                     💡 <strong>Dica:</strong> Para editar um item específico, remova-o e adicione novamente com os dados corretos.
                   </p>
                   <p className="text-yellow-300 text-xs mt-1">
-                    📝 <strong>Editando:</strong> Orçamento #{currentQuote.quoteNumber} - 
+                    📝 <strong>Editando:</strong> Orçamento #{currentQuote.quoteNumber} | 
+                    Cliente: {currentQuote.clientName} | 
+                    Valor: {formatCurrency(currentQuote.totalCash || 0)} | 
                     Status: {currentQuote.status === 'draft' ? 'Rascunho' : 
                              currentQuote.status === 'sent' ? 'Enviado' : 
-                             currentQuote.status === 'accepted' ? 'Aceito' : currentQuote.status}
+                             currentQuote.status === 'accepted' ? 'Aceito' : currentQuote.status} |
+                    Itens: {currentQuote.items.length}
                   </p>
                 </div>
               )}
@@ -895,6 +913,32 @@ export default function CreateQuotePage({ currentUser }: CreateQuotePageProps) {
 
         {/* Summary */}
         <div className="space-y-6">
+          {/* Editing Summary */}
+          {isEditing && currentQuote.quoteNumber && (
+            <div className="bg-blue-900/20 border border-blue-500/30 p-4 rounded-lg">
+              <h3 className="text-lg font-semibold text-blue-300 mb-2">📝 Editando Orçamento</h3>
+              <div className="space-y-1 text-sm">
+                <p><span className="text-blue-200">Número:</span> <span className="text-white font-medium">{currentQuote.quoteNumber}</span></p>
+                <p><span className="text-blue-200">Cliente:</span> <span className="text-white">{currentQuote.clientName}</span></p>
+                {currentQuote.clientContact && (
+                  <p><span className="text-blue-200">Contato:</span> <span className="text-white">{currentQuote.clientContact}</span></p>
+                )}
+                <p><span className="text-blue-200">Valor Total:</span> <span className="text-yellow-400 font-semibold">{formatCurrency(currentQuote.totalCash || 0)}</span></p>
+                <p><span className="text-blue-200">Itens:</span> <span className="text-white">{currentQuote.items?.length || 0} produto(s)</span></p>
+                <p><span className="text-blue-200">Status:</span> 
+                  <span className={`ml-1 px-2 py-0.5 text-xs rounded-full font-medium ${
+                    currentQuote.status === 'accepted' ? 'bg-green-600 text-white' :
+                    currentQuote.status === 'sent' ? 'bg-blue-600 text-white' :
+                    'bg-yellow-600 text-black'
+                  }`}>
+                    {currentQuote.status === 'accepted' ? 'Aceito' :
+                     currentQuote.status === 'sent' ? 'Enviado' : 'Rascunho'}
+                  </span>
+                </p>
+              </div>
+            </div>
+          )}
+          
           <div className="bg-[#1d1d1d] p-6 rounded-lg shadow-lg">
             <h3 className="text-lg font-semibold text-white mb-4">Resumo</h3>
             <div className="space-y-3">
