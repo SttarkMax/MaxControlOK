@@ -35,11 +35,13 @@ export const companyService = {
     }
 
     try {
+      // Always get the first company record (there should only be one)
       const { data, error } = await supabase
         .from('companies')
         .select('*')
+        .order('created_at', { ascending: true })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (error) {
         handleSupabaseError(error);
@@ -73,7 +75,15 @@ export const companyService = {
     }
 
     try {
-      const companyData = {
+      // Check if a company already exists
+      const { data: existingCompany } = await supabase
+        .from('companies')
+        .select('id')
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      const companyPayload = {
         name: company.name,
         logo_url_dark_bg: company.logoUrlDarkBg || null,
         logo_url_light_bg: company.logoUrlLightBg || null,
@@ -83,35 +93,27 @@ export const companyService = {
         cnpj: company.cnpj || '',
         instagram: company.instagram || '',
         website: company.website || '',
+        updated_at: new Date().toISOString()
       };
 
-      // Check if any company record exists
-      const { data: existingCompanies, error: checkError } = await supabase
-        .from('companies')
-        .select('id')
-        .limit(1);
-
-      if (checkError) {
-        handleSupabaseError(checkError);
-        throw new Error('Erro ao verificar empresa existente');
-      }
-
-      if (existingCompanies && existingCompanies.length > 0) {
-        // Update the first (and should be only) company record
+      if (existingCompany) {
+        // Update the existing company record
+        console.log('🔄 Updating existing company record:', existingCompany.id);
         const { error } = await supabase
           .from('companies')
-          .update(companyData)
-          .eq('id', existingCompanies[0].id);
+          .update(companyPayload)
+          .eq('id', existingCompany.id);
 
         if (error) {
           handleSupabaseError(error);
           throw new Error('Erro ao atualizar empresa');
         }
       } else {
-        // Create new company record (first time setup)
+        // Create the first company record
+        console.log('🔄 Creating first company record');
         const { error } = await supabase
           .from('companies')
-          .insert([companyData]);
+          .insert([companyPayload]);
 
         if (error) {
           handleSupabaseError(error);
