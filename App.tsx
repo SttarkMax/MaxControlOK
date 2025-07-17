@@ -48,15 +48,19 @@ const App: React.FC = () => {
             createDefaultAdminUser();
           }
         } else {
-          console.error('❌ App: Supabase connection failed - check CORS settings');
-          alert('Erro de conexão: Verifique se http://localhost:5173 está nas configurações CORS do Supabase');
+          console.error('❌ App: Supabase connection failed');
+          console.error('📋 CORS Fix: Add http://localhost:5173 to Supabase CORS origins');
+          console.error('🔗 Go to: Supabase Dashboard → Project Settings → API → CORS');
+          // Don't show alert immediately, let user work offline
         }
       }).catch(err => {
-        console.error('❌ App: Initial Supabase connection test failed - CORS issue:', err);
-        alert('Erro de CORS: Adicione http://localhost:5173 às configurações CORS do Supabase');
+        console.error('❌ App: Initial Supabase connection test failed');
+        console.error('📋 CORS Fix: Add http://localhost:5173 to Supabase CORS origins');
+        // Don't show alert, let app continue in offline mode
       });
     } else {
       console.error('❌ App: Supabase not configured - check environment variables');
+      console.error('📋 Check: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.local');
     }
   }, []);
 

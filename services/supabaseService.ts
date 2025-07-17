@@ -546,6 +546,11 @@ export const customerService = {
 // Quote Services
 export const quoteService = {
   async getQuotes(): Promise<Quote[]> {
+    if (!supabase) {
+      console.warn('⚠️ Supabase not configured - returning empty quotes');
+      return [];
+    }
+    
     console.log('🔍 DEBUG: Starting getQuotes function...');
     
     try {
@@ -652,6 +657,7 @@ export const quoteService = {
       console.warn('🔌 Quote service - switching to offline mode');
       console.error('Quote service error:', error);
       handleSupabaseError(error);
+      console.warn('⚠️ Quotes loading failed - returning empty array');
       return []; // Return empty array instead of throwing
     }
   },
