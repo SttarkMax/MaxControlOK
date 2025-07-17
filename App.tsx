@@ -89,15 +89,22 @@ const App: React.FC = () => {
           console.log(`✅ User ${username} created successfully:`, newUser.id);
         } catch (createError) {
           // Handle race condition where user might be created between check and creation
-          if (createError instanceof Error && createError.message.includes('duplicate key')) {
+          if (createError instanceof Error && (createError.message.includes('duplicate key') || createError.message.includes('já existe'))) {
             console.log(`ℹ️ User ${username} was created by another process, attempting to update...`);
-            const userAfterRace = await userService.getUserByUsername(username);
-            if (userAfterRace) {
-              await userService.updateUser({
-                ...userAfterRace,
-                password: password
-              });
-              console.log(`✅ User ${username} updated after race condition`);
+            try {
+              const userAfterRace = await userService.getUserByUsername(username);
+              if (userAfterRace) {
+                await userService.updateUser({
+                  ...userAfterRace,
+                  password: password
+                });
+                console.log(`✅ User ${username} updated after race condition`);
+              } else {
+                console.log(`⚠️ User ${username} still not found after race condition, skipping...`);
+              }
+            } catch (raceError) {
+              console.log(`⚠️ Could not update user ${username} after race condition:`, raceError);
+              // Don't throw here, just log and continue
             }
           } else {
             console.error(`❌ Error creating user ${username}:`, createError);
@@ -107,7 +114,8 @@ const App: React.FC = () => {
       }
     } catch (error) {
       console.error(`❌ Error ensuring user ${username} exists:`, error);
-      throw error;
+      // Don't throw error for admin setup, just log it
+      console.log(`⚠️ Continuing despite error with user ${username}`);
     }
   };
   const createDefaultAdminUser = async () => {
