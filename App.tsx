@@ -21,13 +21,12 @@ import ViewQuoteDetailsModal from './components/ViewQuoteDetailsModal';
 import { UserAccessLevel, CompanyInfo, Quote, User, LoggedInUser } from './types'; 
 import { DEFAULT_USER_ACCESS_LEVEL, USERS_STORAGE_KEY } from './constants';
 import { useCompany } from './hooks/useSupabaseData';
-import { userService, UserAlreadyExistsError } from './services/supabaseService';
+import { userService } from './services/supabaseService';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [currentUser, setCurrentUser] = useState<LoggedInUser | null>(null);
   const { company: companyDetails } = useCompany();
-  const adminUserCreated = useRef(false);
   
   const [selectedQuoteForGlobalView, setSelectedQuoteForGlobalView] = useState<Quote | null>(null);
   const [isViewDetailsModalOpenForGlobal, setIsViewDetailsModalOpenForGlobal] = useState(false);
@@ -35,18 +34,13 @@ const App: React.FC = () => {
 
   // Test Supabase connection on app load
   useEffect(() => {
-    if (adminUserCreated.current) return;
-    
     console.log('🚀 App: Starting Supabase connection test...');
     if (isSupabaseConfigured()) {
       testSupabaseConnection().then(success => {
         if (success) {
           console.log('✅ App: Supabase connection successful - all systems ready');
           // Create default admin user if it doesn't exist
-          if (!adminUserCreated.current) {
-            adminUserCreated.current = true;
-            createDefaultAdminUser();
-          }
+          createDefaultAdminUser();
         } else {
           console.error('❌ App: Supabase connection failed');
           console.error('📋 CORS Fix: Add http://localhost:5173 to Supabase CORS origins');
@@ -64,6 +58,58 @@ const App: React.FC = () => {
     }
   }, []);
 
+  const ensureUserExistsAndIsUpdated = async (username: string, fullName: string, password: string, role: 'admin' | 'sales' | 'viewer') => {
+    try {
+      console.log(`🔄 Checking for existing user: ${username}...`);
+      
+      // Check if user already exists
+      const existingUser = await userService.getUserByUsername(username);
+      
+      if (existingUser) {
+        console.log(`✅ User ${username} exists, updating password...`);
+        try {
+          await userService.updateUser({
+            ...existingUser,
+            password: password
+          });
+          console.log(`✅ User ${username} password updated successfully`);
+        } catch (updateError) {
+          console.error(`❌ Error updating user ${username}:`, updateError);
+          throw updateError;
+        }
+      } else {
+        console.log(`🔄 Creating user: ${username}...`);
+        try {
+          const newUser = await userService.createUser({
+            username,
+            fullName,
+            role,
+            password
+          });
+          console.log(`✅ User ${username} created successfully:`, newUser.id);
+        } catch (createError) {
+          // Handle race condition where user might be created between check and creation
+          if (createError instanceof Error && createError.message.includes('duplicate key')) {
+            console.log(`ℹ️ User ${username} was created by another process, attempting to update...`);
+            const userAfterRace = await userService.getUserByUsername(username);
+            if (userAfterRace) {
+              await userService.updateUser({
+                ...userAfterRace,
+                password: password
+              });
+              console.log(`✅ User ${username} updated after race condition`);
+            }
+          } else {
+            console.error(`❌ Error creating user ${username}:`, createError);
+            throw createError;
+          }
+        }
+      }
+    } catch (error) {
+      console.error(`❌ Error ensuring user ${username} exists:`, error);
+      throw error;
+    }
+  };
   const createDefaultAdminUser = async () => {
     try {
       console.log('🔄 Checking for existing admin user...');
@@ -71,59 +117,15 @@ const App: React.FC = () => {
       // Check if user already exists first
       const existingUser = await userService.getUserByUsername('admin@maxcontrol.com');
       
-      if (existingUser) {
-        console.log('✅ Admin user exists, updating password...');
-        try {
-          if (existingUser.id) {
-            await userService.updateUser({
-              ...existingUser,
-              password: 'admin123'
-            });
-          } else {
-            console.log('❌ Existing user has no ID, cannot update');
-            throw new Error('Usuário existente sem ID válido');
-          }
-          console.log('✅ Admin password updated successfully');
-        } catch (updateError) {
-          console.error('❌ Error updating admin password:', updateError);
-          throw updateError;
-        }
-        adminUserCreated.current = true;
-        return;
-      } else {
-        console.log('🔄 Creating default admin user...');
-        try {
-          const newUser = await userService.createUser({
-            username: 'admin@maxcontrol.com',
-            fullName: 'Administrador',
-            role: 'admin',
-            password: 'admin123'
-          });
-          console.log('✅ Default admin user created successfully:', newUser.id);
-        } catch (createError) {
-          console.error('❌ Error creating admin user:', createError);
-          throw createError;
-        }
-      }
+      // Ensure default admin user exists and is updated
+      await ensureUserExistsAndIsUpdated('admin@maxcontrol.com', 'Administrador', 'admin123', 'admin');
       
-      // Also create the user that's trying to log in for testing
-      try {
-        await userService.createUser({
-          username: 'f13moreira@gmail.com',
-          fullName: 'F13 Moreira',
-          password: 'admin123',
-          role: 'admin'
-        });
-        console.log('✅ Test user f13moreira@gmail.com created successfully');
-      } catch (error) {
-        console.log('ℹ️ Test user f13moreira@gmail.com already exists or creation failed');
-      }
+      // Ensure test user exists and is updated
+      await ensureUserExistsAndIsUpdated('f13moreira@gmail.com', 'F13 Moreira', 'admin123', 'admin');
       
-      adminUserCreated.current = true;
+      console.log('✅ All default users ensured successfully');
     } catch (error) {
       console.error('❌ Error with admin user setup:', error);
-      // Don't set adminUserCreated.current = true on error
-      // This allows retry on next app load/refresh
     }
   };
 
