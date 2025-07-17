@@ -1346,13 +1346,6 @@ export const accountsPayableService = {
 };
 
 // User Service
-export class UserAlreadyExistsError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'UserAlreadyExistsError';
-  }
-}
-
 export const userService = {
   async getUsers(): Promise<User[]> {
     if (!isSupabaseConfigured() || !supabase) {
@@ -1441,12 +1434,6 @@ export const userService = {
     try {
       console.log('🔄 Creating user in Supabase:', user.username);
       
-      // Check if user already exists
-      const existingUser = await this.getUserByUsername(user.username);
-      if (existingUser) {
-        throw new UserAlreadyExistsError(`Usuário com email ${user.username} já existe`);
-      }
-
       // Hash password
       const passwordHash = await bcrypt.hash(user.password, 10);
 
@@ -1464,7 +1451,7 @@ export const userService = {
       if (error) {
         console.error('❌ Error creating user:', error);
         if (error.code === '23505') { // Unique constraint violation
-          throw new UserAlreadyExistsError(`Usuário com email ${user.username} já existe`);
+          throw new Error(`Usuário com email ${user.username} já existe`);
         }
         handleSupabaseError(error);
         throw new Error('Erro ao criar usuário');
@@ -1515,7 +1502,7 @@ export const userService = {
       if (error) {
         console.error('❌ Error updating user:', error);
         if (error.code === '23505') { // Unique constraint violation
-          throw new UserAlreadyExistsError(`Usuário com email ${user.username} já existe`);
+          throw new Error(`Usuário com email ${user.username} já existe`);
         }
         handleSupabaseError(error);
         throw new Error('Erro ao atualizar usuário');
