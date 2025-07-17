@@ -30,7 +30,7 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
   const { products, loading: productsLoading } = useProducts();
   const { customers, loading: customersLoading } = useCustomers();
   const { company: companyInfo, loading: companyLoading } = useCompany();
-  const { quotes, createQuote, updateQuote } = useQuotes();
+  const { quotes, createQuote, updateQuote, loading } = useQuotes();
 
   const [isLoading, setIsLoading] = useState(false);
   const [currentQuote, setCurrentQuote] = useState<Partial<Quote>>({
@@ -615,6 +615,7 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
       }
     }
   };
+  
   if (productsLoading || customersLoading || companyLoading) {
     return (
       <div className="p-6 text-white flex items-center justify-center">
@@ -632,6 +633,7 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
         <span className="ml-3">Carregando orçamento para edição...</span>
       </div>
     );
+  }
 
   const customerOptions = [
     { value: '', label: 'Selecione um cliente ou digite manualmente' },
@@ -998,12 +1000,6 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
                 </div>
               </div>
               
-              <Input
-                label="Forma de Pagamento"
-                value={currentQuote.selectedPaymentMethod || ''}
-                onChange={(e) => setCurrentQuote(prev => ({ ...prev, selectedPaymentMethod: e.target.value }))}
-                placeholder="Ex: PIX, Cartão 2x, Dinheiro"
-              />
               <Select
                 label="Forma de Pagamento"
                 options={[
