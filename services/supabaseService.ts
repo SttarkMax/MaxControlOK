@@ -626,6 +626,9 @@ export const quoteService = {
 
         console.log(`🔍 DEBUG: Mapped quote ${quote.quote_number} with ${quoteItems.length} items:`, quoteItems);
 
+        
+        console.log(`📋 Quote ${quote.quote_number}: ${items.length} items loaded`);
+        
         return {
           id: quote.id,
           quoteNumber: quote.quote_number,
@@ -653,7 +656,15 @@ export const quoteService = {
         };
       });
     } catch (error) {
-      console.log('❌ DEBUG: Exception in getQuotes:', error);
+      console.log(`✅ Successfully loaded ${quotesWithItems.length} quotes with complete data`);
+      
+      // Log summary of items per quote for debugging
+      quotesWithItems.forEach(quote => {
+        if (quote.items.length > 0) {
+          console.log(`📊 Quote ${quote.quoteNumber}: ${quote.items.length} items, Status: ${quote.status}`);
+        }
+      });
+      
       console.warn('🔌 Quote service - switching to offline mode');
       console.error('Quote service error:', error);
       handleSupabaseError(error);

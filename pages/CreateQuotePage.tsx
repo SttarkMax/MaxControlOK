@@ -73,24 +73,28 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
 
   // Load existing quote for editing
   useEffect(() => {
-    if (isEditing && quoteId && quotes.length > 0) {
+    const loadQuoteForEditing = async () => {
+      if (!isEditing || !quoteId) return;
+      
+      console.log('🔄 Loading quote for editing:', { quoteId, quotesAvailable: quotes.length });
+      
       const existingQuote = quotes.find(q => q.id === quoteId);
       if (existingQuote) {
-        console.log('🔄 Loading quote for editing:', {
+        console.log('✅ Quote found for editing:', {
           quoteId,
           quoteNumber: existingQuote.quoteNumber,
-          itemsCount: existingQuote.items?.length || 0,
-          items: existingQuote.items
+          status: existingQuote.status,
+          client: existingQuote.clientName,
+          itemsCount: existingQuote.items?.length || 0
         });
         
-        // Load all quote data including payment method, dates, notes, etc.
+        // Load ALL quote data including items, payment info, dates, notes, etc.
         setCurrentQuote({
-          ...existingQuote,
-          // Ensure all fields are properly loaded
+          id: existingQuote.id,
           quoteNumber: existingQuote.quoteNumber,
-          customerId: existingQuote.customerId,
+          customerId: existingQuote.customerId || '',
           clientName: existingQuote.clientName,
-          clientContact: existingQuote.clientContact,
+          clientContact: existingQuote.clientContact || '',
           items: existingQuote.items || [],
           subtotal: existingQuote.subtotal,
           discountType: existingQuote.discountType,
@@ -99,7 +103,7 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
           subtotalAfterDiscount: existingQuote.subtotalAfterDiscount,
           totalCash: existingQuote.totalCash,
           totalCard: existingQuote.totalCard,
-          downPaymentApplied: existingQuote.downPaymentApplied,
+          downPaymentApplied: existingQuote.downPaymentApplied || 0,
           selectedPaymentMethod: existingQuote.selectedPaymentMethod || '',
           paymentDate: existingQuote.paymentDate || '',
           deliveryDeadline: existingQuote.deliveryDeadline || '',
@@ -109,7 +113,7 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
           salespersonFullName: existingQuote.salespersonFullName,
         });
         
-        console.log('✅ Quote data loaded for editing:', {
+        console.log('📊 Quote data fully loaded:', {
           itemsLoaded: existingQuote.items?.length || 0,
           subtotal: existingQuote.subtotal,
           totalCash: existingQuote.totalCash
@@ -117,7 +121,7 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
         
         // Load customer data if exists
         if (existingQuote.customerId) {
-          const customer = customers.find(c => c.id === existingQuote.customerId);
+          const customer = customers.find(c => c.id === existingQuote.customerId) || null;
           setSelectedCustomer(customer || null);
         }
         
@@ -135,10 +139,27 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
           }
         }
       }
-    } else if (isEditing && quoteId) {
-      console.log('⚠️ Quote not found for editing:', { quoteId, quotesLoaded: quotes.length });
+      else if (isEditing && quoteId) {
+        console.log('⚠️ Quote not found for editing:', { 
+          quoteId, 
+          quotesLoaded: quotes.length,
+          availableQuoteIds: quotes.map(q => q.id)
+        });
+        
+        // Try to reload quotes if not found
+        console.log('🔄 Attempting to reload quotes...');
+        // The quotes will be reloaded by the useQuotes hook
+      }
+    };
+    
+    // Wait for quotes to be loaded before trying to find the quote
+    if (quotes.length > 0 || !loading) {
+      loadQuoteForEditing();
     }
-  }, [isEditing, quoteId, quotes, customers, products]);
+  }, [isEditing, quoteId, quotes, customers, products, loading]);
+
+  // Add loading state check
+  const isLoadingQuoteData = isEditing && quoteId && quotes.length === 0 && loading;</parameter>
 
   // Generate quote number
   useEffect(() => {
@@ -602,6 +623,16 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
       </div>
     );
   }
+  
+  // Show loading when editing and waiting for quote data
+  if (isLoadingQuoteData) {
+    return (
+      <div className="p-6 text-white flex items-center justify-center">
+        <Spinner size="lg" />
+        <span className="ml-3">Carregando orçamento para edição...</span>
+      </div>
+    );
+  }</parameter>
 
   const customerOptions = [
     { value: '', label: 'Selecione um cliente ou digite manualmente' },
@@ -788,8 +819,13 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
                 <div className="mb-4 p-2 bg-gray-800 rounded text-xs">
                   <p>🔍 Debug Edição:</p>
                   <p>• Quote ID: {quoteId}</p>
+                  <p>• Quote Number: {currentQuote.quoteNumber}</p>
+                  <p>• Status: {currentQuote.status}</p>
+                  <p>• Cliente: {currentQuote.clientName}</p>
                   <p>• Itens carregados: {currentQuote.items.length}</p>
                   <p>• Subtotal: {formatCurrency(currentQuote.subtotal || 0)}</p>
+                  <p>• Forma Pagamento: {currentQuote.selectedPaymentMethod || 'Não definida'}</p>
+                  <p>• Data Entrega: {currentQuote.deliveryDeadline || 'Não definida'}</p>
                 </div>
               )}
               
@@ -843,6 +879,12 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
                 <div className="mt-4 p-3 bg-yellow-900/20 border border-yellow-500/30 rounded-md">
                   <p className="text-yellow-300 text-sm">
                     💡 <strong>Dica:</strong> Para editar um item específico, remova-o e adicione novamente com os dados corretos.
+                  </p>
+                  <p className="text-yellow-300 text-xs mt-1">
+                    📝 <strong>Editando:</strong> Orçamento #{currentQuote.quoteNumber} - 
+                    Status: {currentQuote.status === 'draft' ? 'Rascunho' : 
+                             currentQuote.status === 'sent' ? 'Enviado' : 
+                             currentQuote.status === 'accepted' ? 'Aceito' : currentQuote.status}
                   </p>
                 </div>
               )}
