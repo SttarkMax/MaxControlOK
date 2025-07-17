@@ -573,7 +573,7 @@ export const quoteService = {
     }
 
     try {
-      console.log('🔄 Loading quotes from Supabase...');
+      console.log('🔄 [QUOTE SERVICE] Loading quotes from Supabase...');
       
       // Get quotes
       const { data: quotesData, error: quotesError } = await supabase
@@ -582,17 +582,17 @@ export const quoteService = {
         .order('created_at', { ascending: false });
 
       if (quotesError) {
-        console.error('❌ Quotes table error:', quotesError);
+        console.error('❌ [QUOTE SERVICE] Quotes table error:', quotesError);
         handleSupabaseError(quotesError);
         return [];
       }
 
       if (!quotesData || quotesData.length === 0) {
-        console.log('📋 No quotes found in database');
+        console.log('📋 [QUOTE SERVICE] No quotes found in database');
         return [];
       }
 
-      console.log(`📊 Found ${quotesData.length} quotes, loading items...`);
+      console.log(`📊 [QUOTE SERVICE] Found ${quotesData.length} quotes, loading items...`);
 
       // Get all quote items for all quotes
       const { data: itemsData, error: itemsError } = await supabase
@@ -600,19 +600,29 @@ export const quoteService = {
         .select('*');
 
       if (itemsError) {
-        console.error('❌ Quote items table error:', itemsError);
-        console.error('🚨 CRITICAL: Quote Items table has issues - this explains why items are not showing!');
+        console.error('❌ [QUOTE SERVICE] Quote items table error:', itemsError);
+        console.error('🚨 [QUOTE SERVICE] CRITICAL: Quote Items table has issues - this explains why items are not showing!');
         handleSupabaseError(itemsError);
         // Continue without items data
       }
 
-      console.log(`📦 Found ${itemsData?.length || 0} quote items total`);
+      console.log(`📦 [QUOTE SERVICE] Found ${itemsData?.length || 0} quote items total`);
 
       // Combine quotes with their items
       const quotesWithItems = quotesData.map(quote => {
         const quoteItems = itemsData?.filter(item => item.quote_id === quote.id) || [];
         
-        console.log(`📋 Quote ${quote.quote_number}: ${quoteItems.length} items`);
+        console.log(`📋 [QUOTE SERVICE] Quote ${quote.quote_number}: ${quoteItems.length} items`, {
+          quoteId: quote.id,
+          itemsFound: quoteItems.length,
+          itemsData: quoteItems.map(item => ({
+            id: item.id,
+            productName: item.product_name,
+            quantity: item.quantity,
+            unitPrice: item.unit_price,
+            totalPrice: item.total_price
+          }))
+        });
         
         return {
           id: quote.id,
@@ -651,10 +661,25 @@ export const quoteService = {
         };
       });
 
-      console.log(`✅ Successfully loaded ${quotesWithItems.length} quotes with items`);
+      console.log(`✅ [QUOTE SERVICE] Successfully loaded ${quotesWithItems.length} quotes with items`);
+      
+      // Debug: Log first quote details if available
+      if (quotesWithItems.length > 0) {
+        const firstQuote = quotesWithItems[0];
+        console.log(`🔍 [QUOTE SERVICE] First quote sample:`, {
+          id: firstQuote.id,
+          number: firstQuote.quoteNumber,
+          itemsCount: firstQuote.items.length,
+          subtotal: firstQuote.subtotal,
+          totalCash: firstQuote.totalCash,
+          clientName: firstQuote.clientName,
+          status: firstQuote.status
+        });
+      }
+      
       return quotesWithItems;
     } catch (error) {
-      console.error('❌ Critical error loading quotes:', error);
+      console.error('❌ [QUOTE SERVICE] Critical error loading quotes:', error);
       handleSupabaseError(error);
       return [];
     }
