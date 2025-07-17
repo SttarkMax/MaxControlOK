@@ -133,15 +133,24 @@ export const testSupabaseConnection = async () => {
 export const handleSupabaseError = (error: any) => {
   // Check if Supabase is configured first
   if (!isSupabaseConfigured()) {
-    console.warn('⚠️ Supabase not configured - silently failing');
+    console.warn('⚠️ Supabase not configured - check environment variables');
     return; // Don't throw error, just return silently
   }
   
-  console.error('🚨 Supabase Error Details:', {
+  // Check for fetch/CORS errors first (most common issue)
+  if (error?.message?.includes('Failed to fetch') || 
+      error?.name === 'TypeError' && error?.message?.includes('fetch')) {
+    console.error('🔌 CORS/Network Error - Please check Supabase CORS settings');
+    console.error('📋 To fix: Add http://localhost:5173 to Supabase CORS origins');
+    console.error('🔗 Go to: Supabase Dashboard → Project Settings → API → CORS');
+    return; // Don't throw, handle gracefully
+  }
+  
+  // Log error details for debugging
+  console.warn('⚠️ Supabase Error:', {
     message: error?.message,
     code: error?.code,
-    details: error?.details,
-    hint: error?.hint
+    type: error?.name || 'Unknown'
   });
   
   // If the operation was successful but there's a warning/info message, don't throw
@@ -150,29 +159,16 @@ export const handleSupabaseError = (error: any) => {
     return; // Don't throw for non-critical warnings
   }
   
-  // Check for CORS errors specifically
-  if (error?.message?.includes('Failed to fetch') ||
-      error?.message?.includes('fetch') ||
-      error?.name === 'TypeError' && error?.message?.includes('fetch')) {
-    console.warn('🔌 CORS/Network issue detected - using offline mode');
-    return; // Don't throw error for CORS issues, handle gracefully
-  }
-  
   // Check for network-related errors and missing tables
-  if (error?.message?.includes('Failed to fetch') || 
-      error?.name === 'TypeError' ||
+  if (error?.name === 'TypeError' ||
       error?.name === 'NetworkError' ||
       error?.code === 'ENOTFOUND' ||
       error?.code === 'ECONNREFUSED' ||
       error?.code === '42P01' || // PostgreSQL: relation does not exist
       error?.message?.includes('does not exist') ||
-      error.message.includes('fetch') ||
-      error.message.includes('NetworkError') ||
-      error.message.includes('ERR_NETWORK') ||
-      error.code === 'NETWORK_ERROR' ||
-      error.code === 'ENOTFOUND' ||
-      error.code === 'ECONNREFUSED') {
-    console.warn('🔌 Supabase Connection Issue - using offline mode');
+      error?.message?.includes('NetworkError') ||
+      error?.message?.includes('ERR_NETWORK')) {
+    console.warn('🔌 Network/Database Issue - check connection');
     // Only throw if it's a real connection error, not a successful operation
     return; // Handle gracefully instead of throwing
   }
@@ -184,6 +180,6 @@ export const handleSupabaseError = (error: any) => {
   }
   
   // For other database errors
-  console.warn('⚠️ Database error handled gracefully:', error?.message);
+  console.warn('⚠️ Database operation completed with warning:', error?.message);
   return; // Handle gracefully instead of throwing
 };
