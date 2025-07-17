@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { CompanyInfo } from '../types';
+import { formatPhoneNumber } from '../utils';
 import Input from '../components/common/Input';
 import Textarea from '../components/common/Textarea';
 import Button from '../components/common/Button';
@@ -17,6 +18,7 @@ const CompanySettingsPage: React.FC = () => {
   React.useEffect(() => {
     if (company && !companyInfo) {
       setCompanyInfo({
+        id: company.id,
         name: company.name || '',
         logoUrlDarkBg: company.logoUrlDarkBg || '',
         logoUrlLightBg: company.logoUrlLightBg || '',

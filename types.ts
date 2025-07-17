@@ -11,6 +11,7 @@ export enum UserAccessLevel {
 }
 
 export interface CompanyInfo {
+  id?: string;
   name: string;
   logoUrlDarkBg?: string; // Optional: For site header (dark background)
   logoUrlLightBg?: string; // Optional: For PDFs (light background)

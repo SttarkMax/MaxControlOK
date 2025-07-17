@@ -49,6 +49,7 @@ export const companyService = {
       if (!data) return null;
 
       return {
+        id: data.id,
         name: data.name,
         logoUrlDarkBg: data.logo_url_dark_bg || '',
         logoUrlLightBg: data.logo_url_light_bg || '',
@@ -84,24 +85,19 @@ export const companyService = {
         website: company.website || '',
       };
 
-      // Try to update first
-      const { data: existingData } = await supabase
-        .from('companies')
-        .select('id')
-        .limit(1)
-        .single();
-
-      if (existingData) {
+      if (company.id) {
+        // Update existing company
         const { error } = await supabase
           .from('companies')
           .update(companyData)
-          .eq('id', existingData.id);
+          .eq('id', company.id);
 
         if (error) {
           handleSupabaseError(error);
           throw new Error('Erro ao atualizar empresa');
         }
       } else {
+        // Create new company
         const { error } = await supabase
           .from('companies')
           .insert([companyData]);
