@@ -76,7 +76,7 @@ export default function CreateQuotePage({ currentUser }: CreateQuotePageProps) {
     const loadQuoteForEditing = async () => {
       if (!isEditing || !quoteId) return;
       
-      console.log('🔄 [CREATE QUOTE] EDIÇÃO: Carregando orçamento completo:', { 
+      console.log('🔄 EDIÇÃO: Carregando orçamento completo:', { 
         quoteId, 
         quotesDisponíveis: quotes.length,
         quotesCarregados: !loading 
@@ -84,7 +84,7 @@ export default function CreateQuotePage({ currentUser }: CreateQuotePageProps) {
       
       const existingQuote = quotes.find(q => q.id === quoteId);
       if (existingQuote) {
-        console.log('✅ [CREATE QUOTE] EDIÇÃO: Orçamento encontrado - carregando TODOS os dados:', {
+        console.log('✅ EDIÇÃO: Orçamento encontrado - carregando TODOS os dados:', {
           quoteId,
           número: existingQuote.quoteNumber,
           status: existingQuote.status,
@@ -96,7 +96,7 @@ export default function CreateQuotePage({ currentUser }: CreateQuotePageProps) {
           observações: existingQuote.notes ? 'Sim' : 'Não'
         });
         
-        console.log('📦 [CREATE QUOTE] ITENS sendo carregados:', existingQuote.items?.map(item => ({
+        console.log('📦 ITENS sendo carregados:', existingQuote.items?.map(item => ({
           produto: item.productName,
           quantidade: item.quantity,
           preço: item.unitPrice,
@@ -128,7 +128,7 @@ export default function CreateQuotePage({ currentUser }: CreateQuotePageProps) {
           salespersonFullName: existingQuote.salespersonFullName,
         });
         
-        console.log('📊 [CREATE QUOTE] EDIÇÃO: TODOS os dados carregados com sucesso:', {
+        console.log('📊 EDIÇÃO: TODOS os dados carregados com sucesso:', {
           itens: existingQuote.items?.length || 0,
           subtotal: existingQuote.subtotal,
           totalÀVista: existingQuote.totalCash,
@@ -177,7 +177,7 @@ export default function CreateQuotePage({ currentUser }: CreateQuotePageProps) {
           }
         }
         
-        console.log('🎉 [CREATE QUOTE] EDIÇÃO: Carregamento completo finalizado com sucesso!');
+        console.log('🎉 EDIÇÃO: Carregamento completo finalizado com sucesso!');
       }
       else if (isEditing && quoteId) {
         console.log('⚠️ ERRO: Orçamento não encontrado para edição:', { 
@@ -842,7 +842,10 @@ export default function CreateQuotePage({ currentUser }: CreateQuotePageProps) {
             <div className="bg-[#1d1d1d] p-6 rounded-lg shadow-lg">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold text-white">
-                  Itens do Orçamento ({currentQuote.items.length})
+                  📦 Itens do Orçamento ({currentQuote.items.length})
+                  {isEditing && (
+                    <span className="ml-2 text-sm text-blue-400">(Modo Edição)</span>
+                  )}
                 </h3>
                 {isEditing && (
                   <div className="text-sm text-yellow-400">
