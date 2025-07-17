@@ -1585,7 +1585,7 @@ export const userService = {
         .from('app_users')
         .select('*')
         .eq('username', username)
-        .single();
+        .maybeSingle();
 
       if (error) {
         if (error.code === 'PGRST116') {
@@ -1601,12 +1601,20 @@ export const userService = {
         return null;
       }
 
+      // Handle case where data might be an array (shouldn't happen with maybeSingle, but being safe)
+      const userData = Array.isArray(data) ? data[0] : data;
+      
+      if (!userData) {
+        console.log('❌ No user data in response');
+        return null;
+      }
+
       // Validate that user has a valid ID
-      if (!data.id || typeof data.id !== 'string' || data.id.trim() === '') {
+      if (!userData.id || typeof userData.id !== 'string' || userData.id.trim() === '') {
         console.log('❌ User found but has invalid or missing ID:', {
-          id: data.id,
-          username: data.username,
-          idType: typeof data.id
+          id: userData.id,
+          username: userData.username,
+          idType: typeof userData.id
         });
         return null;
       }
@@ -1614,13 +1622,13 @@ export const userService = {
       console.log('🔍 User found, checking password...');
       
       // Check if password_hash exists and is valid
-      if (!data.password_hash || typeof data.password_hash !== 'string' || data.password_hash.trim() === '') {
+      if (!userData.password_hash || typeof userData.password_hash !== 'string' || userData.password_hash.trim() === '') {
         console.log('❌ Invalid or missing password hash for user:', username);
         console.log('🔍 Password hash debug:', {
-          exists: !!data.password_hash,
-          type: typeof data.password_hash,
-          length: data.password_hash ? data.password_hash.length : 0,
-          value: data.password_hash ? data.password_hash.substring(0, 20) + '...' : 'null/undefined'
+          exists: !!userData.password_hash,
+          type: typeof userData.password_hash,
+          length: userData.password_hash ? userData.password_hash.length : 0,
+          value: userData.password_hash ? userData.password_hash.substring(0, 20) + '...' : 'null/undefined'
         });
         return null;
       }
@@ -1628,7 +1636,7 @@ export const userService = {
       console.log('🔍 Password hash validation passed, comparing passwords...');
       
       // Check password
-      const isValidPassword = await bcrypt.compare(password, data.password_hash);
+      const isValidPassword = await bcrypt.compare(password, userData.password_hash);
       
       console.log('🔍 Password comparison result:', isValidPassword);
       
@@ -1640,10 +1648,10 @@ export const userService = {
       console.log('✅ Authentication successful for user:', username);
 
       return {
-        id: data.id,
-        username: data.username,
-        fullName: data.full_name || '',
-        role: data.role as UserAccessLevel,
+        id: userData.id,
+        username: userData.username,
+        fullName: userData.full_name || '',
+        role: userData.role as UserAccessLevel,
       };
     } catch (error) {
       console.error('Authentication error:', error);
