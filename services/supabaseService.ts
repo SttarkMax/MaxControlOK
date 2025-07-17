@@ -1389,6 +1389,8 @@ export const userService = {
     }
 
     try {
+      console.log('🔍 Querying user by username:', username);
+      
       const { data, error } = await supabase
         .from('app_users')
         .select('*')
@@ -1398,9 +1400,17 @@ export const userService = {
       if (error) {
         if (error.code === 'PGRST116') {
           // No rows found
+          console.log('📭 No user found with username:', username);
           return null;
         }
         handleSupabaseError(error);
+        return null;
+      }
+
+      console.log('🔍 Raw user data from database:', data);
+      
+      if (!data) {
+        console.log('❌ No data returned from query');
         return null;
       }
 
@@ -1413,6 +1423,12 @@ export const userService = {
         });
         return null;
       }
+
+      console.log('✅ Valid user found:', {
+        id: data.id,
+        username: data.username,
+        fullName: data.full_name
+      });
 
       return {
         id: data.id,
