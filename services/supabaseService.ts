@@ -1439,7 +1439,16 @@ export const userService = {
       };
     } catch (error) {
       console.error('Error getting user by username:', error);
-      return null;
+      
+      // Check if this is a CORS/network error
+      if (error?.message?.includes('Failed to fetch') || 
+          error?.name === 'TypeError' && error?.message?.includes('fetch')) {
+        console.warn('⚠️ Network/CORS error during user lookup - treating as user not found');
+        return null; // Treat network errors as "user not found" to allow creation
+      }
+      
+      // For other errors, re-throw to prevent duplicate creation attempts
+      throw error;
     }
   },
 

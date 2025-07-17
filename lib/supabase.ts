@@ -140,9 +140,9 @@ export const handleSupabaseError = (error: any) => {
   // Check for fetch/CORS errors first (most common issue)
   if (error?.message?.includes('Failed to fetch') || 
       error?.name === 'TypeError' && error?.message?.includes('fetch')) {
-    console.error('🔌 CORS/Network Error - Please check Supabase CORS settings');
-    console.error('📋 To fix: Add http://localhost:5173 to Supabase CORS origins');
-    console.error('🔗 Go to: Supabase Dashboard → Project Settings → API → CORS');
+    console.warn('🔌 CORS/Network Error - Please check Supabase CORS settings');
+    console.warn('📋 To fix: Add http://localhost:5173 to Supabase CORS origins');
+    console.warn('🔗 Go to: Supabase Dashboard → Project Settings → API → CORS');
     return; // Don't throw, handle gracefully
   }
   
