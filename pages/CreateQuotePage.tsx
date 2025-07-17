@@ -22,7 +22,7 @@ interface CreateQuotePageProps {
   currentUser: LoggedInUser;
 }
 
-const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
+export default function CreateQuotePage({ currentUser }: CreateQuotePageProps) {
   const navigate = useNavigate();
   const { quoteId } = useParams<{ quoteId: string }>();
   const isEditing = Boolean(quoteId);
@@ -1049,5 +1049,3 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
     </div>
   );
 };
-
-export default CreateQuotePage;
