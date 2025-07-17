@@ -1572,6 +1572,16 @@ export const userService = {
         return null;
       }
 
+      // Validate that user has a valid ID
+      if (!data.id || typeof data.id !== 'string' || data.id.trim() === '') {
+        console.log('❌ User found but has invalid or missing ID:', {
+          id: data.id,
+          username: data.username,
+          idType: typeof data.id
+        });
+        return null;
+      }
+
       console.log('🔍 User found, checking password...');
       
       // Check if password_hash exists and is valid
