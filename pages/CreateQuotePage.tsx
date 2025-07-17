@@ -363,7 +363,11 @@ export default function CreateQuotePage({ currentUser }: CreateQuotePageProps) {
 
     try {
       console.log('🔄 Preparing to save quote:', currentQuote.quoteNumber);
-      
+        if (editingQuote && editingQuote.id) {
+          await updateQuote({ id: editingQuote.id, ...quoteToSave });
+        } else {
+          throw new Error('Quote ID não encontrado para edição');
+        }
       const quoteToSave: Omit<Quote, 'id'> = {
         quoteNumber: currentQuote.quoteNumber!,
         customerId: currentQuote.customerId,
