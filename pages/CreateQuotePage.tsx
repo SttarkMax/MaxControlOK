@@ -632,7 +632,6 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
         <span className="ml-3">Carregando orçamento para edição...</span>
       </div>
     );
-  }</parameter>
 
   const customerOptions = [
     { value: '', label: 'Selecione um cliente ou digite manualmente' },
