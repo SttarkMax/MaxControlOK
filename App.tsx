@@ -65,12 +65,6 @@ const App: React.FC = () => {
   }, []);
 
   const createDefaultAdminUser = async () => {
-    if (adminUserCreated.current) {
-      return;
-    }
-    
-    adminUserCreated.current = true;
-    
     try {
       console.log('🔄 Checking for existing admin user...');
       
@@ -84,6 +78,7 @@ const App: React.FC = () => {
           password: 'admin123'
         });
         console.log('✅ Admin user password updated successfully');
+        adminUserCreated.current = true;
         return;
       }
       
@@ -95,8 +90,11 @@ const App: React.FC = () => {
         role: 'admin'
       });
       console.log('✅ Default admin user created successfully');
+      adminUserCreated.current = true;
     } catch (error) {
       console.error('❌ Error with admin user setup:', error);
+      // Don't set adminUserCreated.current = true on error
+      // This allows retry on next app load/refresh
     }
   };
 
