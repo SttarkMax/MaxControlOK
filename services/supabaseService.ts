@@ -1465,7 +1465,6 @@ export const userService = {
         .single();
 
       if (error) {
-        console.error('❌ Error creating user:', error);
         if (error.code === '23505') { // Unique constraint violation
           throw new Error(`Usuário com email ${user.username} já existe`);
         }
@@ -1482,7 +1481,6 @@ export const userService = {
         role: data.role as UserAccessLevel,
       };
     } catch (error) {
-      console.error('Error creating user:', error);
       throw error;
     }
   },
