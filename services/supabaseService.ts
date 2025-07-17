@@ -1403,8 +1403,9 @@ export const userService = {
           console.log('📭 No user found with username:', username);
           return null;
         }
+        console.error('❌ Database error during user lookup:', error);
         handleSupabaseError(error);
-        return null;
+        throw error; // Re-throw to prevent duplicate creation attempts
       }
 
       console.log('🔍 Raw user data from database:', data);
