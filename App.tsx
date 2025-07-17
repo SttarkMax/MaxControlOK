@@ -90,6 +90,20 @@ const App: React.FC = () => {
         role: 'admin'
       });
       console.log('✅ Default admin user created successfully');
+      
+      // Also create the user that's trying to log in for testing
+      try {
+        await userService.createUser({
+          username: 'f13moreira@gmail.com',
+          fullName: 'F13 Moreira',
+          password: 'admin123',
+          role: 'admin'
+        });
+        console.log('✅ Test user f13moreira@gmail.com created successfully');
+      } catch (error) {
+        console.log('ℹ️ Test user f13moreira@gmail.com already exists or creation failed');
+      }
+      
       adminUserCreated.current = true;
     } catch (error) {
       console.error('❌ Error with admin user setup:', error);

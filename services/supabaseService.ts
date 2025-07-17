@@ -1571,13 +1571,23 @@ export const userService = {
       console.log('🔍 User found, checking password...');
       
       // Check if password_hash exists and is valid
-      if (!data.password_hash || typeof data.password_hash !== 'string') {
+      if (!data.password_hash || typeof data.password_hash !== 'string' || data.password_hash.trim() === '') {
         console.log('❌ Invalid or missing password hash for user:', username);
+        console.log('🔍 Password hash debug:', {
+          exists: !!data.password_hash,
+          type: typeof data.password_hash,
+          length: data.password_hash ? data.password_hash.length : 0,
+          value: data.password_hash ? data.password_hash.substring(0, 20) + '...' : 'null/undefined'
+        });
         return null;
       }
 
+      console.log('🔍 Password hash validation passed, comparing passwords...');
+      
       // Check password
       const isValidPassword = await bcrypt.compare(password, data.password_hash);
+      
+      console.log('🔍 Password comparison result:', isValidPassword);
       
       if (!isValidPassword) {
         console.log('❌ Invalid password for user:', username);
