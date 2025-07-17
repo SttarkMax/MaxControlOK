@@ -129,17 +129,15 @@ export default function CreateQuotePage({ currentUser }: CreateQuotePageProps) {
         });
         
         console.log('📊 EDIÇÃO: TODOS os dados carregados com sucesso:', {
-          ✅_itens: existingQuote.items?.length || 0,
-          ✅_subtotal: existingQuote.subtotal,
-          ✅_totalÀVista: existingQuote.totalCash,
-          ✅_totalCartão: existingQuote.totalCard,
-          ✅_cliente: existingQuote.clientName,
-          ✅_contato: existingQuote.clientContact,
-          ✅_status: existingQuote.status,
-          ✅_desconto: existingQuote.discountAmountCalculated,
-          ✅_formaPagamento: existingQuote.selectedPaymentMethod,
-          ✅_dataEntrega: existingQuote.deliveryDeadline,
-          ✅_observações: existingQuote.notes ? 'Preenchidas' : 'Vazias'
+          itens: existingQuote.items?.length || 0,
+          subtotal: existingQuote.subtotal,
+          totalÀVista: existingQuote.totalCash,
+          totalCartão: existingQuote.totalCard,
+          cliente: existingQuote.clientName,
+          contato: existingQuote.clientContact,
+          status: existingQuote.status,
+          pagamento: existingQuote.selectedPaymentMethod,
+          observações: existingQuote.notes?.length || 0
         });
         
         // ✅ CARREGAR DADOS COMPLETOS DO CLIENTE
