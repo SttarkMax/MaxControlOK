@@ -40,7 +40,7 @@ const App: React.FC = () => {
         if (success) {
           console.log('✅ App: Supabase connection successful - all systems ready');
           // Create default admin user if it doesn't exist
-          createDefaultAdminUser();
+          return createDefaultAdminUser();
         } else {
           console.error('❌ App: Supabase connection failed');
           console.error('📋 CORS Fix: Add http://localhost:5173 to Supabase CORS origins');
