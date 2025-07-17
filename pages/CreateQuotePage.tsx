@@ -159,7 +159,7 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
   }, [isEditing, quoteId, quotes, customers, products, loading]);
 
   // Add loading state check
-  const isLoadingQuoteData = isEditing && quoteId && quotes.length === 0 && loading;</parameter>
+  const isLoadingQuoteData = isEditing && quoteId && quotes.length === 0 && loading;
 
   // Generate quote number
   useEffect(() => {
