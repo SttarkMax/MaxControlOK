@@ -375,6 +375,30 @@ const CreateQuotePage: React.FC<CreateQuotePageProps> = ({ currentUser }) => {
         </Button>
       </div>
 
+      {/* Editing Summary Card */}
+      {isEditing && (
+        <div className="bg-blue-900/30 border border-blue-500 p-4 rounded-lg mb-6">
+          <h3 className="text-lg font-semibold text-blue-300 mb-2">📝 Editando Orçamento</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div>
+              <p><span className="text-blue-200">Número:</span> <span className="text-yellow-400 font-medium">{quoteNumber}</span></p>
+              <p><span className="text-blue-200">Cliente:</span> {clientName}</p>
+              <p><span className="text-blue-200">Itens:</span> {items.length} produto(s)</p>
+            </div>
+            <div>
+              <p><span className="text-blue-200">Total à Vista:</span> <span className="text-green-400 font-medium">{formatCurrency(totalCash)}</span></p>
+              <p><span className="text-blue-200">Total Cartão:</span> <span className="text-green-400 font-medium">{formatCurrency(totalCard)}</span></p>
+              <p><span className="text-blue-200">Desconto:</span> {formatCurrency(discountAmountCalculated)}</p>
+            </div>
+            <div>
+              <p><span className="text-blue-200">Pagamento:</span> {selectedPaymentMethod || 'Não definido'}</p>
+              <p><span className="text-blue-200">Entrega:</span> {deliveryDeadline ? new Date(deliveryDeadline + 'T00:00:00').toLocaleDateString('pt-BR') : 'Não definido'}</p>
+              <p><span className="text-blue-200">Observações:</span> {notes ? 'Sim' : 'Não'}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column - Quote Details */}
         <div className="lg:col-span-2 space-y-6">
