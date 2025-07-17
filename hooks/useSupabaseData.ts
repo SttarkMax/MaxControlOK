@@ -318,17 +318,37 @@ export const useQuotes = () => {
   const loadQuotes = async () => {
     try {
       setLoading(true);
-      console.log('🔄 useQuotes: Loading quotes...');
+      console.log('🔄 [USE QUOTES] Loading quotes...');
       
       const data = await quoteService.getQuotes();
-      console.log(`✅ useQuotes: ${data.length} quotes loaded`);
+      console.log(`✅ [USE QUOTES] ${data.length} quotes loaded`);
+      
+      // Debug: Log detailed quote information
+      if (data.length > 0) {
+        console.log('🔍 [USE QUOTES] Sample quote data:', data.slice(0, 2).map(quote => ({
+          id: quote.id,
+          number: quote.quoteNumber,
+          itemsCount: quote.items?.length || 0,
+          subtotal: quote.subtotal,
+          totalCash: quote.totalCash,
+          clientName: quote.clientName,
+          status: quote.status,
+          sampleItems: quote.items?.slice(0, 2).map(item => ({
+            name: item.productName,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            totalPrice: item.totalPrice
+          }))
+        })));
+      }
+      
       setQuotes(data);
       setError(null);
     } catch (err) {
-      console.error('❌ useQuotes: Error loading quotes:', err);
+      console.error('❌ [USE QUOTES] Error loading quotes:', err);
       
       // Handle all errors gracefully in development
-      console.warn('🔌 Quotes loading failed - using offline mode');
+      console.warn('🔌 [USE QUOTES] Quotes loading failed - using offline mode');
       setError(null); // Don't show error to user
       setQuotes([]);
     } finally {
