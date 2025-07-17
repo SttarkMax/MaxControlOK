@@ -1,11 +1,11 @@
+import { supabase, handleSupabaseError, isSupabaseConfigured } from '../lib/supabase';
+import { Database } from '../lib/database.types';
 import bcrypt from 'bcryptjs';
-import { supabase, handleSupabaseError, isSupabaseConfigured, testSupabaseConnection } from '../lib/supabase';
 import { 
   CompanyInfo, 
   Category, 
   Product, 
   Customer, 
-  DownPaymentEntry, 
   Quote, 
   QuoteItem,
   Supplier,
@@ -16,37 +16,22 @@ import {
   UserAccessLevel
 } from '../types';
 
-// Custom error for user already exists scenario
-export class UserAlreadyExistsError extends Error {
-  constructor(username: string) {
-    super(`User with username '${username}' already exists`);
-    this.name = 'UserAlreadyExistsError';
-  }
-}
-
-// Test connection on service load
-if (isSupabaseConfigured()) {
-  testSupabaseConnection().then(success => {
-    if (!success) {
-      console.warn('⚠️ Supabase connection test failed - trying development mode');
-    }
-  });
-}
-
-// Company Services
+// Company Service
 export const companyService = {
   async getCompany(): Promise<CompanyInfo | null> {
-    console.log('🔄 Loading company data from Supabase...');
-    
-    // Check if Supabase is configured first
-    if (!isSupabaseConfigured()) {
-      console.error('❌ Supabase not configured - cannot load company data');
-      throw new Error('Supabase não configurado');
-    }
-
-    if (!supabase) {
-      console.error('❌ Supabase client not available');
-      throw new Error('Cliente Supabase não inicializado');
+    if (!isSupabaseConfigured() || !supabase) {
+      console.warn('⚠️ Supabase not configured - returning default company');
+      return {
+        name: 'Sua Empresa',
+        logoUrlDarkBg: '',
+        logoUrlLightBg: '',
+        address: '',
+        phone: '',
+        email: '',
+        cnpj: '',
+        instagram: '',
+        website: '',
+      };
     }
 
     try {
@@ -54,19 +39,15 @@ export const companyService = {
         .from('companies')
         .select('*')
         .limit(1)
-        .maybeSingle();
+        .single();
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('❌ Company data error:', error);
+      if (error) {
         handleSupabaseError(error);
-      }
-
-      if (!data) {
-        console.warn('⚠️ No company data found');
         return null;
       }
 
-      console.log('✅ Company data loaded successfully:', data.name);
+      if (!data) return null;
+
       return {
         name: data.name,
         logoUrlDarkBg: data.logo_url_dark_bg || '',
@@ -79,61 +60,70 @@ export const companyService = {
         website: data.website || '',
       };
     } catch (error) {
-      console.error('❌ Company service error:', error);
+      console.error('Company data error:', error);
       handleSupabaseError(error);
       return null;
     }
   },
 
   async saveCompany(company: CompanyInfo): Promise<void> {
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Supabase não configurado');
+    }
+
     try {
-      const { data: existing } = await supabase
+      const companyData = {
+        name: company.name,
+        logo_url_dark_bg: company.logoUrlDarkBg || null,
+        logo_url_light_bg: company.logoUrlLightBg || null,
+        address: company.address || '',
+        phone: company.phone || '',
+        email: company.email || '',
+        cnpj: company.cnpj || '',
+        instagram: company.instagram || '',
+        website: company.website || '',
+      };
+
+      // Try to update first
+      const { data: existingData } = await supabase
         .from('companies')
         .select('id')
         .limit(1)
         .single();
 
-      const companyData = {
-        name: company.name,
-        logo_url_dark_bg: company.logoUrlDarkBg,
-        logo_url_light_bg: company.logoUrlLightBg,
-        address: company.address,
-        phone: company.phone,
-        email: company.email,
-        cnpj: company.cnpj,
-        instagram: company.instagram,
-        website: company.website,
-        updated_at: new Date().toISOString(),
-      };
-
-      if (existing) {
+      if (existingData) {
         const { error } = await supabase
           .from('companies')
           .update(companyData)
-          .eq('id', existing.id);
+          .eq('id', existingData.id);
 
-        if (error) handleSupabaseError(error);
+        if (error) {
+          handleSupabaseError(error);
+          throw new Error('Erro ao atualizar empresa');
+        }
       } else {
         const { error } = await supabase
           .from('companies')
           .insert([companyData]);
 
-        if (error) handleSupabaseError(error);
+        if (error) {
+          handleSupabaseError(error);
+          throw new Error('Erro ao criar empresa');
+        }
       }
     } catch (error) {
-      handleSupabaseError(error);
+      console.error('Error saving company:', error);
+      throw error;
     }
   }
 };
 
-// Category Services
+// Category Service
 export const categoryService = {
   async getCategories(): Promise<Category[]> {
-    console.log('🔄 Loading categories from Supabase...');
-    
     if (!isSupabaseConfigured() || !supabase) {
-      console.error('❌ Supabase not available for categories');
-      throw new Error('Supabase não configurado');
+      console.warn('⚠️ Supabase not configured - returning empty categories');
+      return [];
     }
 
     try {
@@ -143,21 +133,26 @@ export const categoryService = {
         .order('name');
 
       if (error) {
-        console.error('❌ Categories error:', error);
         handleSupabaseError(error);
+        return [];
       }
-      
-      console.log(`✅ Categories loaded: ${data?.length || 0} items`);
-      return data || [];
+
+      return data?.map(item => ({
+        id: item.id,
+        name: item.name,
+      })) || [];
     } catch (error) {
-      console.error('❌ Categories service error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Erro ao carregar categorias';
-      setError(errorMessage);
-      setCategories([]);
+      console.error('Categories error:', error);
+      handleSupabaseError(error);
+      return [];
     }
   },
 
   async createCategory(category: Omit<Category, 'id'>): Promise<Category> {
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Supabase não configurado');
+    }
+
     try {
       const { data, error } = await supabase
         .from('categories')
@@ -167,73 +162,86 @@ export const categoryService = {
         .select()
         .single();
 
-      if (error) handleSupabaseError(error);
-      return data;
+      if (error) {
+        handleSupabaseError(error);
+        throw new Error('Erro ao criar categoria');
+      }
+
+      return {
+        id: data.id,
+        name: data.name,
+      };
     } catch (error) {
-      handleSupabaseError(error);
+      console.error('Error creating category:', error);
       throw error;
     }
   },
 
   async updateCategory(category: Category): Promise<void> {
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Supabase não configurado');
+    }
+
     try {
       const { error } = await supabase
         .from('categories')
         .update({
           name: category.name,
-          updated_at: new Date().toISOString(),
         })
         .eq('id', category.id);
 
-      if (error) handleSupabaseError(error);
+      if (error) {
+        handleSupabaseError(error);
+        throw new Error('Erro ao atualizar categoria');
+      }
     } catch (error) {
-      handleSupabaseError(error);
+      console.error('Error updating category:', error);
+      throw error;
     }
   },
 
   async deleteCategory(id: string): Promise<void> {
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Supabase não configurado');
+    }
+
     try {
       const { error } = await supabase
         .from('categories')
         .delete()
         .eq('id', id);
 
-      if (error) handleSupabaseError(error);
+      if (error) {
+        handleSupabaseError(error);
+        throw new Error('Erro ao excluir categoria');
+      }
     } catch (error) {
-      handleSupabaseError(error);
+      console.error('Error deleting category:', error);
+      throw error;
     }
   }
 };
 
-// Product Services
+// Product Service
 export const productService = {
   async getProducts(): Promise<Product[]> {
-    console.log('🔄 Loading products from Supabase...');
-    
+    if (!isSupabaseConfigured() || !supabase) {
+      console.warn('⚠️ Supabase not configured - returning empty products');
+      return [];
+    }
+
     try {
-      // Check if Supabase is configured first
-      if (!isSupabaseConfigured()) {
-        console.error('❌ Supabase not configured for products');
-        return []; // Return empty array instead of throwing
-      }
-
-      if (!supabase) {
-        console.error('❌ Supabase client not available for products');
-        return []; // Return empty array instead of throwing
-      }
-
       const { data, error } = await supabase
         .from('products')
         .select('*')
         .order('name');
 
       if (error) {
-        console.error('❌ Products error:', error);
         handleSupabaseError(error);
-        return []; // Return empty array if error was handled gracefully
+        return [];
       }
-      
-      const products = (data || []).map(item => ({
+
+      return data?.map(item => ({
         id: item.id,
         name: item.name,
         description: item.description || '',
@@ -244,375 +252,375 @@ export const productService = {
         customCardPrice: item.custom_card_price ? Number(item.custom_card_price) : undefined,
         supplierCost: item.supplier_cost ? Number(item.supplier_cost) : undefined,
         categoryId: item.category_id || undefined,
-      }));
-      
-      console.log(`✅ Products loaded: ${products.length} items`);
-      return products;
+      })) || [];
     } catch (error) {
-      console.error('❌ Products service error:', error);
+      console.error('Products error:', error);
       handleSupabaseError(error);
-      console.warn('🔌 Products service - using offline mode');
-      return []; // Return empty array instead of throwing
+      return [];
     }
   },
 
   async createProduct(product: Omit<Product, 'id'>): Promise<Product> {
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Supabase não configurado');
+    }
+
     try {
-      console.log('🔄 Creating product:', product.name);
-      
-      const result = await supabase
+      const { data, error } = await supabase
         .from('products')
         .insert([{
           name: product.name,
-          description: product.description,
+          description: product.description || '',
           pricing_model: product.pricingModel,
           base_price: product.basePrice,
-          unit: product.unit,
-          custom_cash_price: product.customCashPrice,
-          custom_card_price: product.customCardPrice,
-          supplier_cost: product.supplierCost,
+          unit: product.unit || 'un',
+          custom_cash_price: product.customCashPrice || null,
+          custom_card_price: product.customCardPrice || null,
+          supplier_cost: product.supplierCost || null,
           category_id: product.categoryId || null,
         }])
-        .select();
-
-      console.log('📦 Product creation result:', result);
-      
-      const { data, error } = result;
+        .select()
+        .single();
 
       if (error) {
-        console.error('❌ Product creation error:', error);
         handleSupabaseError(error);
-        throw error;
+        throw new Error('Erro ao criar produto');
       }
 
-      if (!data || !Array.isArray(data) || data.length === 0) {
-        console.error('❌ Product creation returned invalid data:', data);
-        
-        // Create a fallback product object
-        const fallbackProduct: Product = {
-          id: `temp-${Date.now()}`,
-          name: product.name,
-          description: product.description,
-          pricingModel: product.pricingModel,
-          basePrice: product.basePrice,
-          unit: product.unit,
-          customCashPrice: product.customCashPrice,
-          customCardPrice: product.customCardPrice,
-          supplierCost: product.supplierCost,
-          categoryId: product.categoryId,
-        };
-        
-        console.log('⚠️ Using fallback product:', fallbackProduct);
-        return fallbackProduct;
-      }
-
-      const productData = data[0];
-      if (!productData || !productData.id) {
-        console.error('❌ Product data missing ID:', productData);
-        throw new Error('Produto criado mas ID não retornado');
-      }
-
-      try {
-        const createdProduct: Product = {
-          id: productData.id,
-          name: productData.name,
-          description: productData.description || '',
-          pricingModel: productData.pricing_model as PricingModel,
-          basePrice: Number(productData.base_price),
-          unit: productData.unit || 'un',
-          customCashPrice: productData.custom_cash_price ? Number(productData.custom_cash_price) : undefined,
-          customCardPrice: productData.custom_card_price ? Number(productData.custom_card_price) : undefined,
-          supplierCost: productData.supplier_cost ? Number(productData.supplier_cost) : undefined,
-          categoryId: productData.category_id || undefined,
-        };
-
-        console.log('✅ Product created successfully:', createdProduct);
-        return createdProduct;
-      } catch (mappingError) {
-        console.error('❌ Error mapping product data:', mappingError);
-        throw new Error('Erro ao processar dados do produto criado');
-      }
+      return {
+        id: data.id,
+        name: data.name,
+        description: data.description || '',
+        pricingModel: data.pricing_model as any,
+        basePrice: Number(data.base_price),
+        unit: data.unit || 'un',
+        customCashPrice: data.custom_cash_price ? Number(data.custom_cash_price) : undefined,
+        customCardPrice: data.custom_card_price ? Number(data.custom_card_price) : undefined,
+        supplierCost: data.supplier_cost ? Number(data.supplier_cost) : undefined,
+        categoryId: data.category_id || undefined,
+      };
     } catch (error) {
-      console.error('❌ Product creation failed:', error);
-      
-      // Don't call handleSupabaseError here to avoid double error handling
-      if (error instanceof Error && error.message.includes('Cannot read properties of null')) {
-        throw new Error('Erro interno ao criar produto - verifique a conexão com o banco');
-      }
-      
+      console.error('Error creating product:', error);
       throw error;
     }
   },
 
   async updateProduct(product: Product): Promise<void> {
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Supabase não configurado');
+    }
+
     try {
       const { error } = await supabase
         .from('products')
         .update({
           name: product.name,
-          description: product.description,
+          description: product.description || '',
           pricing_model: product.pricingModel,
           base_price: product.basePrice,
-          unit: product.unit,
-          custom_cash_price: product.customCashPrice,
-          custom_card_price: product.customCardPrice,
-          supplier_cost: product.supplierCost,
-          category_id: product.categoryId,
-          updated_at: new Date().toISOString(),
+          unit: product.unit || 'un',
+          custom_cash_price: product.customCashPrice || null,
+          custom_card_price: product.customCardPrice || null,
+          supplier_cost: product.supplierCost || null,
+          category_id: product.categoryId || null,
         })
         .eq('id', product.id);
 
-      if (error) handleSupabaseError(error);
+      if (error) {
+        handleSupabaseError(error);
+        throw new Error('Erro ao atualizar produto');
+      }
     } catch (error) {
-      handleSupabaseError(error);
+      console.error('Error updating product:', error);
+      throw error;
     }
   },
 
   async deleteProduct(id: string): Promise<void> {
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Supabase não configurado');
+    }
+
     try {
       const { error } = await supabase
         .from('products')
         .delete()
         .eq('id', id);
 
-      if (error) handleSupabaseError(error);
+      if (error) {
+        handleSupabaseError(error);
+        throw new Error('Erro ao excluir produto');
+      }
     } catch (error) {
-      handleSupabaseError(error);
+      console.error('Error deleting product:', error);
+      throw error;
     }
   }
 };
 
-// Customer Services
+// Customer Service
 export const customerService = {
   async getCustomers(): Promise<Customer[]> {
+    if (!isSupabaseConfigured() || !supabase) {
+      console.warn('⚠️ Supabase not configured - returning empty customers');
+      return [];
+    }
+
     try {
+      // Get customers with their down payments
       const { data: customersData, error: customersError } = await supabase
         .from('customers')
         .select('*')
         .order('name');
 
-      if (customersError) handleSupabaseError(customersError);
+      if (customersError) {
+        handleSupabaseError(customersError);
+        return [];
+      }
 
+      if (!customersData) return [];
+
+      // Get all down payments for all customers
       const { data: downPaymentsData, error: downPaymentsError } = await supabase
         .from('customer_down_payments')
         .select('*')
-        .order('date');
+        .order('date', { ascending: false });
 
-      if (downPaymentsError) handleSupabaseError(downPaymentsError);
+      if (downPaymentsError) {
+        console.warn('Error loading down payments:', downPaymentsError);
+        // Continue without down payments data
+      }
 
-      return (customersData || []).map(customer => {
-        const customerDownPayments = (downPaymentsData || [])
-          .filter(dp => dp.customer_id === customer.id)
-          .map(dp => ({
-            id: dp.id,
-            amount: Number(dp.amount),
-            date: dp.date,
-            description: dp.description || '',
-          }));
-
-        return {
-          id: customer.id,
-          name: customer.name,
-          documentType: customer.document_type as any,
-          documentNumber: customer.document_number || '',
-          phone: customer.phone,
-          email: customer.email || '',
-          address: customer.address || '',
-          city: customer.city || '',
-          postalCode: customer.postal_code || '',
-          downPayments: customerDownPayments,
-        };
-      });
+      // Combine customers with their down payments
+      return customersData.map(customer => ({
+        id: customer.id,
+        name: customer.name,
+        documentType: customer.document_type as any,
+        documentNumber: customer.document_number || '',
+        phone: customer.phone,
+        email: customer.email || '',
+        address: customer.address || '',
+        city: customer.city || '',
+        postalCode: customer.postal_code || '',
+        downPayments: downPaymentsData?.filter(dp => dp.customer_id === customer.id).map(dp => ({
+          id: dp.id,
+          amount: Number(dp.amount),
+          date: dp.date,
+          description: dp.description || '',
+        })) || [],
+      }));
     } catch (error) {
+      console.error('Customers error:', error);
       handleSupabaseError(error);
       return [];
     }
   },
 
   async createCustomer(customer: Omit<Customer, 'id'>): Promise<Customer> {
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Supabase não configurado');
+    }
+
     try {
-      const { data, error } = await supabase
+      // Create customer first
+      const { data: customerData, error: customerError } = await supabase
         .from('customers')
         .insert([{
           name: customer.name,
           document_type: customer.documentType,
-          document_number: customer.documentNumber,
+          document_number: customer.documentNumber || '',
           phone: customer.phone,
-          email: customer.email,
-          address: customer.address,
-          city: customer.city,
-          postal_code: customer.postalCode,
+          email: customer.email || '',
+          address: customer.address || '',
+          city: customer.city || '',
+          postal_code: customer.postalCode || '',
         }])
         .select()
         .single();
 
-      if (error) handleSupabaseError(error);
+      if (customerError) {
+        handleSupabaseError(customerError);
+        throw new Error('Erro ao criar cliente');
+      }
 
-      // Insert down payments if any
+      // Create down payments if any
       if (customer.downPayments && customer.downPayments.length > 0) {
         const downPaymentsToInsert = customer.downPayments.map(dp => ({
-          customer_id: data.id,
+          customer_id: customerData.id,
           amount: dp.amount,
           date: dp.date,
-          description: dp.description,
+          description: dp.description || '',
         }));
 
-        const { error: dpError } = await supabase
+        const { error: downPaymentsError } = await supabase
           .from('customer_down_payments')
           .insert(downPaymentsToInsert);
 
-        if (dpError) handleSupabaseError(dpError);
+        if (downPaymentsError) {
+          console.warn('Error creating down payments:', downPaymentsError);
+          // Continue without down payments
+        }
       }
 
       return {
-        id: data.id,
-        name: data.name,
-        documentType: data.document_type as any,
-        documentNumber: data.document_number || '',
-        phone: data.phone,
-        email: data.email || '',
-        address: data.address || '',
-        city: data.city || '',
-        postalCode: data.postal_code || '',
+        id: customerData.id,
+        name: customerData.name,
+        documentType: customerData.document_type as any,
+        documentNumber: customerData.document_number || '',
+        phone: customerData.phone,
+        email: customerData.email || '',
+        address: customerData.address || '',
+        city: customerData.city || '',
+        postalCode: customerData.postal_code || '',
         downPayments: customer.downPayments || [],
       };
     } catch (error) {
-      handleSupabaseError(error);
+      console.error('Error creating customer:', error);
       throw error;
     }
   },
 
   async updateCustomer(customer: Customer): Promise<void> {
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Supabase não configurado');
+    }
+
     try {
-      const { error } = await supabase
+      // Update customer data
+      const { error: customerError } = await supabase
         .from('customers')
         .update({
           name: customer.name,
           document_type: customer.documentType,
-          document_number: customer.documentNumber,
+          document_number: customer.documentNumber || '',
           phone: customer.phone,
-          email: customer.email,
-          address: customer.address,
-          city: customer.city,
-          postal_code: customer.postalCode,
-          updated_at: new Date().toISOString(),
+          email: customer.email || '',
+          address: customer.address || '',
+          city: customer.city || '',
+          postal_code: customer.postalCode || '',
         })
         .eq('id', customer.id);
 
-      if (error) handleSupabaseError(error);
+      if (customerError) {
+        handleSupabaseError(customerError);
+        throw new Error('Erro ao atualizar cliente');
+      }
 
       // Delete existing down payments
-      const { error: deleteError } = await supabase
+      await supabase
         .from('customer_down_payments')
         .delete()
         .eq('customer_id', customer.id);
 
-      if (deleteError) handleSupabaseError(deleteError);
-
-      // Insert new down payments
+      // Create new down payments if any
       if (customer.downPayments && customer.downPayments.length > 0) {
         const downPaymentsToInsert = customer.downPayments.map(dp => ({
           customer_id: customer.id,
           amount: dp.amount,
           date: dp.date,
-          description: dp.description,
+          description: dp.description || '',
         }));
 
-        const { error: insertError } = await supabase
+        const { error: downPaymentsError } = await supabase
           .from('customer_down_payments')
           .insert(downPaymentsToInsert);
 
-        if (insertError) handleSupabaseError(insertError);
+        if (downPaymentsError) {
+          console.warn('Error updating down payments:', downPaymentsError);
+        }
       }
     } catch (error) {
-      handleSupabaseError(error);
+      console.error('Error updating customer:', error);
+      throw error;
     }
   },
 
   async deleteCustomer(id: string): Promise<void> {
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Supabase não configurado');
+    }
+
     try {
+      // Delete down payments first (cascade should handle this, but being explicit)
+      await supabase
+        .from('customer_down_payments')
+        .delete()
+        .eq('customer_id', id);
+
+      // Delete customer
       const { error } = await supabase
         .from('customers')
         .delete()
         .eq('id', id);
 
-      if (error) handleSupabaseError(error);
+      if (error) {
+        handleSupabaseError(error);
+        throw new Error('Erro ao excluir cliente');
+      }
     } catch (error) {
-      handleSupabaseError(error);
+      console.error('Error deleting customer:', error);
+      throw error;
     }
   }
 };
 
-// Quote Services
+// Quote Service
 export const quoteService = {
   async getQuotes(): Promise<Quote[]> {
-    if (!supabase) {
+    if (!isSupabaseConfigured() || !supabase) {
       console.warn('⚠️ Supabase not configured - returning empty quotes');
       return [];
     }
-    
-    console.log('🔍 DEBUG: Starting getQuotes function...');
-    
+
     try {
-      // Check if Supabase is configured first
-      if (!isSupabaseConfigured()) {
-        console.log('❌ DEBUG: Supabase not configured');
-        console.warn('🔌 Supabase not configured - using offline mode');
-        return [];
-      }
-
-      if (!supabase) {
-        console.log('❌ DEBUG: Supabase client not available');
-        console.warn('🔌 Supabase client not available - using offline mode');
-        return [];
-      }
-
-      console.log('🔍 DEBUG: Fetching quotes from database...');
+      console.log('🔄 Loading quotes from Supabase...');
+      
+      // Get quotes
       const { data: quotesData, error: quotesError } = await supabase
         .from('quotes')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (quotesError) {
-        console.log('❌ DEBUG: Quotes error:', quotesError);
-        console.warn('🔌 Quotes error - switching to offline mode:', quotesError.message);
+        console.error('❌ Quotes table error:', quotesError);
         handleSupabaseError(quotesError);
-        return []; // Return empty array instead of throwing
+        return [];
       }
 
-      console.log('✅ DEBUG: Quotes fetched successfully:', quotesData?.length || 0, 'quotes');
-      
-      console.log('🔍 DEBUG: Fetching quote items from database...');
+      if (!quotesData || quotesData.length === 0) {
+        console.log('📋 No quotes found in database');
+        return [];
+      }
+
+      console.log(`📊 Found ${quotesData.length} quotes, loading items...`);
+
+      // Get all quote items for all quotes
       const { data: itemsData, error: itemsError } = await supabase
         .from('quote_items')
-        .select('*')
-        .order('created_at');
+        .select('*');
 
       if (itemsError) {
-        console.log('❌ DEBUG: Quote items error:', itemsError);
-        // Handle missing table gracefully
-        if (itemsError.code === '42P01') {
-          console.warn('🔌 Quote items table does not exist - switching to offline mode');
-          return []; // Return empty array instead of throwing
-        }
+        console.error('❌ Quote items table error:', itemsError);
+        console.error('🚨 CRITICAL: Quote Items table has issues - this explains why items are not showing!');
         handleSupabaseError(itemsError);
-        return []; // Return empty array instead of throwing
+        // Continue without items data
       }
 
-      console.log('✅ DEBUG: Quote items fetched successfully:', itemsData?.length || 0, 'items');
-      
-      // Debug: Show relationship between quotes and items
-      if (quotesData && itemsData) {
-        quotesData.forEach(quote => {
-          const quoteItems = itemsData.filter(item => item.quote_id === quote.id);
-          console.log(`🔍 DEBUG: Quote ${quote.quote_number} has ${quoteItems.length} items`);
-        });
-      }
+      console.log(`📦 Found ${itemsData?.length || 0} quote items total`);
 
-      return (quotesData || []).map(quote => {
-        const quoteItems = (itemsData || [])
-          .filter(item => item.quote_id === quote.id)
-          .map(item => ({
+      // Combine quotes with their items
+      const quotesWithItems = quotesData.map(quote => {
+        const quoteItems = itemsData?.filter(item => item.quote_id === quote.id) || [];
+        
+        console.log(`📋 Quote ${quote.quote_number}: ${quoteItems.length} items`);
+        
+        return {
+          id: quote.id,
+          quoteNumber: quote.quote_number,
+          customerId: quote.customer_id || undefined,
+          clientName: quote.client_name,
+          clientContact: quote.client_contact || '',
+          items: quoteItems.map(item => ({
             productId: item.product_id || '',
             productName: item.product_name,
             quantity: Number(item.quantity),
@@ -622,20 +630,7 @@ export const quoteService = {
             width: item.width ? Number(item.width) : undefined,
             height: item.height ? Number(item.height) : undefined,
             itemCountForAreaCalc: item.item_count_for_area_calc || undefined,
-          }));
-
-        console.log(`🔍 DEBUG: Mapped quote ${quote.quote_number} with ${quoteItems.length} items:`, quoteItems);
-
-        
-        console.log(`📋 Quote ${quote.quote_number}: ${items.length} items loaded`);
-        
-        return {
-          id: quote.id,
-          quoteNumber: quote.quote_number,
-          customerId: quote.customer_id || undefined,
-          clientName: quote.client_name,
-          clientContact: quote.client_contact || '',
-          items: quoteItems,
+          })),
           subtotal: Number(quote.subtotal),
           discountType: quote.discount_type as any,
           discountValue: Number(quote.discount_value),
@@ -643,58 +638,44 @@ export const quoteService = {
           subtotalAfterDiscount: Number(quote.subtotal_after_discount),
           totalCash: Number(quote.total_cash),
           totalCard: Number(quote.total_card),
-          downPaymentApplied: Number(quote.down_payment_applied),
+          downPaymentApplied: Number(quote.down_payment_applied || 0),
           selectedPaymentMethod: quote.selected_payment_method || '',
           paymentDate: quote.payment_date || undefined,
           deliveryDeadline: quote.delivery_deadline || undefined,
           status: quote.status as any,
-          companyInfoSnapshot: quote.company_info_snapshot as CompanyInfo,
+          companyInfoSnapshot: quote.company_info_snapshot as any,
           notes: quote.notes || '',
           salespersonUsername: quote.salesperson_username,
           salespersonFullName: quote.salesperson_full_name || '',
           createdAt: quote.created_at,
         };
       });
+
+      console.log(`✅ Successfully loaded ${quotesWithItems.length} quotes with items`);
+      return quotesWithItems;
     } catch (error) {
-      console.log(`✅ Successfully loaded ${quotesWithItems.length} quotes with complete data`);
-      
-      // Log summary of items per quote for debugging
-      quotesWithItems.forEach(quote => {
-        if (quote.items.length > 0) {
-          console.log(`📊 Quote ${quote.quoteNumber}: ${quote.items.length} items, Status: ${quote.status}`);
-        }
-      });
-      
-      console.warn('🔌 Quote service - switching to offline mode');
-      console.error('Quote service error:', error);
+      console.error('❌ Critical error loading quotes:', error);
       handleSupabaseError(error);
-      console.warn('⚠️ Quotes loading failed - returning empty array');
-      return []; // Return empty array instead of throwing
+      return [];
     }
   },
 
   async createQuote(quote: Omit<Quote, 'id'>): Promise<Quote> {
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Supabase não configurado');
+    }
+
     try {
-      // Check if Supabase is configured and client is available
-      if (!isSupabaseConfigured()) {
-        console.error('❌ Supabase not configured for createQuote');
-        throw new Error('Supabase não configurado');
-      }
-
-      if (!supabase) {
-        console.error('❌ Supabase client not available for createQuote');
-        throw new Error('Cliente Supabase não inicializado');
-      }
-
       console.log('🔄 Creating quote:', quote.quoteNumber);
-
-      let { data, error } = await supabase
+      
+      // Create quote first
+      const { data: quoteData, error: quoteError } = await supabase
         .from('quotes')
         .insert([{
           quote_number: quote.quoteNumber,
-          customer_id: quote.customerId,
+          customer_id: quote.customerId || null,
           client_name: quote.clientName,
-          client_contact: quote.clientContact,
+          client_contact: quote.clientContact || '',
           subtotal: quote.subtotal,
           discount_type: quote.discountType,
           discount_value: quote.discountValue,
@@ -702,81 +683,40 @@ export const quoteService = {
           subtotal_after_discount: quote.subtotalAfterDiscount,
           total_cash: quote.totalCash,
           total_card: quote.totalCard,
-          down_payment_applied: quote.downPaymentApplied,
-          selected_payment_method: quote.selectedPaymentMethod,
-          payment_date: quote.paymentDate,
-          delivery_deadline: quote.deliveryDeadline,
+          down_payment_applied: quote.downPaymentApplied || 0,
+          selected_payment_method: quote.selectedPaymentMethod || '',
+          payment_date: quote.paymentDate || null,
+          delivery_deadline: quote.deliveryDeadline || null,
           status: quote.status,
           company_info_snapshot: quote.companyInfoSnapshot,
-          notes: quote.notes,
+          notes: quote.notes || '',
           salesperson_username: quote.salespersonUsername,
-          salesperson_full_name: quote.salespersonFullName,
+          salesperson_full_name: quote.salespersonFullName || '',
         }])
         .select()
         .single();
 
-      if (error) {
-        console.error('❌ Quote creation error:', error);
-        
-        // Check for specific RLS or permission errors
-        if (error.code === '42501' || error.message?.includes('permission denied') || error.message?.includes('RLS')) {
-          throw new Error('Erro de permissão: Verifique as configurações RLS no Supabase para a tabela quotes');
-        }
-        
-        // Check for missing table errors
-        if (error.code === '42P01' || error.message?.includes('does not exist')) {
-          throw new Error('Tabela quotes não encontrada: Execute as migrações do banco de dados');
-        }
-        
-        // Check for CORS/connection errors
-        if (error.message?.includes('Failed to fetch') || error.message?.includes('fetch')) {
-          throw new Error('Erro de conexão: Verifique as configurações CORS do Supabase');
-        }
-        
-        // For other errors, provide more context
-        throw new Error(`Erro ao criar orçamento: ${error.message || 'Erro desconhecido'}`);
+      if (quoteError) {
+        console.error('❌ Error creating quote:', quoteError);
+        handleSupabaseError(quoteError);
+        throw new Error('Erro ao criar orçamento');
       }
 
-      if (!data) {
-        console.warn('⚠️ No data returned from quote creation - checking if quote was actually created...');
-        
-        // Try to fetch the quote that might have been created
-        try {
-          const { data: fetchedQuote, error: fetchError } = await supabase
-            .from('quotes')
-            .select('*')
-            .eq('quote_number', quote.quoteNumber)
-            .single();
-            
-          if (fetchedQuote && !fetchError) {
-            console.log('✅ Quote was created successfully, using fetched data');
-            data = fetchedQuote;
-          } else {
-            throw new Error('Orçamento não foi criado - verifique as permissões RLS no Supabase');
-          }
-        } catch (fetchErr) {
-          console.error('❌ Failed to fetch created quote:', fetchErr);
-          throw new Error('Erro ao criar orçamento - verifique as configurações do banco de dados');
-        }
-      }
+      console.log('✅ Quote created, now creating items...');
 
-      console.log('✅ Quote created successfully:', data.quote_number);
-
-      // Insert quote items
+      // Create quote items
       if (quote.items && quote.items.length > 0) {
-        console.log('🔄 Inserting quote items:', quote.items.length);
-        
         const itemsToInsert = quote.items.map(item => ({
-          quote_id: data.id,
-          product_id: item.productId,
+          quote_id: quoteData.id,
+          product_id: item.productId || null,
           product_name: item.productName,
           quantity: item.quantity,
           unit_price: item.unitPrice,
           total_price: item.totalPrice,
           pricing_model: item.pricingModel,
-          width: item.width,
-          height: item.height,
-          item_count_for_area_calc: item.itemCountForAreaCalc,
+          width: item.width || null,
+          height: item.height || null,
+          item_count_for_area_calc: item.itemCountForAreaCalc || null,
         }));
 
         const { error: itemsError } = await supabase
@@ -784,65 +724,61 @@ export const quoteService = {
           .insert(itemsToInsert);
 
         if (itemsError) {
-          console.error('❌ Quote items creation error:', itemsError);
-          console.warn('⚠️ Quote created but items failed - this may be due to RLS policies');
-          // Don't throw error for items, the quote was created successfully
-        } else {
-          console.log('✅ Quote items created successfully');
+          console.error('❌ Error creating quote items:', itemsError);
+          handleSupabaseError(itemsError);
+          throw new Error('Erro ao criar itens do orçamento');
         }
+
+        console.log(`✅ Created ${quote.items.length} quote items`);
       }
 
       return {
-        id: data.id,
-        quoteNumber: data.quote_number,
-        customerId: data.customer_id || undefined,
-        clientName: data.client_name,
-        clientContact: data.client_contact || '',
-        items: quote.items,
-        subtotal: Number(data.subtotal),
-        discountType: data.discount_type as any,
-        discountValue: Number(data.discount_value),
-        discountAmountCalculated: Number(data.discount_amount_calculated),
-        subtotalAfterDiscount: Number(data.subtotal_after_discount),
-        totalCash: Number(data.total_cash),
-        totalCard: Number(data.total_card),
-        downPaymentApplied: Number(data.down_payment_applied),
-        selectedPaymentMethod: data.selected_payment_method || '',
-        paymentDate: data.payment_date || undefined,
-        deliveryDeadline: data.delivery_deadline || undefined,
-        status: data.status as any,
-        companyInfoSnapshot: data.company_info_snapshot as CompanyInfo,
-        notes: data.notes || '',
-        salespersonUsername: data.salesperson_username,
-        salespersonFullName: data.salesperson_full_name || '',
-        createdAt: data.created_at,
+        id: quoteData.id,
+        quoteNumber: quoteData.quote_number,
+        customerId: quoteData.customer_id || undefined,
+        clientName: quoteData.client_name,
+        clientContact: quoteData.client_contact || '',
+        items: quote.items || [],
+        subtotal: Number(quoteData.subtotal),
+        discountType: quoteData.discount_type as any,
+        discountValue: Number(quoteData.discount_value),
+        discountAmountCalculated: Number(quoteData.discount_amount_calculated),
+        subtotalAfterDiscount: Number(quoteData.subtotal_after_discount),
+        totalCash: Number(quoteData.total_cash),
+        totalCard: Number(quoteData.total_card),
+        downPaymentApplied: Number(quoteData.down_payment_applied || 0),
+        selectedPaymentMethod: quoteData.selected_payment_method || '',
+        paymentDate: quoteData.payment_date || undefined,
+        deliveryDeadline: quoteData.delivery_deadline || undefined,
+        status: quoteData.status as any,
+        companyInfoSnapshot: quoteData.company_info_snapshot as any,
+        notes: quoteData.notes || '',
+        salespersonUsername: quoteData.salesperson_username,
+        salespersonFullName: quoteData.salesperson_full_name || '',
+        createdAt: quoteData.created_at,
       };
     } catch (error) {
-      console.error('❌ createQuote service error:', error);
+      console.error('Error creating quote:', error);
       throw error;
     }
   },
 
   async updateQuote(quote: Quote): Promise<void> {
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Supabase não configurado');
+    }
+
     try {
-      // Check if Supabase is configured and client is available
-      if (!isSupabaseConfigured()) {
-        console.error('❌ Supabase not configured for updateQuote');
-        throw new Error('Supabase não configurado');
-      }
-
-      if (!supabase) {
-        console.error('❌ Supabase client not available for updateQuote');
-        throw new Error('Cliente Supabase não inicializado');
-      }
-
-      const { error } = await supabase
+      console.log('🔄 Updating quote:', quote.quoteNumber);
+      
+      // Update quote
+      const { error: quoteError } = await supabase
         .from('quotes')
         .update({
           quote_number: quote.quoteNumber,
-          customer_id: quote.customerId,
+          customer_id: quote.customerId || null,
           client_name: quote.clientName,
-          client_contact: quote.clientContact,
+          client_contact: quote.clientContact || '',
           subtotal: quote.subtotal,
           discount_type: quote.discountType,
           discount_value: quote.discountValue,
@@ -850,123 +786,152 @@ export const quoteService = {
           subtotal_after_discount: quote.subtotalAfterDiscount,
           total_cash: quote.totalCash,
           total_card: quote.totalCard,
-          down_payment_applied: quote.downPaymentApplied,
-          selected_payment_method: quote.selectedPaymentMethod,
-          payment_date: quote.paymentDate,
-          delivery_deadline: quote.deliveryDeadline,
+          down_payment_applied: quote.downPaymentApplied || 0,
+          selected_payment_method: quote.selectedPaymentMethod || '',
+          payment_date: quote.paymentDate || null,
+          delivery_deadline: quote.deliveryDeadline || null,
           status: quote.status,
-          company_info_snapshot: quote.companyInfoSnapshot,
-          notes: quote.notes,
+          notes: quote.notes || '',
           salesperson_username: quote.salespersonUsername,
-          salesperson_full_name: quote.salespersonFullName,
-          updated_at: new Date().toISOString(),
+          salesperson_full_name: quote.salespersonFullName || '',
         })
         .eq('id', quote.id);
 
-      if (error) handleSupabaseError(error);
+      if (quoteError) {
+        console.error('❌ Error updating quote:', quoteError);
+        handleSupabaseError(quoteError);
+        throw new Error('Erro ao atualizar orçamento');
+      }
 
       // Delete existing items
-      const { error: deleteError } = await supabase
+      await supabase
         .from('quote_items')
         .delete()
         .eq('quote_id', quote.id);
 
-      if (deleteError) handleSupabaseError(deleteError);
-
-      // Insert new items
+      // Create new items
       if (quote.items && quote.items.length > 0) {
         const itemsToInsert = quote.items.map(item => ({
           quote_id: quote.id,
-          product_id: item.productId,
+          product_id: item.productId || null,
           product_name: item.productName,
           quantity: item.quantity,
           unit_price: item.unitPrice,
           total_price: item.totalPrice,
           pricing_model: item.pricingModel,
-          width: item.width,
-          height: item.height,
-          item_count_for_area_calc: item.itemCountForAreaCalc,
+          width: item.width || null,
+          height: item.height || null,
+          item_count_for_area_calc: item.itemCountForAreaCalc || null,
         }));
 
-        const { error: insertError } = await supabase
+        const { error: itemsError } = await supabase
           .from('quote_items')
           .insert(itemsToInsert);
 
-        if (insertError) handleSupabaseError(insertError);
+        if (itemsError) {
+          console.error('❌ Error updating quote items:', itemsError);
+          handleSupabaseError(itemsError);
+          throw new Error('Erro ao atualizar itens do orçamento');
+        }
+
+        console.log(`✅ Updated ${quote.items.length} quote items`);
       }
+
+      console.log('✅ Quote updated successfully');
     } catch (error) {
-      handleSupabaseError(error);
+      console.error('Error updating quote:', error);
+      throw error;
     }
   },
 
   async deleteQuote(id: string): Promise<void> {
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Supabase não configurado');
+    }
+
     try {
-      // Check if Supabase is configured and client is available
-      if (!isSupabaseConfigured()) {
-        console.error('❌ Supabase not configured for deleteQuote');
-        throw new Error('Supabase não configurado');
-      }
+      // Delete quote items first (cascade should handle this, but being explicit)
+      await supabase
+        .from('quote_items')
+        .delete()
+        .eq('quote_id', id);
 
-      if (!supabase) {
-        console.error('❌ Supabase client not available for deleteQuote');
-        throw new Error('Cliente Supabase não inicializado');
-      }
-
+      // Delete quote
       const { error } = await supabase
         .from('quotes')
         .delete()
         .eq('id', id);
 
-      if (error) handleSupabaseError(error);
+      if (error) {
+        handleSupabaseError(error);
+        throw new Error('Erro ao excluir orçamento');
+      }
     } catch (error) {
-      handleSupabaseError(error);
+      console.error('Error deleting quote:', error);
+      throw error;
     }
   }
 };
 
-// Supplier Services
+// Supplier Service
 export const supplierService = {
   async getSuppliers(): Promise<Supplier[]> {
+    if (!isSupabaseConfigured() || !supabase) {
+      console.warn('⚠️ Supabase not configured - returning empty suppliers');
+      return [];
+    }
+
     try {
       const { data, error } = await supabase
         .from('suppliers')
         .select('*')
         .order('name');
 
-      if (error) handleSupabaseError(error);
-      
-      return (data || []).map(supplier => ({
-        id: supplier.id,
-        name: supplier.name,
-        cnpj: supplier.cnpj || '',
-        phone: supplier.phone || '',
-        email: supplier.email || '',
-        address: supplier.address || '',
-        notes: supplier.notes || '',
-      }));
+      if (error) {
+        handleSupabaseError(error);
+        return [];
+      }
+
+      return data?.map(item => ({
+        id: item.id,
+        name: item.name,
+        cnpj: item.cnpj || '',
+        phone: item.phone || '',
+        email: item.email || '',
+        address: item.address || '',
+        notes: item.notes || '',
+      })) || [];
     } catch (error) {
+      console.error('Suppliers error:', error);
       handleSupabaseError(error);
       return [];
     }
   },
 
   async createSupplier(supplier: Omit<Supplier, 'id'>): Promise<Supplier> {
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Supabase não configurado');
+    }
+
     try {
       const { data, error } = await supabase
         .from('suppliers')
         .insert([{
           name: supplier.name,
-          cnpj: supplier.cnpj,
-          phone: supplier.phone,
-          email: supplier.email,
-          address: supplier.address,
-          notes: supplier.notes,
+          cnpj: supplier.cnpj || '',
+          phone: supplier.phone || '',
+          email: supplier.email || '',
+          address: supplier.address || '',
+          notes: supplier.notes || '',
         }])
         .select()
         .single();
 
-      if (error) handleSupabaseError(error);
-      
+      if (error) {
+        handleSupabaseError(error);
+        throw new Error('Erro ao criar fornecedor');
+      }
+
       return {
         id: data.id,
         name: data.name,
@@ -977,120 +942,113 @@ export const supplierService = {
         notes: data.notes || '',
       };
     } catch (error) {
-      handleSupabaseError(error);
+      console.error('Error creating supplier:', error);
       throw error;
     }
   },
 
   async updateSupplier(supplier: Supplier): Promise<void> {
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Supabase não configurado');
+    }
+
     try {
       const { error } = await supabase
         .from('suppliers')
         .update({
           name: supplier.name,
-          cnpj: supplier.cnpj,
-          phone: supplier.phone,
-          email: supplier.email,
-          address: supplier.address,
-          notes: supplier.notes,
-          updated_at: new Date().toISOString(),
+          cnpj: supplier.cnpj || '',
+          phone: supplier.phone || '',
+          email: supplier.email || '',
+          address: supplier.address || '',
+          notes: supplier.notes || '',
         })
         .eq('id', supplier.id);
 
-      if (error) handleSupabaseError(error);
+      if (error) {
+        handleSupabaseError(error);
+        throw new Error('Erro ao atualizar fornecedor');
+      }
     } catch (error) {
-      handleSupabaseError(error);
+      console.error('Error updating supplier:', error);
+      throw error;
     }
   },
 
   async deleteSupplier(id: string): Promise<void> {
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Supabase não configurado');
+    }
+
     try {
       const { error } = await supabase
         .from('suppliers')
         .delete()
         .eq('id', id);
 
-      if (error) handleSupabaseError(error);
+      if (error) {
+        handleSupabaseError(error);
+        throw new Error('Erro ao excluir fornecedor');
+      }
     } catch (error) {
-      handleSupabaseError(error);
+      console.error('Error deleting supplier:', error);
+      throw error;
     }
   },
 
   async getSupplierDebts(): Promise<Debt[]> {
-    try {
-      if (!isSupabaseConfigured() || !supabase) {
-        console.warn('🔌 Supabase not available for supplier debts');
-        return [];
-      }
+    if (!isSupabaseConfigured() || !supabase) {
+      console.warn('⚠️ Supabase not configured - returning empty debts');
+      return [];
+    }
 
+    try {
       const { data, error } = await supabase
         .from('supplier_debts')
         .select('*')
         .order('date_added', { ascending: false });
 
       if (error) {
-        console.warn('🔌 Supplier debts error - switching to offline mode:', error.message);
-        throw new Error('Erro ao carregar dívidas dos fornecedores');
+        handleSupabaseError(error);
+        return [];
       }
-      
-      return (data || []).map(debt => ({
-        id: debt.id,
-        supplierId: debt.supplier_id,
-        description: debt.description || '',
-        totalAmount: Number(debt.total_amount),
-        dateAdded: debt.date_added,
-      }));
+
+      return data?.map(item => ({
+        id: item.id,
+        supplierId: item.supplier_id,
+        description: item.description || '',
+        totalAmount: Number(item.total_amount),
+        dateAdded: item.date_added,
+      })) || [];
     } catch (error) {
-      console.error('❌ Supplier debts service error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Erro ao carregar dívidas dos fornecedores';
-      setError(errorMessage);
-      setDebts([]);
+      console.error('Supplier debts error:', error);
+      handleSupabaseError(error);
+      return [];
     }
   },
 
   async createSupplierDebt(debt: Omit<Debt, 'id'>): Promise<Debt> {
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Supabase não configurado');
+    }
+
     try {
-      if (!supabase) {
-        throw new Error('Cliente Supabase não inicializado');
-      }
-      
       const { data, error } = await supabase
         .from('supplier_debts')
         .insert([{
           supplier_id: debt.supplierId,
-          description: debt.description,
+          description: debt.description || '',
           total_amount: debt.totalAmount,
           date_added: debt.dateAdded,
         }])
-        .select('*')
+        .select()
         .single();
 
-      if (error) handleSupabaseError(error);
-      
-      if (!data || !data.id) {
-        console.warn('⚠️ Data not returned from insert, attempting to fetch...');
-        // Try to fetch the most recent debt for this supplier as fallback
-        const { data: fallbackData, error: fetchError } = await supabase
-          .from('supplier_debts')
-          .select('*')
-          .eq('supplier_id', debt.supplierId)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-        
-        if (fetchError || !fallbackData) {
-          throw new Error('Erro ao criar dívida - verifique as permissões RLS no Supabase');
-        }
-        
-        return {
-          id: fallbackData.id,
-          supplierId: fallbackData.supplier_id,
-          description: fallbackData.description || '',
-          totalAmount: Number(fallbackData.total_amount),
-          dateAdded: fallbackData.date_added,
-        };
+      if (error) {
+        handleSupabaseError(error);
+        throw new Error('Erro ao criar dívida');
       }
-      
+
       return {
         id: data.id,
         supplierId: data.supplier_id,
@@ -1099,99 +1057,85 @@ export const supplierService = {
         dateAdded: data.date_added,
       };
     } catch (error) {
-      handleSupabaseError(error);
+      console.error('Error creating supplier debt:', error);
       throw error;
     }
   },
 
   async deleteSupplierDebt(id: string): Promise<void> {
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Supabase não configurado');
+    }
+
     try {
       const { error } = await supabase
         .from('supplier_debts')
         .delete()
         .eq('id', id);
 
-      if (error) handleSupabaseError(error);
+      if (error) {
+        handleSupabaseError(error);
+        throw new Error('Erro ao excluir dívida');
+      }
     } catch (error) {
-      handleSupabaseError(error);
+      console.error('Error deleting supplier debt:', error);
+      throw error;
     }
   },
 
   async getSupplierCredits(): Promise<SupplierCredit[]> {
-    try {
-      if (!isSupabaseConfigured() || !supabase) {
-        console.warn('🔌 Supabase not available for supplier credits');
-        return [];
-      }
+    if (!isSupabaseConfigured() || !supabase) {
+      console.warn('⚠️ Supabase not configured - returning empty credits');
+      return [];
+    }
 
+    try {
       const { data, error } = await supabase
         .from('supplier_credits')
         .select('*')
         .order('date', { ascending: false });
 
       if (error) {
-        console.warn('🔌 Supplier credits error - switching to offline mode:', error.message);
-        throw new Error('Erro ao carregar pagamentos dos fornecedores');
+        handleSupabaseError(error);
+        return [];
       }
-      
-      return (data || []).map(credit => ({
-        id: credit.id,
-        supplierId: credit.supplier_id,
-        amount: Number(credit.amount),
-        date: credit.date,
-        description: credit.description || '',
-      }));
+
+      return data?.map(item => ({
+        id: item.id,
+        supplierId: item.supplier_id,
+        amount: Number(item.amount),
+        date: item.date,
+        description: item.description || '',
+      })) || [];
     } catch (error) {
-      console.error('❌ Supplier credits service error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Erro ao carregar pagamentos dos fornecedores';
-      setError(errorMessage);
-      setCredits([]);
+      console.error('Supplier credits error:', error);
+      handleSupabaseError(error);
+      return [];
     }
   },
 
   async createSupplierCredit(credit: Omit<SupplierCredit, 'id'>): Promise<SupplierCredit> {
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Supabase não configurado');
+    }
+
     try {
-      if (!isSupabaseConfigured() || !supabase) {
-        throw new Error('Supabase não configurado');
-      }
-      
       const { data, error } = await supabase
         .from('supplier_credits')
         .insert([{
           supplier_id: credit.supplierId,
           amount: credit.amount,
           date: credit.date,
-          description: credit.description,
+          description: credit.description || '',
         }])
-        .select('*')
+        .select()
         .single();
 
-      if (error) handleSupabaseError(error);
-      
-      if (!data || !data.id) {
-        console.warn('⚠️ Data not returned from insert, attempting to fetch...');
-        // Try to fetch the most recent credit for this supplier as fallback
-        const { data: fallbackData, error: fetchError } = await supabase
-          .from('supplier_credits')
-          .select('*')
-          .eq('supplier_id', credit.supplierId)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-        
-        if (fetchError || !fallbackData) {
-          throw new Error('Erro ao criar pagamento - verifique as permissões RLS no Supabase');
-        }
-        
-        return {
-          id: fallbackData.id,
-          supplierId: fallbackData.supplier_id,
-          amount: Number(fallbackData.amount),
-          date: fallbackData.date,
-          description: fallbackData.description || '',
-        };
+      if (error) {
+        handleSupabaseError(error);
+        throw new Error('Erro ao criar pagamento');
       }
-      
+
       return {
         id: data.id,
         supplierId: data.supplier_id,
@@ -1200,65 +1144,86 @@ export const supplierService = {
         description: data.description || '',
       };
     } catch (error) {
-      handleSupabaseError(error);
+      console.error('Error creating supplier credit:', error);
       throw error;
     }
   },
 
   async deleteSupplierCredit(id: string): Promise<void> {
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Supabase não configurado');
+    }
+
     try {
       const { error } = await supabase
         .from('supplier_credits')
         .delete()
         .eq('id', id);
 
-      if (error) handleSupabaseError(error);
+      if (error) {
+        handleSupabaseError(error);
+        throw new Error('Erro ao excluir pagamento');
+      }
     } catch (error) {
-      handleSupabaseError(error);
+      console.error('Error deleting supplier credit:', error);
+      throw error;
     }
   }
 };
 
-// Accounts Payable Services
+// Accounts Payable Service
 export const accountsPayableService = {
   async getAccountsPayable(): Promise<AccountsPayableEntry[]> {
+    if (!isSupabaseConfigured() || !supabase) {
+      console.warn('⚠️ Supabase not configured - returning empty accounts payable');
+      return [];
+    }
+
     try {
       const { data, error } = await supabase
         .from('accounts_payable')
         .select('*')
         .order('due_date');
 
-      if (error) handleSupabaseError(error);
-      
-      return (data || []).map(entry => ({
-        id: entry.id,
-        name: entry.name,
-        amount: Number(entry.amount),
-        dueDate: entry.due_date,
-        isPaid: entry.is_paid,
-        notes: entry.notes || '',
-        seriesId: entry.series_id || undefined,
-        totalInstallmentsInSeries: entry.total_installments_in_series || undefined,
-        installmentNumberOfSeries: entry.installment_number_of_series || undefined,
-        createdAt: entry.created_at,
-      }));
+      if (error) {
+        handleSupabaseError(error);
+        return [];
+      }
+
+      return data?.map(item => ({
+        id: item.id,
+        name: item.name,
+        amount: Number(item.amount),
+        dueDate: item.due_date,
+        isPaid: item.is_paid || false,
+        createdAt: item.created_at,
+        notes: item.notes || '',
+        seriesId: item.series_id || undefined,
+        totalInstallmentsInSeries: item.total_installments_in_series || undefined,
+        installmentNumberOfSeries: item.installment_number_of_series || undefined,
+      })) || [];
     } catch (error) {
+      console.error('Accounts payable error:', error);
       handleSupabaseError(error);
       return [];
     }
   },
 
   async createAccountsPayable(entries: Omit<AccountsPayableEntry, 'id'>[]): Promise<AccountsPayableEntry[]> {
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Supabase não configurado');
+    }
+
     try {
       const entriesToInsert = entries.map(entry => ({
         name: entry.name,
         amount: entry.amount,
         due_date: entry.dueDate,
-        is_paid: entry.isPaid,
-        notes: entry.notes,
-        series_id: entry.seriesId,
-        total_installments_in_series: entry.totalInstallmentsInSeries,
-        installment_number_of_series: entry.installmentNumberOfSeries,
+        is_paid: entry.isPaid || false,
+        notes: entry.notes || '',
+        series_id: entry.seriesId || null,
+        total_installments_in_series: entry.totalInstallmentsInSeries || null,
+        installment_number_of_series: entry.installmentNumberOfSeries || null,
       }));
 
       const { data, error } = await supabase
@@ -1266,27 +1231,34 @@ export const accountsPayableService = {
         .insert(entriesToInsert)
         .select();
 
-      if (error) handleSupabaseError(error);
-      
-      return (data || []).map(entry => ({
-        id: entry.id,
-        name: entry.name,
-        amount: Number(entry.amount),
-        dueDate: entry.due_date,
-        isPaid: entry.is_paid,
-        notes: entry.notes || '',
-        seriesId: entry.series_id || undefined,
-        totalInstallmentsInSeries: entry.total_installments_in_series || undefined,
-        installmentNumberOfSeries: entry.installment_number_of_series || undefined,
-        createdAt: entry.created_at,
-      }));
+      if (error) {
+        handleSupabaseError(error);
+        throw new Error('Erro ao criar contas a pagar');
+      }
+
+      return data?.map(item => ({
+        id: item.id,
+        name: item.name,
+        amount: Number(item.amount),
+        dueDate: item.due_date,
+        isPaid: item.is_paid || false,
+        createdAt: item.created_at,
+        notes: item.notes || '',
+        seriesId: item.series_id || undefined,
+        totalInstallmentsInSeries: item.total_installments_in_series || undefined,
+        installmentNumberOfSeries: item.installment_number_of_series || undefined,
+      })) || [];
     } catch (error) {
-      handleSupabaseError(error);
+      console.error('Error creating accounts payable:', error);
       throw error;
     }
   },
 
   async updateAccountsPayable(entry: AccountsPayableEntry): Promise<void> {
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Supabase não configurado');
+    }
+
     try {
       const { error } = await supabase
         .from('accounts_payable')
@@ -1295,181 +1267,208 @@ export const accountsPayableService = {
           amount: entry.amount,
           due_date: entry.dueDate,
           is_paid: entry.isPaid,
-          notes: entry.notes,
-          series_id: entry.seriesId,
-          total_installments_in_series: entry.totalInstallmentsInSeries,
-          installment_number_of_series: entry.installmentNumberOfSeries,
-          updated_at: new Date().toISOString(),
+          notes: entry.notes || '',
         })
         .eq('id', entry.id);
 
-      if (error) handleSupabaseError(error);
+      if (error) {
+        handleSupabaseError(error);
+        throw new Error('Erro ao atualizar conta a pagar');
+      }
     } catch (error) {
-      handleSupabaseError(error);
+      console.error('Error updating accounts payable:', error);
+      throw error;
     }
   },
 
   async deleteAccountsPayable(id: string): Promise<void> {
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Supabase não configurado');
+    }
+
     try {
       const { error } = await supabase
         .from('accounts_payable')
         .delete()
         .eq('id', id);
 
-      if (error) handleSupabaseError(error);
+      if (error) {
+        handleSupabaseError(error);
+        throw new Error('Erro ao excluir conta a pagar');
+      }
     } catch (error) {
-      handleSupabaseError(error);
+      console.error('Error deleting accounts payable:', error);
+      throw error;
     }
   },
 
   async deleteAccountsPayableBySeries(seriesId: string): Promise<void> {
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Supabase não configurado');
+    }
+
     try {
       const { error } = await supabase
         .from('accounts_payable')
         .delete()
         .eq('series_id', seriesId);
 
-      if (error) handleSupabaseError(error);
+      if (error) {
+        handleSupabaseError(error);
+        throw new Error('Erro ao excluir série de contas a pagar');
+      }
     } catch (error) {
-      handleSupabaseError(error);
+      console.error('Error deleting accounts payable series:', error);
+      throw error;
     }
   }
 };
 
-// User Services
+// User Service
+export class UserAlreadyExistsError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'UserAlreadyExistsError';
+  }
+}
+
 export const userService = {
   async getUsers(): Promise<User[]> {
+    if (!isSupabaseConfigured() || !supabase) {
+      console.warn('⚠️ Supabase not configured - returning empty users');
+      return [];
+    }
+
     try {
-      console.log('🔄 userService.getUsers() called');
-      
-      if (!isSupabaseConfigured()) {
-        console.warn('⚠️ Supabase not configured');
-        throw new Error('Supabase não configurado');
-      }
-      
-      if (!supabase) {
-        console.warn('⚠️ Supabase client not available');
-        throw new Error('Cliente Supabase não inicializado');
-      }
+      console.log('🔄 Loading users from Supabase...');
       
       const { data, error } = await supabase
         .from('app_users')
         .select('*')
-        .order('username');
+        .order('created_at', { ascending: false });
 
-      console.log('📊 Supabase response:', { data, error, count: data?.length });
+      if (error) {
+        console.error('❌ Users table error:', error);
+        handleSupabaseError(error);
+        return [];
+      }
 
-      if (error) handleSupabaseError(error);
-      
-      const mappedUsers = (data || []).map(user => ({
+      console.log(`✅ Found ${data?.length || 0} users in database`);
+
+      return data?.map(user => ({
         id: user.id,
         username: user.username,
         fullName: user.full_name || '',
-        password: '', // Never return password
         role: user.role as UserAccessLevel,
-      }));
-      
-      console.log('✅ Mapped users:', mappedUsers);
-      return mappedUsers;
+      })) || [];
     } catch (error) {
-      console.error('❌ userService.getUsers() error:', error);
+      console.error('Users error:', error);
       handleSupabaseError(error);
       return [];
     }
   },
 
-  async createUser(user: Omit<User, 'id'> & { password: string }): Promise<User> {
+  async getUserByUsername(username: string): Promise<User | null> {
+    if (!isSupabaseConfigured() || !supabase) {
+      console.warn('⚠️ Supabase not configured');
+      return null;
+    }
+
     try {
-      console.log('🔄 Creating user:', user.username);
-      
-      if (!isSupabaseConfigured()) {
-        console.warn('⚠️ Supabase not configured');
-        throw new Error('Supabase não configurado');
+      const { data, error } = await supabase
+        .from('app_users')
+        .select('*')
+        .eq('username', username)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // No rows found
+          return null;
+        }
+        handleSupabaseError(error);
+        return null;
       }
+
+      return {
+        id: data.id,
+        username: data.username,
+        fullName: data.full_name || '',
+        role: data.role as UserAccessLevel,
+      };
+    } catch (error) {
+      console.error('Error getting user by username:', error);
+      return null;
+    }
+  },
+
+  async createUser(user: Omit<User, 'id'> & { password: string }): Promise<User> {
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Supabase não configurado');
+    }
+
+    try {
+      console.log('🔄 Creating user in Supabase:', user.username);
       
-      if (!supabase) {
-        console.warn('⚠️ Supabase client not available');
-        throw new Error('Cliente Supabase não inicializado');
+      // Check if user already exists
+      const existingUser = await this.getUserByUsername(user.username);
+      if (existingUser) {
+        throw new UserAlreadyExistsError(`Usuário com email ${user.username} já existe`);
       }
-      
-      const hashedPassword = await bcrypt.hash(user.password, 10);
-      console.log('🔐 Password hashed successfully');
-      
+
+      // Hash password
+      const passwordHash = await bcrypt.hash(user.password, 10);
+
       const { data, error } = await supabase
         .from('app_users')
         .insert([{
           username: user.username,
-          full_name: user.fullName,
-          password_hash: hashedPassword,
+          full_name: user.fullName || '',
+          password_hash: passwordHash,
           role: user.role,
         }])
         .select()
         .single();
 
       if (error) {
-        console.error('❌ Database error creating user:', error);
-        
-        // Check for duplicate key constraint violation on username
-        if (error.code === '23505' && error.message.includes('app_users_username_key')) {
-          throw new UserAlreadyExistsError(user.username);
+        console.error('❌ Error creating user:', error);
+        if (error.code === '23505') { // Unique constraint violation
+          throw new UserAlreadyExistsError(`Usuário com email ${user.username} já existe`);
         }
-        
-        // For other errors, handle them normally
         handleSupabaseError(error);
-        throw error;
+        throw new Error('Erro ao criar usuário');
       }
-      
+
       console.log('✅ User created successfully:', data.username);
-      
+
       return {
         id: data.id,
         username: data.username,
         fullName: data.full_name || '',
-        password: '', // Never return password
         role: data.role as UserAccessLevel,
       };
     } catch (error) {
-      console.error('❌ createUser service error:', error);
-      
-      // If it's our custom UserAlreadyExistsError, re-throw it directly
-      if (error instanceof UserAlreadyExistsError) {
-        throw error;
-      }
-      
-      // For other errors, use the generic handler
-      handleSupabaseError(error);
+      console.error('Error creating user:', error);
       throw error;
     }
   },
 
   async updateUser(user: User & { password?: string }): Promise<void> {
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Supabase não configurado');
+    }
+
     try {
-      console.log('🔄 Updating user:', user.username, 'with ID:', user.id);
-      
-      if (!isSupabaseConfigured()) {
-        console.warn('⚠️ Supabase not configured');
-        throw new Error('Supabase não configurado');
-      }
-      
-      if (!supabase) {
-        console.warn('⚠️ Supabase client not available');
-        throw new Error('Cliente Supabase não inicializado');
-      }
-      
-      if (!user.id) {
-        console.error('❌ User ID is required for update');
-        throw new Error('ID do usuário é obrigatório para atualização');
-      }
+      console.log('🔄 Updating user in Supabase:', user.username);
       
       const updateData: any = {
         username: user.username,
-        full_name: user.fullName,
+        full_name: user.fullName || '',
         role: user.role,
-        updated_at: new Date().toISOString(),
       };
 
+      // Only update password if provided
       if (user.password) {
-        console.log('🔐 Updating password for user:', user.username);
         updateData.password_hash = await bcrypt.hash(user.password, 10);
       }
 
@@ -1479,210 +1478,96 @@ export const userService = {
         .eq('id', user.id);
 
       if (error) {
-        console.error('❌ Database error updating user:', error);
-        
-        // Check for duplicate key constraint violation on username
-        if (error.code === '23505' && error.message.includes('app_users_username_key')) {
-          throw new UserAlreadyExistsError(user.username);
+        console.error('❌ Error updating user:', error);
+        if (error.code === '23505') { // Unique constraint violation
+          throw new UserAlreadyExistsError(`Usuário com email ${user.username} já existe`);
         }
-        
         handleSupabaseError(error);
+        throw new Error('Erro ao atualizar usuário');
       }
-      
+
       console.log('✅ User updated successfully:', user.username);
     } catch (error) {
-      console.error('❌ updateUser service error:', error);
-      
-      // If it's our custom UserAlreadyExistsError, re-throw it directly
-      if (error instanceof UserAlreadyExistsError) {
-        throw error;
-      }
-      
-      handleSupabaseError(error);
+      console.error('Error updating user:', error);
+      throw error;
     }
   },
 
   async deleteUser(id: string): Promise<void> {
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Supabase não configurado');
+    }
+
     try {
-      if (!isSupabaseConfigured()) {
-        throw new Error('Supabase não configurado');
-      }
-      
-      if (!supabase) {
-        throw new Error('Cliente Supabase não inicializado');
-      }
+      console.log('🔄 Deleting user from Supabase:', id);
       
       const { error } = await supabase
         .from('app_users')
         .delete()
         .eq('id', id);
 
-      if (error) handleSupabaseError(error);
+      if (error) {
+        console.error('❌ Error deleting user:', error);
+        handleSupabaseError(error);
+        throw new Error('Erro ao excluir usuário');
+      }
+
+      console.log('✅ User deleted successfully');
     } catch (error) {
-      handleSupabaseError(error);
+      console.error('Error deleting user:', error);
+      throw error;
     }
   },
 
   async authenticateUser(username: string, password: string): Promise<User | null> {
+    if (!isSupabaseConfigured() || !supabase) {
+      throw new Error('Supabase não configurado');
+    }
+
     try {
       console.log('🔄 Authenticating user:', username);
-      
-      if (!isSupabaseConfigured()) {
-        console.warn('⚠️ Supabase not configured');
-        throw new Error('Supabase não configurado');
-      }
-      
-      if (!supabase) {
-        console.warn('⚠️ Supabase client not available');
-        throw new Error('Cliente Supabase não inicializado');
-      }
       
       const { data, error } = await supabase
         .from('app_users')
         .select('*')
         .eq('username', username)
-        .maybeSingle();
+        .single();
 
       if (error) {
-        console.error('❌ Database error during authentication:', error);
         if (error.code === 'PGRST116') {
-          console.log('❌ User not found in database:', username);
+          console.log('❌ User not found:', username);
           return null;
         }
+        console.error('❌ Database error during authentication:', error);
         throw new Error('Erro na consulta do banco de dados');
       }
-      
+
       if (!data) {
-        console.log('❌ User not found:', username);
-        return null;
-      }
-      
-      console.log('✅ User found in database:', data.username);
-      console.log('🔍 Password hash exists:', !!data.password_hash);
-      console.log('🔍 Password hash length:', data.password_hash?.length || 0);
-      
-      // Check if password hash is valid before attempting comparison
-      if (!data.password_hash || typeof data.password_hash !== 'string' || data.password_hash.trim() === '') {
-        console.log('❌ Invalid or missing password hash for user:', username);
-        console.log('🔧 Attempting to update password hash...');
-        
-        // Try to update the password hash
-        try {
-          const hashedPassword = await bcrypt.hash('admin123', 10);
-          const { error: updateError } = await supabase
-            .from('app_users')
-            .update({ password_hash: hashedPassword })
-            .eq('id', data.id);
-          
-          if (updateError) {
-            console.error('❌ Failed to update password hash:', updateError);
-            return null;
-          }
-          
-          console.log('✅ Password hash updated, retrying authentication...');
-          data.password_hash = hashedPassword;
-        } catch (updateErr) {
-          console.error('❌ Error updating password hash:', updateErr);
-          return null;
-        }
-      }
-
-      console.log('🔐 Attempting password comparison...');
-      console.log('🔐 Input password length:', password.length);
-      console.log('🔐 Hash starts with:', data.password_hash.substring(0, 10));
-      
-      let isValid = false;
-      try {
-        isValid = await bcrypt.compare(password, data.password_hash);
-        console.log('🔐 Password validation result:', isValid);
-      } catch (bcryptError) {
-        console.error('❌ Bcrypt comparison error:', bcryptError);
+        console.log('❌ No user data returned');
         return null;
       }
 
-      if (!isValid) {
-        console.log('❌ Password validation failed for user:', username);
-        console.log('🔐 Expected password: admin123');
-        console.log('🔐 Received password:', password);
+      console.log('🔍 User found, checking password...');
+      
+      // Check password
+      const isValidPassword = await bcrypt.compare(password, data.password_hash);
+      
+      if (!isValidPassword) {
+        console.log('❌ Invalid password for user:', username);
         return null;
       }
-      
+
       console.log('✅ Authentication successful for user:', username);
 
       return {
         id: data.id,
         username: data.username,
         fullName: data.full_name || '',
-        password: '', // Never return password
         role: data.role as UserAccessLevel,
       };
     } catch (error) {
-      console.error('❌ Authentication error:', error);
+      console.error('Authentication error:', error);
       throw error;
     }
-  },
-
-  async getUserByUsername(username: string): Promise<User | null> {
-    try {
-      if (!isSupabaseConfigured()) {
-        return null;
-      }
-      
-      if (!supabase) {
-        return null;
-      }
-      
-      const { data, error } = await supabase
-        .from('app_users')
-        .select('*')
-        .eq('username', username)
-        .maybeSingle();
-
-      if (error) {
-        console.error('❌ Error fetching user by username:', error);
-        return null;
-      }
-      
-      if (!data || !data.id || typeof data.id !== 'string' || data.id.trim() === '') {
-        return null;
-      }
-
-      return {
-        id: data.id,
-        username: data.username,
-        fullName: data.full_name || '',
-        password: '', // Never return password
-        role: data.role as UserAccessLevel,
-      };
-    } catch (error) {
-      console.error('❌ Exception in getUserByUsername:', error);
-      return null;
-    }
-  },
-
-  async getUserByEmail(email: string) {
-    // This method is not used in the current implementation
-    return null;
-  },
-
-  async deleteUserByUsername(username: string): Promise<void> {
-    try {
-      if (!isSupabaseConfigured()) {
-        throw new Error('Supabase não configurado');
-      }
-      
-      if (!supabase) {
-        throw new Error('Cliente Supabase não inicializado');
-      }
-      
-      const { error } = await supabase
-        .from('app_users')
-        .delete()
-        .eq('username', username);
-
-      if (error) handleSupabaseError(error);
-    } catch (error) {
-      handleSupabaseError(error);
-    }
-  },
+  }
 };
