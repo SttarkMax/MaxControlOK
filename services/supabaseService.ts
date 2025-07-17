@@ -1395,7 +1395,7 @@ export const userService = {
         .from('app_users')
         .select('*')
         .eq('username', username)
-        .single();
+        .maybeSingle();
 
       if (error) {
         if (error.code === 'PGRST116') {
@@ -1415,27 +1415,35 @@ export const userService = {
         return null;
       }
 
+      // Handle case where data might be an array (shouldn't happen with maybeSingle, but being safe)
+      const userData = Array.isArray(data) ? data[0] : data;
+      
+      if (!userData) {
+        console.log('❌ No user data in response');
+        return null;
+      }
+
       // Validate that user has a valid ID before returning
-      if (!data.id || typeof data.id !== 'string' || data.id.trim() === '') {
+      if (!userData.id || typeof userData.id !== 'string' || userData.id.trim() === '') {
         console.log('❌ User found but has invalid or missing ID:', {
-          id: data.id,
-          username: data.username,
-          idType: typeof data.id
+          id: userData.id,
+          username: userData.username,
+          idType: typeof userData.id
         });
         return null;
       }
 
       console.log('✅ Valid user found:', {
-        id: data.id,
-        username: data.username,
-        fullName: data.full_name
+        id: userData.id,
+        username: userData.username,
+        fullName: userData.full_name
       });
 
       return {
-        id: data.id,
-        username: data.username,
-        fullName: data.full_name || '',
-        role: data.role as UserAccessLevel,
+        id: userData.id,
+        username: userData.username,
+        fullName: userData.full_name || '',
+        role: userData.role as UserAccessLevel,
       };
     } catch (error) {
       console.error('Error getting user by username:', error);
