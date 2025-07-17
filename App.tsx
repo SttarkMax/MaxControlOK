@@ -72,24 +72,39 @@ const App: React.FC = () => {
       const existingUser = await userService.getUserByUsername('admin@maxcontrol.com');
       
       if (existingUser) {
-        console.log('✅ Admin user already exists, updating password...');
-        await userService.updateUser({
-          ...existingUser,
-          password: 'admin123'
-        });
-        console.log('✅ Admin user password updated successfully');
+        console.log('✅ Admin user exists, updating password...');
+        try {
+          if (existingUser.id) {
+            await userService.updateUser({
+              ...existingUser,
+              password: 'admin123'
+            });
+          } else {
+            console.log('❌ Existing user has no ID, cannot update');
+            throw new Error('Usuário existente sem ID válido');
+          }
+          console.log('✅ Admin password updated successfully');
+        } catch (updateError) {
+          console.error('❌ Error updating admin password:', updateError);
+          throw updateError;
+        }
         adminUserCreated.current = true;
         return;
+      } else {
+        console.log('🔄 Creating default admin user...');
+        try {
+          const newUser = await userService.createUser({
+            username: 'admin@maxcontrol.com',
+            fullName: 'Administrador',
+            role: 'admin',
+            password: 'admin123'
+          });
+          console.log('✅ Default admin user created successfully:', newUser.id);
+        } catch (createError) {
+          console.error('❌ Error creating admin user:', createError);
+          throw createError;
+        }
       }
-      
-      console.log('📝 Creating new admin user...');
-      await userService.createUser({
-        username: 'admin@maxcontrol.com',
-        fullName: 'Administrador',
-        password: 'admin123',
-        role: 'admin'
-      });
-      console.log('✅ Default admin user created successfully');
       
       // Also create the user that's trying to log in for testing
       try {
