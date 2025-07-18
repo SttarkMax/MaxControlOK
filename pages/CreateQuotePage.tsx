@@ -363,11 +363,7 @@ export default function CreateQuotePage({ currentUser }: CreateQuotePageProps) {
 
     try {
       console.log('🔄 Preparing to save quote:', currentQuote.quoteNumber);
-        if (editingQuote && editingQuote.id) {
-          await updateQuote({ id: editingQuote.id, ...quoteToSave });
-        } else {
-          throw new Error('Quote ID não encontrado para edição');
-        }
+      
       const quoteToSave: Omit<Quote, 'id'> = {
         quoteNumber: currentQuote.quoteNumber!,
         customerId: currentQuote.customerId,
@@ -401,9 +397,11 @@ export default function CreateQuotePage({ currentUser }: CreateQuotePageProps) {
         itemsCount: quoteToSave.items.length,
         total: quoteToSave.totalCash
       });
+      
       if (isEditing && quoteId) {
         console.log('🔄 Updating existing quote:', quoteId);
-        await updateQuote({ ...quoteToSave, id: quoteId });
+        const updatedQuote = { ...quoteToSave, id: quoteId };
+        await updateQuote(updatedQuote);
         console.log('✅ Quote updated successfully');
         alert('Orçamento atualizado com sucesso!');
       } else {
