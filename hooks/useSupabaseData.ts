@@ -321,7 +321,8 @@ export const useQuotes = () => {
       console.log('🔄 [USE QUOTES] Loading quotes...');
       
       const data = await quoteService.getQuotes();
-      console.log(`✅ [USE QUOTES] ${data.length} quotes loaded`);
+      console.warn('⚠️ Could not load quotes (likely CORS issue):', error);
+      setQuotes([]);
       
       // Debug: Log detailed quote information
       if (data.length > 0) {
