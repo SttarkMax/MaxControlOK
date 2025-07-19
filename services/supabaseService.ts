@@ -590,9 +590,11 @@ export const quoteService = {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (quotesError) {
+    const quoteItemsToInsert = quote.items
+      .filter(item => item && typeof item === 'object') // Filter out null/undefined items
+      .map(item => ({
         console.error('❌ [QUOTE SERVICE] Quotes table error:', quotesError);
-        handleSupabaseError(quotesError);
+      product_id: item.productId || null, // This can be null for custom items
         return [];
       }
 
