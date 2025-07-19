@@ -348,11 +348,6 @@ export default function CreateQuotePage({ currentUser }: CreateQuotePageProps) {
       return;
     }
 
-    if (!companyInfo) {
-      alert('Informações da empresa não encontradas. Configure a empresa primeiro.');
-      return;
-    }
-
     // Check Supabase connection before attempting to save
     if (!isSupabaseConfigured()) {
       alert('Erro de configuração: Supabase não está configurado. Verifique as variáveis de ambiente.');
@@ -382,7 +377,17 @@ export default function CreateQuotePage({ currentUser }: CreateQuotePageProps) {
         paymentDate: currentQuote.paymentDate,
         deliveryDeadline: currentQuote.deliveryDeadline,
         status: currentQuote.status as any,
-        companyInfoSnapshot: companyInfo,
+        companyInfoSnapshot: companyInfo || {
+          name: 'Sua Empresa',
+          logoUrlDarkBg: '',
+          logoUrlLightBg: '',
+          address: '',
+          phone: '',
+          email: '',
+          cnpj: '',
+          instagram: '',
+          website: '',
+        },
         notes: currentQuote.notes || '',
         salespersonUsername: currentUser.username,
         salespersonFullName: currentUser.fullName || currentUser.username,
