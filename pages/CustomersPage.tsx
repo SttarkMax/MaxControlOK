@@ -46,7 +46,7 @@ const CustomersPage: React.FC<CustomersPageProps> = ({ openGlobalViewDetailsModa
   const [searchTerm, setSearchTerm] = useState('');
   
   const [isEditModalOpen, setIsEditModalOpen] = useState(false); 
-  const [currentCustomer, setCurrentCustomer] = useState<Customer>(initialCustomerState);
+  const [currentCustomer, setCurrentCustomer] = useState<Customer | null>(initialCustomerState);
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
@@ -139,6 +139,12 @@ const CustomersPage: React.FC<CustomersPageProps> = ({ openGlobalViewDetailsModa
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!currentCustomer) {
+      alert('Erro: dados do cliente não encontrados.');
+      return;
+    }
+    
     setIsLoading(true);
     
     try {
