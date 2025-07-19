@@ -868,9 +868,7 @@ export const quoteService = {
         .eq('quote_id', quote.id);
 
       // Create new items
-      if (quote.items && quote.items.length > 0) {
-        const itemsToInsert = quote.items.map(item => ({
-          quote_id: quote.id,
+          product_id: item.productId || null, // This can be null for custom items
           product_id: item.productId && item.productId !== '' ? item.productId : null,
           product_name: item.productName,
           quantity: item.quantity,
