@@ -702,6 +702,29 @@ export const quoteService = {
     try {
       console.log('🔄 Creating quote with number:', quote.quoteNumber);
       
+      // Helper function to check if quote number exists
+      const checkQuoteNumberExists = async (quoteNumber: string): Promise<boolean> => {
+        try {
+          const { data, error } = await supabase!
+            .from('quotes')
+            .select('id')
+            .eq('quote_number', quoteNumber)
+            .limit(1);
+          
+          if (error) {
+            console.error('❌ Error checking quote number:', error);
+            return false; // If we can't check, allow creation to proceed
+          }
+          
+          const exists = data && data.length > 0;
+          console.log(`🔍 Quote number ${quoteNumber} exists:`, exists);
+          return exists;
+        } catch (error) {
+          console.error('❌ Error in checkQuoteNumberExists:', error);
+          return false; // If we can't check, allow creation to proceed
+        }
+      };
+      
       // Retry mechanism for quote number generation
       let attempts = 0;
       const maxAttempts = 5;
@@ -709,18 +732,9 @@ export const quoteService = {
       
       while (attempts < maxAttempts) {
         // Check if quote number already exists
-        const { data: existingQuote, error: checkError } = await supabase
-          .from('quotes')
-          .select('id, quote_number')
-          .eq('quote_number', finalQuoteNumber)
-          .single();
+        const exists = await checkQuoteNumberExists(finalQuoteNumber);
         
-        if (checkError && checkError.code !== 'PGRST116') {
-          console.error('❌ Error checking existing quote:', checkError);
-          throw new Error('Erro ao verificar número do orçamento');
-        }
-        
-        if (!existingQuote) {
+        if (!exists) {
           // Quote number is unique, break the loop
           break;
         }
@@ -787,6 +801,7 @@ export const quoteService = {
         const itemsToInsert = quote.items.map(item => {
           console.log('🔍 Processing item:', item);
           return {
+            quote_id: quoteData.id,
             product_id: item.productId && item.productId !== '' ? item.productId : null,
             product_name: item.productName,
             quantity: item.quantity,
