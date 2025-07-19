@@ -700,6 +700,26 @@ export const quoteService = {
     }
 
     try {
+      console.log('🔄 Creating quote with number:', quote.quoteNumber);
+      
+      // Check if quote number already exists
+      const { data: existingQuote, error: checkError } = await supabase
+        .from('quotes')
+        .select('id, quote_number')
+        .eq('quote_number', quote.quoteNumber)
+        .single();
+      
+      if (existingQuote) {
+        console.log('❌ Quote number already exists:', quote.quoteNumber);
+        throw new Error(`Número de orçamento ${quote.quoteNumber} já existe. Tente novamente.`);
+      }
+      
+      // Ignore checkError if it's just "no rows found" (PGRST116)
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('❌ Error checking existing quote:', checkError);
+        throw new Error('Erro ao verificar número do orçamento');
+      }
+      
       console.log('🔄 Creating quote:', quote.quoteNumber);
       
       // Create quote first
