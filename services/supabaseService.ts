@@ -742,7 +742,7 @@ export const quoteService = {
       // Retry mechanism for quote number generation
       let attempts = 0;
       const maxAttempts = 5;
-        .single();
+      let finalQuoteNumber = quote.quoteNumber;
       
       while (attempts < maxAttempts) {
         // Check if quote number already exists
