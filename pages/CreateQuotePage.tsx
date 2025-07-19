@@ -22,6 +22,36 @@ interface CreateQuotePageProps {
   currentUser: LoggedInUser;
 }
 
+const initialQuoteState: Quote = {
+  id: '',
+  quoteNumber: '',
+  clientName: '',
+  clientContact: '',
+  items: [],
+  subtotal: 0,
+  discountType: 'none',
+  discountValue: 0,
+  discountAmountCalculated: 0,
+  subtotalAfterDiscount: 0,
+  totalCash: 0,
+  totalCard: 0,
+  downPaymentApplied: 0,
+  selectedPaymentMethod: '',
+  paymentDate: '',
+  deliveryDeadline: '',
+  createdAt: new Date().toISOString(),
+  status: 'draft',
+  companyInfoSnapshot: {
+    name: '',
+    address: '',
+    phone: '',
+    email: ''
+  },
+  notes: '',
+  salespersonUsername: '',
+  salespersonFullName: ''
+};
+
 export default function CreateQuotePage({ currentUser }: CreateQuotePageProps) {
   const navigate = useNavigate();
   const { quoteId } = useParams<{ quoteId: string }>();
