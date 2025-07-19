@@ -800,7 +800,8 @@ export const quoteService = {
           salesperson_username: quote.salespersonUsername,
           salesperson_full_name: quote.salespersonFullName || '',
         }])
-        .select();
+        .select()
+        .single();
 
       if (quoteError) {
         console.error('❌ Error creating quote:', quoteError);
@@ -812,67 +813,87 @@ export const quoteService = {
         throw new Error('Erro: dados do orçamento não retornados após criação');
       }
 
-      console.log('✅ Quote created, now creating items...');
+      console.log('✅ Quote created successfully:', quoteData.id);
 
+      // Create quote items
       if (quote.items && quote.items.length > 0) {
-        const itemsToInsert = quote.items.map(item => {
-          console.log('🔍 Processing item:', item);
-          return {
-            quote_id: quoteData.id,
-            product_id: item.productId && item.productId !== '' ? item.productId : null,
-            product_name: item.productName,
-            quantity: item.quantity,
-            unit_price: item.unitPrice,
-            total_price: item.totalPrice,
-            pricing_model: item.pricingModel,
-            width: item.width || null,
-            height: item.height || null,
-            item_count_for_area_calc: item.itemCountForAreaCalc || null,
-          };
-        });
-        
-        console.log('🔍 Items to insert:', itemsToInsert);
+        console.log('🔄 Creating quote items...');
+        const quoteItemsToCreate = quote.items.map(item => ({
+          quote_id: quoteData.id,
+          product_id: item.productId || null,
+          product_name: item.productName,
+          quantity: item.quantity,
+          unit_price: item.unitPrice,
+          total_price: item.totalPrice,
+          pricing_model: item.pricingModel,
+          width: item.width || null,
+          height: item.height || null,
+          item_count_for_area_calc: item.itemCountForAreaCalc || null,
+        }));
 
-        const { error: itemsError } = await supabase
+        const { data: itemsData, error: itemsError } = await supabase
           .from('quote_items')
-          .insert(itemsToInsert);
+          .insert(quoteItemsToCreate)
+          .select('*');
 
         if (itemsError) {
           console.error('❌ Error creating quote items:', itemsError);
+          // Cleanup: delete the quote if items creation failed
+          await supabase.from('quotes').delete().eq('id', quoteData.id);
           handleSupabaseError(itemsError);
-          throw new Error('Erro ao criar itens do orçamento');
+          return;
         }
 
-        console.log(`✅ Created ${quote.items.length} quote items`);
+        console.log(`✅ ${itemsData?.length || 0} quote items created successfully`);
+        
+        // Map items back to frontend format
+        quoteData.items = itemsData?.map(item => ({
+          productId: item.product_id,
+          productName: item.product_name,
+          quantity: item.quantity,
+          unitPrice: item.unit_price,
+          totalPrice: item.total_price,
+          pricingModel: item.pricing_model as PricingModel,
+          width: item.width,
+          height: item.height,
+          itemCountForAreaCalc: item.item_count_for_area_calc,
+        })) || [];
+      } else {
+        quoteData.items = [];
       }
 
-      return {
+      // Return the complete quote with items
+      const completeQuote: Quote = {
         id: quoteData.id,
-        quoteNumber: finalQuoteNumber,
-        customerId: quoteData.customer_id || undefined,
+        quoteNumber: quoteData.quote_number,
+        customerId: quoteData.customer_id,
         clientName: quoteData.client_name,
-        clientContact: quoteData.client_contact || '',
-        items: quote.items || [],
-        subtotal: Number(quoteData.subtotal),
-        discountType: quoteData.discount_type as any,
-        discountValue: Number(quoteData.discount_value),
-        discountAmountCalculated: Number(quoteData.discount_amount_calculated),
-        subtotalAfterDiscount: Number(quoteData.subtotal_after_discount),
-        totalCash: Number(quoteData.total_cash),
-        totalCard: Number(quoteData.total_card),
-        downPaymentApplied: Number(quoteData.down_payment_applied || 0),
-        selectedPaymentMethod: quoteData.selected_payment_method || '',
-        paymentDate: quoteData.payment_date || undefined,
-        deliveryDeadline: quoteData.delivery_deadline || undefined,
-        status: quoteData.status as any,
-        companyInfoSnapshot: quoteData.company_info_snapshot as any,
-        notes: quoteData.notes || '',
+        clientContact: quoteData.client_contact,
+        items: quoteData.items,
+        subtotal: quoteData.subtotal,
+        discountType: quoteData.discount_type as 'percentage' | 'fixed' | 'none',
+        discountValue: quoteData.discount_value,
+        discountAmountCalculated: quoteData.discount_amount_calculated,
+        subtotalAfterDiscount: quoteData.subtotal_after_discount,
+        totalCash: quoteData.total_cash,
+        totalCard: quoteData.total_card,
+        downPaymentApplied: quoteData.down_payment_applied,
+        selectedPaymentMethod: quoteData.selected_payment_method,
+        paymentDate: quoteData.payment_date,
+        deliveryDeadline: quoteData.delivery_deadline,
+        status: quoteData.status as QuoteStatus,
+        companyInfoSnapshot: quoteData.company_info_snapshot as CompanyInfo,
+        notes: quoteData.notes,
         salespersonUsername: quoteData.salesperson_username,
-        salespersonFullName: quoteData.salesperson_full_name || '',
+        salespersonFullName: quoteData.salesperson_full_name,
         createdAt: quoteData.created_at,
       };
+
+      console.log('✅ Quote creation completed successfully:', completeQuote.id);
+      return completeQuote;
     } catch (error) {
-      console.error('Error creating quote:', error);
+      console.error('❌ Error in createQuote:', error);
+      handleSupabaseError(error);
       throw error;
     }
   },
@@ -1572,7 +1593,8 @@ export const userService = {
           password_hash: passwordHash,
           role: user.role,
         }])
-        .select();
+        .select()
+        .single();
 
       if (error) {
         if (error.code === '23505') { // Unique constraint violation
