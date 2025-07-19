@@ -371,6 +371,13 @@ export default function CreateQuotePage({ currentUser }: CreateQuotePageProps) {
     if (!currentQuote.clientName?.trim()) {
       alert('Por favor, informe o nome do cliente.');
       return;
+    // Check if user session is valid
+    if (!currentUser || !currentUser.id) {
+      setError('Sessão de usuário não encontrada. Faça login novamente.');
+      setIsSaving(false);
+      return;
+    }
+
     }
 
     if (!currentQuote.items?.length) {
