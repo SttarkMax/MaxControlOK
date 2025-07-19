@@ -742,7 +742,7 @@ export const quoteService = {
       // Retry mechanism for quote number generation
       let attempts = 0;
       const maxAttempts = 5;
-      let finalQuoteNumber = quote.quoteNumber;
+        .single();
       
       while (attempts < maxAttempts) {
         // Check if quote number already exists
@@ -807,6 +807,10 @@ export const quoteService = {
         console.error('❌ Error creating quote:', quoteError);
         handleSupabaseError(quoteError);
         throw new Error('Erro ao criar orçamento');
+      }
+
+      if (!quoteData) {
+        throw new Error('Erro: dados do orçamento não retornados após criação');
       }
 
       console.log('✅ Quote created, now creating items...');
