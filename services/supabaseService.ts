@@ -739,18 +739,23 @@ export const quoteService = {
       console.log('✅ Quote created, now creating items...');
 
       if (quote.items && quote.items.length > 0) {
-        const itemsToInsert = quote.items.map(item => ({
-          quote_id: quoteData.id,
-          product_id: item.productId && item.productId !== '' ? item.productId : null,
-          product_name: item.productName,
-          quantity: item.quantity,
-          unit_price: item.unitPrice,
-          total_price: item.totalPrice,
-          pricing_model: item.pricingModel,
-          width: item.width || null,
-          height: item.height || null,
-          item_count_for_area_calc: item.itemCountForAreaCalc || null,
-        }));
+        const itemsToInsert = quote.items.map(item => {
+          console.log('🔍 Processing item:', item);
+          return {
+            quote_id: quoteData.id,
+            product_id: item.productId && item.productId !== '' ? item.productId : null,
+            product_name: item.productName,
+            quantity: item.quantity,
+            unit_price: item.unitPrice,
+            total_price: item.totalPrice,
+            pricing_model: item.pricingModel,
+            width: item.width || null,
+            height: item.height || null,
+            item_count_for_area_calc: item.itemCountForAreaCalc || null,
+          };
+        });
+        
+        console.log('🔍 Items to insert:', itemsToInsert);
 
         const { error: itemsError } = await supabase
           .from('quote_items')
