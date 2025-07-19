@@ -762,7 +762,6 @@ export const quoteService = {
         const itemsToInsert = quote.items.map(item => {
           console.log('🔍 Processing item:', item);
           return {
-            quote_id: quoteData.id,
             product_id: item.productId && item.productId !== '' ? item.productId : null,
             product_name: item.productName,
             quantity: item.quantity,
