@@ -585,9 +585,23 @@ export const quoteService = {
       console.log('🔄 [QUOTE SERVICE] Loading quotes from Supabase...');
       
       // First, get all quotes
-      const { data: quotesData, error: quotesError } = await supabase
+      const { data: quotes, error: quotesError } = await supabase
         .from('quotes')
-        .select('*')
+        .select(`
+          *,
+          quote_items (
+            id,
+            product_id,
+            product_name,
+            quantity,
+            unit_price,
+            total_price,
+            pricing_model,
+            width,
+            height,
+            item_count_for_area_calc
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (quotesError) {
@@ -596,12 +610,12 @@ export const quoteService = {
         return [];
       }
 
-      if (!quotesData || quotesData.length === 0) {
+      if (!quotes || quotes.length === 0) {
         console.log('📋 [QUOTE SERVICE] No quotes found in database');
         return [];
       }
 
-      console.log(`📊 [QUOTE SERVICE] Found ${quotesData.length} quotes, loading items...`);
+      console.log(`📊 [QUOTE SERVICE] Found ${quotes.length} quotes, loading items...`);
 
       // Get all quote items for all quotes
       const { data: itemsData, error: itemsError } = await supabase
@@ -618,7 +632,7 @@ export const quoteService = {
       console.log(`📦 [QUOTE SERVICE] Found ${itemsData?.length || 0} quote items total`);
 
       // Combine quotes with their items
-      const quotesWithItems = quotesData.map(quote => {
+      const quotesWithItems = quotes.map(quote => {
         const quoteItems = itemsData?.filter(item => item.quote_id === quote.id) || [];
         
         console.log(`📋 [QUOTE SERVICE] Quote ${quote.quote_number}: ${quoteItems.length} items`, {
@@ -639,16 +653,16 @@ export const quoteService = {
           customerId: quote.customer_id || undefined,
           clientName: quote.client_name,
           clientContact: quote.client_contact || '',
-          items: quoteItems.map(item => ({
-            productId: item.product_id || '',
+          items: (quote.quote_items || []).map((item: any) => ({
+            productId: item.product_id,
             productName: item.product_name,
-            quantity: Number(item.quantity),
-            unitPrice: Number(item.unit_price),
-            totalPrice: Number(item.total_price),
-            pricingModel: item.pricing_model as any,
-            width: item.width ? Number(item.width) : undefined,
-            height: item.height ? Number(item.height) : undefined,
-            itemCountForAreaCalc: item.item_count_for_area_calc || undefined,
+            quantity: item.quantity,
+            unitPrice: item.unit_price,
+            totalPrice: item.total_price,
+            pricingModel: item.pricing_model,
+            width: item.width,
+            height: item.height,
+            itemCountForAreaCalc: item.item_count_for_area_calc
           })),
           subtotal: Number(quote.subtotal),
           discountType: quote.discount_type as any,
