@@ -6,6 +6,7 @@ import ArrowLeftOnRectangleIcon from './icons/ArrowLeftOnRectangleIcon';
 import Bars3Icon from './icons/Bars3Icon';
 import XMarkIcon from './icons/XMarkIcon';
 import { UserAccessLevel, CompanyInfo } from '../types';
+import SystemHealthIndicator from './SystemHealthIndicator';
 
 interface HeaderProps {
   userName: string; // This is the username
@@ -50,6 +51,7 @@ const Header: React.FC<HeaderProps> = ({ userName, userFullName, userRole, onLog
                 {companyInfo?.name || APP_NAME}
               </h1>
             )}
+            <SystemHealthIndicator className="mt-1" />
           </div>
 
           {/* Right section: User Menu */}

@@ -584,14 +584,15 @@ export const quoteService = {
     try {
       console.log('🔄 [QUOTE SERVICE] Loading quotes from Supabase...');
       
-      // Get quotes
+      // First, get all quotes
+      const { data: quotes, error: quotesError } = await supabase
       const { data: quotesData, error: quotesError } = await supabase
         .from('quotes')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (quotesError) {
-        console.error('❌ [QUOTE SERVICE] Quotes table error:', quotesError);
+        console.error('❌ [QUOTE SERVICE] Error fetching quotes:', quotesError);
         handleSupabaseError(quotesError);
         return [];
       }
@@ -1294,7 +1295,42 @@ export const accountsPayableService = {
         dueDate: item.due_date,
         isPaid: item.is_paid || false,
         createdAt: item.created_at,
-        notes: item.notes || '',
+      console.log(`✅ [QUOTE SERVICE] ${quotes.length} quotes fetched, now fetching items...`);
+      
+      // Get all quote items for all quotes in one query
+      const quoteIds = quotes.map(q => q.id);
+      const { data: allItems, error: itemsError } = await supabase
+        .from('quote_items')
+        .select('*')
+        .in('quote_id', quoteIds)
+        .order('created_at', { ascending: true });
+
+      if (itemsError) {
+        console.error('❌ [QUOTE SERVICE] Error fetching quote items:', itemsError);
+        handleSupabaseError(itemsError);
+        // Continue without items rather than failing completely
+      }
+
+      console.log(`✅ [QUOTE SERVICE] ${allItems?.length || 0} quote items fetched`);
+      
+      // Group items by quote_id
+      const itemsByQuoteId = (allItems || []).reduce((acc, item) => {
+        if (!acc[item.quote_id]) {
+          acc[item.quote_id] = [];
+        }
+        acc[item.quote_id].push({
+          productId: item.product_id || '',
+          productName: item.product_name,
+          quantity: item.quantity,
+          unitPrice: item.unit_price,
+          totalPrice: item.total_price,
+          pricingModel: item.pricing_model as PricingModel,
+          width: item.width || undefined,
+          height: item.height || undefined,
+          itemCountForAreaCalc: item.item_count_for_area_calc || undefined,
+        });
+        return acc;
+      }, {} as Record<string, QuoteItem[]>);
         seriesId: item.series_id || undefined,
         totalInstallmentsInSeries: item.total_installments_in_series || undefined,
         installmentNumberOfSeries: item.installment_number_of_series || undefined,
@@ -1303,7 +1339,7 @@ export const accountsPayableService = {
       console.error('Accounts payable error:', error);
       handleSupabaseError(error);
       return [];
-    }
+        items: itemsByQuoteId[dbQuote.id] || [],
   },
 
   async createAccountsPayable(entries: Omit<AccountsPayableEntry, 'id'>[]): Promise<AccountsPayableEntry[]> {
@@ -1448,7 +1484,12 @@ export const userService = {
       return data?.map(user => ({
         id: user.id,
         username: user.username,
-        fullName: user.full_name || '',
+      console.log(`🔍 [QUOTE SERVICE] Sample transformed quote with items:`, {
+        id: transformedQuotes[0]?.id,
+        quoteNumber: transformedQuotes[0]?.quoteNumber,
+        itemsCount: transformedQuotes[0]?.items?.length || 0,
+        sampleItem: transformedQuotes[0]?.items?.[0]
+      });
         role: user.role as UserAccessLevel,
       })) || [];
     } catch (error) {

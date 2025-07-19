@@ -347,9 +347,10 @@ export const useQuotes = () => {
     } catch (err) {
       console.error('❌ [USE QUOTES] Error loading quotes:', err);
       
-      // Handle all errors gracefully in development
-      console.warn('🔌 [USE QUOTES] Quotes loading failed - using offline mode');
-      setError(null); // Don't show error to user
+      // Show actual errors to help with debugging
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao carregar orçamentos';
+      console.error('🔌 [USE QUOTES] Quotes loading failed:', errorMessage);
+      setError(errorMessage);
       setQuotes([]);
     } finally {
       setLoading(false);

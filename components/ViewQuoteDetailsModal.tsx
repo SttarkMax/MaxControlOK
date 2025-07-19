@@ -288,20 +288,10 @@ const ViewQuoteDetailsModal: React.FC<ViewQuoteDetailsModalProps> = ({ isOpen, o
         {/* Items Table */}
         <div className="mb-6">
           <h4 className="font-semibold text-lg text-white mb-2">Itens</h4>
-          {/* Debug info */}
-          <div className="mb-2 p-2 bg-gray-800 rounded text-xs">
-            <p>🔍 Debug: Quote ID = {quote.id}</p>
-            <p>📦 Items array length = {items?.length || 0}</p>
-            <p>💰 Subtotal = {formatCurrency(subtotal)}</p>
-            {items && items.length > 0 && (
-              <p>📋 First item: {items[0].productName} (Qty: {items[0].quantity})</p>
-            )}
-          </div>
           {(!items || items.length === 0) && (
             <div className="text-center py-4 text-gray-400">
               <p>Nenhum item encontrado para este orçamento.</p>
-              <p className="text-sm">Quote ID: {quote.id} | Status: {status}</p>
-              <p className="text-sm">Verifique o console para logs detalhados.</p>
+              <p className="text-sm">Este orçamento pode ter sido criado antes da implementação de itens detalhados.</p>
             </div>
           )}
           {items && items.length > 0 && (

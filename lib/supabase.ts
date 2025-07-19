@@ -133,21 +133,21 @@ export const testSupabaseConnection = async () => {
 export const handleSupabaseError = (error: any) => {
   // Check if Supabase is configured first
   if (!isSupabaseConfigured()) {
-    console.warn('⚠️ Supabase not configured - check environment variables');
-    return; // Don't throw error, just return silently
+    console.error('❌ Supabase not configured - check environment variables');
+    throw new Error('Supabase não configurado. Verifique as variáveis de ambiente.');
   }
   
   // Check for fetch/CORS errors first (most common issue)
   if (error?.message?.includes('Failed to fetch') || 
       error?.name === 'TypeError' && error?.message?.includes('fetch')) {
-    console.warn('🔌 CORS/Network Error - Please check Supabase CORS settings');
-    console.warn('📋 To fix: Add http://localhost:5173 to Supabase CORS origins');
-    console.warn('🔗 Go to: Supabase Dashboard → Project Settings → API → CORS');
-    return; // Don't throw, handle gracefully
+    console.error('🔌 CORS/Network Error - Please check Supabase CORS settings');
+    console.error('📋 To fix: Add http://localhost:5173 to Supabase CORS origins');
+    console.error('🔗 Go to: Supabase Dashboard → Project Settings → API → CORS');
+    throw new Error('Erro de conectividade. Verifique sua conexão com a internet e configurações CORS.');
   }
   
   // Log error details for debugging
-  console.warn('⚠️ Supabase Error:', {
+  console.error('❌ Supabase Error:', {
     message: error?.message,
     code: error?.code,
     type: error?.name || 'Unknown'
@@ -155,7 +155,7 @@ export const handleSupabaseError = (error: any) => {
   
   // If the operation was successful but there's a warning/info message, don't throw
   if (error?.code === 'PGRST116' || error?.message?.includes('No rows found')) {
-    console.warn('⚠️ Supabase warning (non-critical):', error?.message);
+    console.info('ℹ️ Supabase info (non-critical):', error?.message);
     return; // Don't throw for non-critical warnings
   }
   
@@ -168,18 +168,18 @@ export const handleSupabaseError = (error: any) => {
       error?.message?.includes('does not exist') ||
       error?.message?.includes('NetworkError') ||
       error?.message?.includes('ERR_NETWORK')) {
-    console.warn('🔌 Network/Database Issue - check connection');
+    console.error('🔌 Network/Database Issue - check connection');
     // Only throw if it's a real connection error, not a successful operation
-    return; // Handle gracefully instead of throwing
+    throw new Error('Erro de conexão com o banco de dados. Verifique sua conexão.');
   }
   
   // For RLS and permission errors
   if (error?.code === '42501' || error?.message?.includes('permission denied') || error?.message?.includes('RLS')) {
     console.error('🔒 RLS/Permission Error:', error);
-    return; // Handle gracefully
+    throw new Error('Erro de permissão. Verifique suas credenciais.');
   }
   
   // For other database errors
-  console.warn('⚠️ Database operation completed with warning:', error?.message);
-  return; // Handle gracefully instead of throwing
+  console.error('❌ Database error:', error?.message);
+  throw new Error(`Erro no banco de dados: ${error?.message || 'Erro desconhecido'}`);
 };
