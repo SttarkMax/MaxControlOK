@@ -800,8 +800,7 @@ export const quoteService = {
           salesperson_username: quote.salespersonUsername,
           salesperson_full_name: quote.salespersonFullName || '',
         }])
-        .select()
-        .single();
+        .select();
 
       if (quoteError) {
         console.error('❌ Error creating quote:', quoteError);
@@ -1573,8 +1572,7 @@ export const userService = {
           password_hash: passwordHash,
           role: user.role,
         }])
-        .select()
-        .single();
+        .select();
 
       if (error) {
         if (error.code === '23505') { // Unique constraint violation
