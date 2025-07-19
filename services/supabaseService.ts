@@ -702,31 +702,56 @@ export const quoteService = {
     try {
       console.log('🔄 Creating quote with number:', quote.quoteNumber);
       
-      // Check if quote number already exists
-      const { data: existingQuote, error: checkError } = await supabase
-        .from('quotes')
-        .select('id, quote_number')
-        .eq('quote_number', quote.quoteNumber)
-        .single();
+      // Retry mechanism for quote number generation
+      let attempts = 0;
+      const maxAttempts = 5;
+      let finalQuoteNumber = quote.quoteNumber;
       
-      if (existingQuote) {
-        console.log('❌ Quote number already exists:', quote.quoteNumber);
-        throw new Error(`Número de orçamento ${quote.quoteNumber} já existe. Tente novamente.`);
+      while (attempts < maxAttempts) {
+        // Check if quote number already exists
+        const { data: existingQuote, error: checkError } = await supabase
+          .from('quotes')
+          .select('id, quote_number')
+          .eq('quote_number', finalQuoteNumber)
+          .single();
+        
+        if (checkError && checkError.code !== 'PGRST116') {
+          console.error('❌ Error checking existing quote:', checkError);
+          throw new Error('Erro ao verificar número do orçamento');
+        }
+        
+        if (!existingQuote) {
+          // Quote number is unique, break the loop
+          break;
+        }
+        
+        // Generate a new quote number with additional randomness
+        attempts++;
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = (now.getMonth() + 1).toString().padStart(2, '0');
+        const day = now.getDate().toString().padStart(2, '0');
+        const hours = now.getHours().toString().padStart(2, '0');
+        const minutes = now.getMinutes().toString().padStart(2, '0');
+        const seconds = now.getSeconds().toString().padStart(2, '0');
+        const milliseconds = now.getMilliseconds().toString().padStart(3, '0');
+        const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
+        
+        finalQuoteNumber = `ORC-${year}${month}${day}-${hours}${minutes}${seconds}${milliseconds}-${randomSuffix}`;
+        console.log(`🔄 [QUOTE SERVICE] Attempt ${attempts}: Trying new quote number: ${finalQuoteNumber}`);
       }
       
-      // Ignore checkError if it's just "no rows found" (PGRST116)
-      if (checkError && checkError.code !== 'PGRST116') {
-        console.error('❌ Error checking existing quote:', checkError);
-        throw new Error('Erro ao verificar número do orçamento');
+      if (attempts >= maxAttempts) {
+        throw new Error('Não foi possível gerar um número único de orçamento após várias tentativas. Tente novamente.');
       }
       
-      console.log('🔄 Creating quote:', quote.quoteNumber);
+      console.log('🔄 Creating quote:', finalQuoteNumber);
       
       // Create quote first
       const { data: quoteData, error: quoteError } = await supabase
         .from('quotes')
         .insert([{
-          quote_number: quote.quoteNumber,
+          quote_number: finalQuoteNumber,
           customer_id: quote.customerId || null,
           client_name: quote.clientName,
           client_contact: quote.clientContact || '',
@@ -791,7 +816,7 @@ export const quoteService = {
 
       return {
         id: quoteData.id,
-        quoteNumber: quoteData.quote_number,
+        quoteNumber: finalQuoteNumber,
         customerId: quoteData.customer_id || undefined,
         clientName: quoteData.client_name,
         clientContact: quoteData.client_contact || '',

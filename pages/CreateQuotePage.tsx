@@ -61,8 +61,11 @@ const generateQuoteNumber = (): string => {
   const minutes = now.getMinutes().toString().padStart(2, '0');
   const seconds = now.getSeconds().toString().padStart(2, '0');
   const milliseconds = now.getMilliseconds().toString().padStart(3, '0');
-  const randomSuffix = Math.random().toString(36).substring(2, 5).toUpperCase();
-  return `ORC-${year}${month}${day}-${hours}${minutes}${seconds}-${randomSuffix}`;
+  
+  // Generate a random 4-character alphanumeric string with milliseconds
+  const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+  
+  return `ORC-${year}${month}${day}-${hours}${minutes}${seconds}${milliseconds}-${randomSuffix}`;
 };
 
 export default function CreateQuotePage({ currentUser }: CreateQuotePageProps) {
