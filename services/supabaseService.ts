@@ -738,10 +738,10 @@ export const quoteService = {
 
       console.log('✅ Quote created, now creating items...');
 
-      // Create quote items
+     const quoteItemsToInsert = quote.items?.map(item => ({
       if (quote.items && quote.items.length > 0) {
         const itemsToInsert = quote.items.map(item => ({
-          quote_id: quoteData.id,
+       product_id: item.productId || null,
           product_id: item.productId && item.productId !== '' ? item.productId : null,
           product_name: item.productName,
           quantity: item.quantity,
@@ -750,9 +750,9 @@ export const quoteService = {
           pricing_model: item.pricingModel,
           width: item.width || null,
           height: item.height || null,
-          item_count_for_area_calc: item.itemCountForAreaCalc || null,
+     })) || [];
         }));
-
+     if (quoteItemsToInsert && quoteItemsToInsert.length > 0) {
         const { error: itemsError } = await supabase
           .from('quote_items')
           .insert(itemsToInsert);
@@ -772,7 +772,7 @@ export const quoteService = {
         customerId: quoteData.customer_id || undefined,
         clientName: quoteData.client_name,
         clientContact: quoteData.client_contact || '',
-        items: quote.items || [],
+       items: quote.items || [],
         subtotal: Number(quoteData.subtotal),
         discountType: quoteData.discount_type as any,
         discountValue: Number(quoteData.discount_value),
